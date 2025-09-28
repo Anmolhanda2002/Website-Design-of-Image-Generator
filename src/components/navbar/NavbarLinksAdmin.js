@@ -26,6 +26,7 @@ import { MdNotificationsNone, MdInfoOutline } from 'react-icons/md';
 import { IoMdMoon, IoMdSunny } from 'react-icons/io';
 import { FaEthereum } from 'react-icons/fa';
 import routes from 'routes';
+import NavbarClock from './NavbarClock';
 export default function HeaderLinks(props) {
   const { secondary } = props;
   const { colorMode, toggleColorMode } = useColorMode();
@@ -64,6 +65,7 @@ export default function HeaderLinks(props) {
         me="10px"
         borderRadius="30px"
       />
+      <NavbarClock/>
       <Flex
         bg={ethBg}
         display={secondary ? 'flex' : 'none'}
@@ -135,6 +137,7 @@ export default function HeaderLinks(props) {
               Mark all read
             </Text>
           </Flex>
+          
           <Flex flexDirection="column">
             <MenuItem
               _hover={{ bg: 'none' }}
