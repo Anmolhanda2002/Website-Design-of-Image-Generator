@@ -15,6 +15,7 @@ import NFTMarketplace from 'views/admin/marketplace';
 import Profile from 'views/admin/profile';
 import DataTables from 'views/admin/dataTables';
 import RTL from 'views/admin/rtl';
+import DashboardLayout from 'views/admin/NextPageGenerateVedio/GenerateVedio';
 
 // Auth Imports
 import SignInCentered from 'views/auth/signIn';
@@ -52,10 +53,17 @@ const routes = [
   {
     name: 'GenerateVideo',
     layout: '/admin',
-    path: '/generateVideo',
+    path: '/generatevideo',
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
     component: <Profile />,
   },
+  //   {
+  //   name: 'NextGenerateVideo',
+  //   layout: '/admin',
+  //   path: '/nextgeneratevideo',
+  //   icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+  //   component: <DashboardLayout/>,
+  // },
   // {
   //   name: 'Sign In',
   //   layout: '/auth',
@@ -65,10 +73,10 @@ const routes = [
   // },
   // {
   //   name: 'RTL Admin',
-  //   layout: '/rtl',
+  //   layout: '/admin',
   //   path: '/rtl-default',
   //   icon: <Icon as={MdHome} width="20px" height="20px" color="inherit" />,
-  //   component: <RTL />,
+  //   component: <DashboardLayout></DashboardLayout>,
   // },
 ];
 
