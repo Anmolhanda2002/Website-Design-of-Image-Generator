@@ -4,10 +4,10 @@ import {
   Textarea,
   IconButton,
   Flex,
-  useColorModeValue,
   Spinner,
   Image,
   SimpleGrid,
+  Text,
 } from "@chakra-ui/react";
 import { AddIcon, ArrowUpIcon } from "@chakra-ui/icons";
 
@@ -17,8 +17,10 @@ const TextFieldComponent = ({ onSubmit }) => {
   const [loadingImages, setLoadingImages] = useState({});
   const [sending, setSending] = useState(false);
 
-  const boxBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const mainBg = "#1B254B"; // Dark mode background
+  const cardBg = "#111936"; // Slightly darker cards
+  const borderColor = "rgba(255,255,255,0.1)";
+  const textColor = "white";
 
   // Handle image upload
   const handleImageChange = (e) => {
@@ -56,6 +58,10 @@ const TextFieldComponent = ({ onSubmit }) => {
     }, 1500);
   };
 
+  // Limit displayed images
+  const visibleImages = images.slice(0, 5);
+  const extraCount = images.length - 5;
+
   return (
     <Box
       w="100%"
@@ -63,11 +69,12 @@ const TextFieldComponent = ({ onSubmit }) => {
       mx="auto"
       mt={6}
       p={4}
-      bg={boxBg}
+      bg={mainBg}
       borderWidth="1px"
       borderColor={borderColor}
       borderRadius="xl"
-      boxShadow="sm"
+      boxShadow="lg"
+      color={textColor}
     >
       {/* Textarea field */}
       <Textarea
@@ -78,6 +85,10 @@ const TextFieldComponent = ({ onSubmit }) => {
         resize="none"
         borderRadius="lg"
         mb={3}
+        bg={cardBg}
+        borderColor={borderColor}
+        color={textColor}
+        _placeholder={{ color: "gray.400" }}
       />
 
       {/* Action row: + and ↑ */}
@@ -89,8 +100,10 @@ const TextFieldComponent = ({ onSubmit }) => {
             icon={<AddIcon />}
             aria-label="Upload"
             borderRadius="full"
-            variant="outline"
-            colorScheme="blue"
+            variant="solid"
+            bg="blue.500"
+            _hover={{ bg: "blue.400" }}
+            color="white"
           />
         </label>
         <input
@@ -105,7 +118,9 @@ const TextFieldComponent = ({ onSubmit }) => {
         {/* Send Arrow */}
         <IconButton
           icon={sending ? <Spinner size="sm" /> : <ArrowUpIcon />}
-          colorScheme="blue"
+          bg="green.500"
+          _hover={{ bg: "green.400" }}
+          color="white"
           aria-label="Send"
           borderRadius="full"
           onClick={handleSubmit}
@@ -116,6 +131,7 @@ const TextFieldComponent = ({ onSubmit }) => {
       {/* Image Preview Grid */}
       {(images.length > 0 || Object.keys(loadingImages).length > 0) && (
         <SimpleGrid columns={{ base: 3, sm: 4, md: 6 }} spacing={3} mt={4}>
+          {/* Show loading placeholders */}
           {Object.keys(loadingImages).map((id) => (
             <Flex
               key={id}
@@ -123,14 +139,16 @@ const TextFieldComponent = ({ onSubmit }) => {
               align="center"
               justify="center"
               border="2px dashed"
-              borderColor="gray.300"
+              borderColor="gray.500"
               borderRadius="md"
+              bg={cardBg}
             >
-              <Spinner />
+              <Spinner color="white" />
             </Flex>
           ))}
 
-          {images.map((img) => (
+          {/* Show up to 5 images */}
+          {visibleImages.map((img) => (
             <Image
               key={img.id}
               src={img.preview}
@@ -138,8 +156,25 @@ const TextFieldComponent = ({ onSubmit }) => {
               boxSize="80px"
               objectFit="cover"
               borderRadius="md"
+              border="1px solid"
+              borderColor={borderColor}
             />
           ))}
+
+          {/* Show +X box if more images exist */}
+          {extraCount > 0 && (
+            <Flex
+              boxSize="80px"
+              align="center"
+              justify="center"
+              bg="gray.600"
+              borderRadius="md"
+            >
+              <Text fontWeight="bold" color="white">
+                +{extraCount}
+              </Text>
+            </Flex>
+          )}
         </SimpleGrid>
       )}
     </Box>

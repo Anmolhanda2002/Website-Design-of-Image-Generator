@@ -57,13 +57,13 @@ const routes = [
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
     component: <Profile />,
   },
-  //   {
-  //   name: 'NextGenerateVideo',
-  //   layout: '/admin',
-  //   path: '/nextgeneratevideo',
-  //   icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
-  //   component: <DashboardLayout/>,
-  // },
+    {
+    name: 'NextGenerateVideo',
+    layout: '/admin',
+    path: '/nextgeneratevideo',
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    component: <DashboardLayout/>,
+  },
   // {
   //   name: 'Sign In',
   //   layout: '/auth',
