@@ -28,6 +28,10 @@ const DashboardPage = () => {
   const cardBg = useColorModeValue("white", "#1B254B");
   const cardText = useColorModeValue("gray.600", "gray.300");
 
+  // Colors for sidebar items
+  const hoverBg = useColorModeValue("gray.100", "gray.700");
+  const textColor = useColorModeValue("gray.700", "gray.300");
+
   const menuItems = [
     { label: "Template", icon: FaMagic },
     { label: "Transition", icon: FaExchangeAlt },
@@ -40,7 +44,12 @@ const DashboardPage = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
-    <Flex h="80vh" w="100%" direction={isMobile ? "column" : "row"} style={{marginTop: "130px"}}>
+    <Flex
+      h="80vh"
+      w="100%"
+      direction={isMobile ? "column" : "row"}
+      style={{ marginTop: "130px" }}
+    >
       {/* Sidebar */}
       <Box
         w={isMobile ? "100%" : "200px"}
@@ -72,15 +81,9 @@ const DashboardPage = () => {
                   cursor="pointer"
                   bg={isActive ? "blue.500" : "transparent"}
                   _hover={{
-                    bg: isActive
-                      ? "blue.600"
-                      : useColorModeValue("gray.100", "gray.700"),
+                    bg: isActive ? "blue.600" : hoverBg,
                   }}
-                  color={
-                    isActive
-                      ? "white"
-                      : useColorModeValue("gray.700", "gray.300")
-                  }
+                  color={isActive ? "white" : textColor}
                   onClick={() => setActive(item.label)}
                 >
                   <Icon />
