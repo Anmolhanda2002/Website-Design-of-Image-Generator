@@ -8,6 +8,7 @@ import {
   Image,
   SimpleGrid,
   Text,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { AddIcon, ArrowUpIcon } from "@chakra-ui/icons";
 
@@ -17,10 +18,18 @@ const TextFieldComponent = ({ onSubmit }) => {
   const [loadingImages, setLoadingImages] = useState({});
   const [sending, setSending] = useState(false);
 
-  const mainBg = "#1B254B"; // Dark mode background
-  const cardBg = "#111936"; // Slightly darker cards
-  const borderColor = "rgba(255,255,255,0.1)";
-  const textColor = "white";
+  // Light/Dark mode colors
+  const mainBg = useColorModeValue("gray.100", "#1B254B"); // container background
+  const cardBg = useColorModeValue("white", "#111936"); // textarea & image cards
+  const borderColor = useColorModeValue("gray.300", "rgba(255,255,255,0.1)");
+  const textColor = useColorModeValue("gray.800", "white");
+  const placeholderColor = useColorModeValue("gray.500", "gray.400");
+  const uploadBtnBg = useColorModeValue("blue.500", "blue.500");
+  const uploadBtnHover = useColorModeValue("blue.400", "blue.400");
+  const sendBtnBg = useColorModeValue("green.500", "green.500");
+  const sendBtnHover = useColorModeValue("green.400", "green.400");
+  const loadingBorder = useColorModeValue("gray.300", "gray.500");
+  const extraBoxBg = useColorModeValue("gray.300", "gray.600");
 
   // Handle image upload
   const handleImageChange = (e) => {
@@ -88,7 +97,7 @@ const TextFieldComponent = ({ onSubmit }) => {
         bg={cardBg}
         borderColor={borderColor}
         color={textColor}
-        _placeholder={{ color: "gray.400" }}
+        _placeholder={{ color: placeholderColor }}
       />
 
       {/* Action row: + and ↑ */}
@@ -101,8 +110,8 @@ const TextFieldComponent = ({ onSubmit }) => {
             aria-label="Upload"
             borderRadius="full"
             variant="solid"
-            bg="blue.500"
-            _hover={{ bg: "blue.400" }}
+            bg={uploadBtnBg}
+            _hover={{ bg: uploadBtnHover }}
             color="white"
           />
         </label>
@@ -118,8 +127,8 @@ const TextFieldComponent = ({ onSubmit }) => {
         {/* Send Arrow */}
         <IconButton
           icon={sending ? <Spinner size="sm" /> : <ArrowUpIcon />}
-          bg="green.500"
-          _hover={{ bg: "green.400" }}
+          bg={sendBtnBg}
+          _hover={{ bg: sendBtnHover }}
           color="white"
           aria-label="Send"
           borderRadius="full"
@@ -139,7 +148,7 @@ const TextFieldComponent = ({ onSubmit }) => {
               align="center"
               justify="center"
               border="2px dashed"
-              borderColor="gray.500"
+              borderColor={loadingBorder}
               borderRadius="md"
               bg={cardBg}
             >
@@ -167,10 +176,10 @@ const TextFieldComponent = ({ onSubmit }) => {
               boxSize="80px"
               align="center"
               justify="center"
-              bg="gray.600"
+              bg={extraBoxBg}
               borderRadius="md"
             >
-              <Text fontWeight="bold" color="white">
+              <Text fontWeight="bold" color={textColor}>
                 +{extraCount}
               </Text>
             </Flex>
