@@ -29,7 +29,7 @@ import { IoMdMoon, IoMdSunny } from 'react-icons/io';
 import { FaEthereum } from 'react-icons/fa';
 import routes from 'routes';
 import NavbarClock from './NavbarClock';
-
+import { startTransition } from "react";
 export default function HeaderLinks(props) {
   const { secondary } = props;
   const { colorMode, toggleColorMode } = useColorMode();
@@ -56,17 +56,21 @@ export default function HeaderLinks(props) {
   const toast = useToast();
 
   // Logout function
-  const handleLogout = () => {
-    localStorage.removeItem("user"); // remove user data from localStorage
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully",
-      status: "success",
-      duration: 2000,
-      isClosable: true,
-    });
-    navigate("/auth/sign-in", { replace: true }); // redirect to login page
-  };
+const handleLogout = () => {
+  localStorage.removeItem("user"); // remove user data
+
+  toast({
+    title: "Logged out",
+    description: "You have been logged out successfully",
+    status: "success",
+    duration: 2000,
+    isClosable: true,
+  });
+
+  startTransition(() => {
+    navigate("/auth/sign-in", { replace: true }); // navigate safely
+  });
+};
 
 
   const handleProfilePage = ()=>{

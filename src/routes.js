@@ -18,7 +18,7 @@ import ForgotPassword from 'views/auth/forgetpassword/ForgetPassword';
 import SignInCentered from 'views/auth/signIn';
 import SignUp from 'views/auth/SignUp';
 import UserSettings from 'views/admin/profilesetting/Profilesetting';
-
+import AssetsPage from 'views/admin/AssertsPage/AssertsPage';
 const routes = [
   {
     name: 'Main Dashboard',
@@ -72,6 +72,16 @@ const routes = [
     icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
     component: <UserSettings />,
     showInSidebar: false,
+   
+  },
+
+    {
+    name: 'Asserts',
+    layout: '/admin',
+    path: '/asserts',
+    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    component: <AssetsPage />,
+    showInSidebar: true,
    
   },
   {
