@@ -48,7 +48,7 @@ const DashboardPage = () => {
       h="80vh"
       w="100%"
       direction={isMobile ? "column" : "row"}
-      style={{ marginTop: "130px" }}
+      style={{ marginTop: "100px" }}
     >
       {/* Sidebar */}
       <Box

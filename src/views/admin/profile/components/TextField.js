@@ -40,7 +40,10 @@ const TextFieldComponent = ({ onSubmit }) => {
     });
 
     newImages.forEach((img) => {
-      setLoadingImages((prev) => ({ ...prev, [img.id]: true }));
+      // Add to loading images immediately
+      setLoadingImages((prev) => ({ ...prev, [img.id]: img }));
+
+      // Simulate processing delay
       setTimeout(() => {
         setLoadingImages((prev) => {
           const updated = { ...prev };
@@ -64,12 +67,16 @@ const TextFieldComponent = ({ onSubmit }) => {
       }
       setText("");
       setImages([]);
+      setLoadingImages({});
     }, 1500);
   };
 
-  // Limit displayed images
-  const visibleImages = images.slice(0, 5);
-  const extraCount = images.length - 5;
+  // Combine loaded + loading images for grid and count
+  const allImagesCount =
+    images.length + Object.keys(loadingImages).length;
+  const combinedImages = [...images, ...Object.values(loadingImages)];
+  const visibleImages = combinedImages.slice(0, 5);
+  const extraCount = allImagesCount - 5;
 
   return (
     <Box
@@ -90,7 +97,7 @@ const TextFieldComponent = ({ onSubmit }) => {
         placeholder="Write something..."
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={3}
+        rows={5}
         resize="none"
         borderRadius="lg"
         mb={3}
@@ -138,37 +145,38 @@ const TextFieldComponent = ({ onSubmit }) => {
       </Flex>
 
       {/* Image Preview Grid */}
-      {(images.length > 0 || Object.keys(loadingImages).length > 0) && (
+      {combinedImages.length > 0 && (
         <SimpleGrid columns={{ base: 3, sm: 4, md: 6 }} spacing={3} mt={4}>
-          {/* Show loading placeholders */}
-          {Object.keys(loadingImages).map((id) => (
-            <Flex
-              key={id}
-              boxSize="80px"
-              align="center"
-              justify="center"
-              border="2px dashed"
-              borderColor={loadingBorder}
-              borderRadius="md"
-              bg={cardBg}
-            >
-              <Spinner color="white" />
-            </Flex>
-          ))}
-
-          {/* Show up to 5 images */}
-          {visibleImages.map((img) => (
-            <Image
-              key={img.id}
-              src={img.preview}
-              alt="preview"
-              boxSize="80px"
-              objectFit="cover"
-              borderRadius="md"
-              border="1px solid"
-              borderColor={borderColor}
-            />
-          ))}
+          {visibleImages.map((img) => {
+            const isLoading = Object.keys(loadingImages).includes(
+              img.id.toString()
+            );
+            return isLoading ? (
+              <Flex
+                key={img.id}
+                boxSize="80px"
+                align="center"
+                justify="center"
+                border="2px dashed"
+                borderColor={loadingBorder}
+                borderRadius="md"
+                bg={cardBg}
+              >
+                <Spinner color="white" />
+              </Flex>
+            ) : (
+              <Image
+                key={img.id}
+                src={img.preview}
+                alt="preview"
+                boxSize="80px"
+                objectFit="cover"
+                borderRadius="md"
+                border="1px solid"
+                borderColor={borderColor}
+              />
+            );
+          })}
 
           {/* Show +X box if more images exist */}
           {extraCount > 0 && (

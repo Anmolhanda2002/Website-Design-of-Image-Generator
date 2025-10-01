@@ -6,7 +6,7 @@ const NavbarClock = () => {
   const [time, setTime] = useState(new Date());
 
   const textColor = useColorModeValue("gray.800", "white");
-  const bgColor = useColorModeValue("gray.100", "gray.700");
+  const bgColor = useColorModeValue("gray.100", "#111c44");
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);

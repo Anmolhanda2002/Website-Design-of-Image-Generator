@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 // Chakra imports
-import { useContext } from "react";
 import {
   Flex,
   Heading,
@@ -11,7 +10,6 @@ import {
   InputGroup,
   InputRightElement,
   Icon,
-  Checkbox,
   Button,
   Text,
   useColorModeValue,
@@ -22,11 +20,11 @@ import { RiEyeCloseLine } from "react-icons/ri";
 import DefaultAuth from "layouts/auth/Default";
 import illustration from "assets/img/auth/auth.png";
 import axiosInstance from "utils/AxiosInstance";
-import { UserContext } from "contexts/UserContext";
-function SignIn() {
+
+function SignUp() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { loginUser } = useContext(UserContext);
+
   const textColor = useColorModeValue("navy.700", "white");
   const textColorSecondary = "gray.400";
   const textColorDetails = useColorModeValue("navy.700", "secondaryGray.600");
@@ -37,16 +35,17 @@ function SignIn() {
   const [loading, setLoading] = useState(false);
 
   // form state
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
 
   const handleClick = () => setShow(!show);
 
-  const handleLogin = async () => {
+  const handleSignup = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post("/login/", {
+      const response = await axiosInstance.post("/signup/", {
+        username,
         email,
         password,
       });
@@ -54,25 +53,19 @@ function SignIn() {
       const { status, data, message } = response.data;
 
       if (status === "success") {
-        // save user data
-         loginUser(data);
-        localStorage.setItem("user", JSON.stringify(data));
-
         toast({
-          title: "Login Successful",
-          description: `Welcome ${data.username}`,
+          title: "Account Created",
+          description: `Welcome ${data.username}, please sign in`,
           status: "success",
           duration: 3000,
           isClosable: true,
         });
 
-        // role-based navigation
-        if (data.roles.includes("Administrator")) navigate("/admin/dashboard");
-        else if (data.roles.includes("User")) navigate("/user/dashboard");
-        else navigate("/"); // fallback
+        // Navigate to Sign In page
+        navigate("/auth/sign-in");
       } else {
         toast({
-          title: "Login Failed",
+          title: "Signup Failed",
           description: message,
           status: "error",
           duration: 3000,
@@ -81,7 +74,7 @@ function SignIn() {
       }
     } catch (error) {
       toast({
-        title: "Login Failed",
+        title: "Signup Failed",
         description: error.response?.data?.message || error.message,
         status: "error",
         duration: 3000,
@@ -111,7 +104,7 @@ function SignIn() {
       >
         <Flex justify="center" align="center" w="100%">
           <Heading color={textColor} fontSize="36px" mb="10px">
-            Sign In
+            Sign Up
           </Heading>
         </Flex>
         <Flex w="100%">
@@ -124,6 +117,23 @@ function SignIn() {
             borderRadius="15px"
           >
             <FormControl>
+              <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
+                Username<Text color={brandStars}>*</Text>
+              </FormLabel>
+              <Input
+                isRequired
+                variant="auth"
+                fontSize="sm"
+                ms={{ base: "0px", md: "0px" }}
+                type="text"
+                placeholder="Enter your username"
+                mb="24px"
+                fontWeight="500"
+                size="lg"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+
               <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
                 Email<Text color={brandStars}>*</Text>
               </FormLabel>
@@ -166,26 +176,6 @@ function SignIn() {
                 </InputRightElement>
               </InputGroup>
 
-              <Flex justifyContent="space-between" align="center" mb="24px">
-                <FormControl display="flex" alignItems="center">
-                  <Checkbox
-                    id="remember-login"
-                    colorScheme="brandScheme"
-                    me="10px"
-                    isChecked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                  />
-                  <FormLabel htmlFor="remember-login" mb="0" fontWeight="normal" color={textColor} fontSize="sm">
-                    Keep me logged in
-                  </FormLabel>
-                </FormControl>
-                <NavLink to="/auth/forgot-password">
-                  <Text color={textColorBrand} fontSize="sm" w="124px" fontWeight="500">
-                    Forgot password?
-                  </Text>
-                </NavLink>
-              </Flex>
-
               <Button
                 fontSize="sm"
                 variant="brand"
@@ -193,19 +183,19 @@ function SignIn() {
                 w="100%"
                 h="50"
                 mb="24px"
-                onClick={handleLogin}
+                onClick={handleSignup}
                 isLoading={loading}
               >
-                Sign In
+                Sign Up
               </Button>
             </FormControl>
 
             <Flex flexDirection="column" justifyContent="center" alignItems="center" maxW="100%" mt="0px">
               <Text color={textColorDetails} fontWeight="400" fontSize="14px">
-                Not registered yet?
-                <NavLink to="/auth/sign-up">
+                Already have an account?
+                <NavLink to="/auth/sign-in">
                   <Text color={textColorBrand} as="span" ms="5px" fontWeight="500">
-                    Create an Account
+                    Sign In
                   </Text>
                 </NavLink>
               </Text>
@@ -217,4 +207,4 @@ function SignIn() {
   );
 }
 
-export default SignIn;
+export default SignUp;

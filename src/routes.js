@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { Icon } from '@chakra-ui/react';
 import {
   MdBarChart,
@@ -14,70 +13,91 @@ import MainDashboard from 'views/admin/default';
 import NFTMarketplace from 'views/admin/marketplace';
 import Profile from 'views/admin/profile';
 import DataTables from 'views/admin/dataTables';
-import RTL from 'views/admin/rtl';
 import DashboardLayout from 'views/admin/NextPageGenerateVedio/GenerateVedio';
-
-// Auth Imports
+import ForgotPassword from 'views/auth/forgetpassword/ForgetPassword';
 import SignInCentered from 'views/auth/signIn';
+import SignUp from 'views/auth/SignUp';
+import UserSettings from 'views/admin/profilesetting/Profilesetting';
 
 const routes = [
   {
     name: 'Main Dashboard',
     layout: '/admin',
     path: '/default',
-    icon: <Icon as={MdHome} width="20px" height="20px" color="inherit" />,
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
     component: <MainDashboard />,
+    showInSidebar: true,
+    
   },
   {
     name: 'Products',
     layout: '/admin',
     path: '/products',
-    icon: (
-      <Icon
-        as={MdOutlineShoppingCart}
-        width="20px"
-        height="20px"
-        color="inherit"
-      />
-    ),
+    icon: <Icon as={MdOutlineShoppingCart} w="20px" h="20px" color="inherit" />,
     component: <NFTMarketplace />,
-    secondary: true,
+    showInSidebar: true,
+    // roles: ['Administrator'], // only admin can see
   },
   {
     name: 'Data Tables',
     layout: '/admin',
-    icon: <Icon as={MdBarChart} width="20px" height="20px" color="inherit" />,
     path: '/data-tables',
+    icon: <Icon as={MdBarChart} w="20px" h="20px" color="inherit" />,
     component: <DataTables />,
+    showInSidebar: true,
+    // roles: ['Administrator', 'Manager'],
   },
   {
     name: 'GenerateVideo',
     layout: '/admin',
     path: '/generatevideo',
-    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
     component: <Profile />,
+    showInSidebar: true,
+    // roles: ['User', 'Administrator'],
   },
-    {
+  {
     name: 'NextGenerateVideo',
     layout: '/admin',
     path: '/nextgeneratevideo',
-    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
-    component: <DashboardLayout/>,
+    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    component: <DashboardLayout />,
+    showInSidebar: true,
+    // roles: ['Administrator'],
   },
-  // {
-  //   name: 'Sign In',
-  //   layout: '/auth',
-  //   path: '/sign-in',
-  //   icon: <Icon as={MdLock} width="20px" height="20px" color="inherit" />,
-  //   component: <SignInCentered />,
-  // },
-  // {
-  //   name: 'RTL Admin',
-  //   layout: '/admin',
-  //   path: '/rtl-default',
-  //   icon: <Icon as={MdHome} width="20px" height="20px" color="inherit" />,
-  //   component: <DashboardLayout></DashboardLayout>,
-  // },
+  {
+    name: 'Profile Setting',
+    layout: '/admin',
+    path: '/profile-setting',
+    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    component: <UserSettings />,
+    showInSidebar: false,
+   
+  },
+  {
+    name: 'Sign In',
+    layout: '/auth',
+    path: '/sign-in',
+    icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
+    component: <SignInCentered />,
+    showInSidebar: false, // hide from sidebar
+  },
+  {
+    name: 'Sign Up',
+    layout: '/auth',
+    path: '/sign-up',
+    icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
+    component: <SignUp />,
+    showInSidebar: false,
+  },
+  {
+    name: 'Forget Password',
+    layout: '/auth',
+    path: '/forgot-password',
+    icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
+    component: <ForgotPassword />,
+    showInSidebar: false,
+  },
 ];
 
 export default routes;
