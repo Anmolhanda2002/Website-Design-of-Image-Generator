@@ -1,8 +1,10 @@
 import React from "react";
 import { Flex, Box, Text, Image, useColorModeValue } from "@chakra-ui/react";
+import Logo from "../../assets/image.png"; // Replace with your actual logo path
 
-const AuthLayout = ({ children, projectName = "My Project" }) => {
+const AuthLayout = ({ children, projectName = "Hygaar" }) => {
   const textColor = useColorModeValue("white", "white");
+  const rightBg = useColorModeValue("gray.50", "navy.900");
 
   return (
     <Flex
@@ -23,10 +25,8 @@ const AuthLayout = ({ children, projectName = "My Project" }) => {
         p="12"
         borderBottomLeftRadius={{ base: "0", md: "250px" }}
       >
-        {/* Logo Image Placeholder */}
+        {/* Logo Image */}
         <Box
-          bg="white"
-          borderRadius="full"
           mt={-20}
           w="120px"
           h="120px"
@@ -34,25 +34,25 @@ const AuthLayout = ({ children, projectName = "My Project" }) => {
           alignItems="center"
           justifyContent="center"
           mb="6"
+          borderRadius="full"
+          bg="white"
           boxShadow="lg"
         >
-          <Text
-            fontSize="4xl"
-            fontWeight="bold"
-            color="#4e54c8"
-            fontFamily="'DM Sans', sans-serif"
-          >
-            {projectName.charAt(0)}
-          </Text>
+          <Image
+            src={Logo}
+            alt={`${projectName} Logo`}
+            borderRadius="full"
+            objectFit="cover"
+          />
         </Box>
 
-        {/* Welcome Message in One Line */}
+        {/* Welcome Message */}
         <Text
           fontSize="3xl"
           fontWeight="bold"
           mb="2"
           textAlign="center"
-          fontFamily="var(--chakra-fonts-heading)" // 👈 updated font
+          fontFamily="var(--chakra-fonts-heading)"
         >
           Welcome to {projectName}
         </Text>
@@ -68,8 +68,13 @@ const AuthLayout = ({ children, projectName = "My Project" }) => {
           Empowering your journey with modern tools & a beautiful experience.
         </Text>
 
-        {/* Decorative Image / Illustration */}
-       
+        {/* Optional Decorative Image */}
+        {/* <Image
+          src="https://undraw.co/api/illustrations/login.svg" // Replace with your illustration if needed
+          alt="Welcome Illustration"
+          mt={8}
+          maxW="250px"
+        /> */}
       </Flex>
 
       {/* Right Section (Auth Form) */}
@@ -78,10 +83,10 @@ const AuthLayout = ({ children, projectName = "My Project" }) => {
         h="100%"
         align="center"
         justify="center"
-        bg={useColorModeValue("gray.50", "navy.900")}
+        bg={rightBg}
         p="8"
       >
-    
+        {children} {/* Render login/signup forms here */}
       </Flex>
     </Flex>
   );

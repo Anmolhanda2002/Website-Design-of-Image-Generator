@@ -128,9 +128,9 @@ const AssetsPage = () => {
 
       {/* Assets Grid */}
       {assets.length === 0 && !loading ? (
-        <Flex direction="column" align="center" justify="center" mt={20}>
+        <Flex direction="column" align="center" justify="center" mt={10}>
           <Image
-            src="https://undraw.co/api/illustrations/empty.svg" // Replace with your illustration
+            src="https://cdni.iconscout.com/illustration/premium/thumb/employee-is-unable-to-find-sensitive-data-illustration-svg-download-png-8062127.png" // Replace with your illustration
             alt="No assets found"
             maxW="300px"
             mb={5}
