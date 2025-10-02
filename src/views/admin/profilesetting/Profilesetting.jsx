@@ -6,20 +6,26 @@ import {
   Button,
   Input,
   Text,
-  useColorModeValue,
   IconButton,
   useToast,
   Spinner,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FiCamera } from "react-icons/fi";
 import axiosInstance from "utils/AxiosInstance"; // your configured axios instance
 
 const ProfileSettings = () => {
+  // Theme values
   const cardBg = useColorModeValue("white", "navy.700");
   const textColor = useColorModeValue("gray.700", "white");
   const textSecondary = useColorModeValue("gray.500", "gray.400");
-  const toast = useToast();
 
+  // ✅ Input colors defined once (fix hooks error)
+  const inputBg = useColorModeValue("white", "navy.900");
+  const inputColor = useColorModeValue("gray.800", "white");
+  const placeholderColor = useColorModeValue("gray.400", "gray.300");
+
+  const toast = useToast();
   const fileInputRef = useRef(null);
 
   // LocalStorage User
@@ -27,7 +33,9 @@ const ProfileSettings = () => {
   const userId = storedUser?.user_id;
 
   // State
-  const [profilePic, setProfilePic] = useState("https://i.pravatar.cc/150?img=5");
+  const [profilePic, setProfilePic] = useState(
+    "https://i.pravatar.cc/150?img=5"
+  );
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     username: "",
@@ -40,7 +48,9 @@ const ProfileSettings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axiosInstance.get(`/my_account_info?user_id=${userId}`);
+        const response = await axiosInstance.get(
+          `/my_account_info?user_id=${userId}`
+        );
         if (response.data.status === "success") {
           const { username, first_name, last_name, email } = response.data.data;
           setFormData({ username, first_name, last_name, email });
@@ -48,7 +58,8 @@ const ProfileSettings = () => {
       } catch (error) {
         toast({
           title: "Failed to load profile",
-          description: error?.response?.data?.message || "Please try again later.",
+          description:
+            error?.response?.data?.message || "Please try again later.",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -85,7 +96,10 @@ const ProfileSettings = () => {
         email: formData.email,
       };
 
-      const response = await axiosInstance.patch("/user_profile_update/", payload);
+      const response = await axiosInstance.patch(
+        "/user_profile_update/",
+        payload
+      );
 
       if (response.data.status === "success") {
         toast({
@@ -179,9 +193,9 @@ const ProfileSettings = () => {
               value={formData.username}
               onChange={handleChange}
               placeholder="Enter username"
-              color={useColorModeValue("gray.800", "white")}
-              bg={useColorModeValue("white", "navy.900")}
-              _placeholder={{ color: useColorModeValue("gray.400", "gray.300") }}
+              color={inputColor}
+              bg={inputBg}
+              _placeholder={{ color: placeholderColor }}
             />
           </Box>
 
@@ -195,9 +209,9 @@ const ProfileSettings = () => {
               value={formData.first_name}
               onChange={handleChange}
               placeholder="Enter first name"
-              color={useColorModeValue("gray.800", "white")}
-              bg={useColorModeValue("white", "navy.900")}
-              _placeholder={{ color: useColorModeValue("gray.400", "gray.300") }}
+              color={inputColor}
+              bg={inputBg}
+              _placeholder={{ color: placeholderColor }}
             />
           </Box>
 
@@ -211,9 +225,9 @@ const ProfileSettings = () => {
               value={formData.last_name}
               onChange={handleChange}
               placeholder="Enter last name"
-              color={useColorModeValue("gray.800", "white")}
-              bg={useColorModeValue("white", "navy.900")}
-              _placeholder={{ color: useColorModeValue("gray.400", "gray.300") }}
+              color={inputColor}
+              bg={inputBg}
+              _placeholder={{ color: placeholderColor }}
             />
           </Box>
 
@@ -227,9 +241,9 @@ const ProfileSettings = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter email"
-              color={useColorModeValue("gray.800", "white")}
-              bg={useColorModeValue("white", "navy.900")}
-              _placeholder={{ color: useColorModeValue("gray.400", "gray.300") }}
+              color={inputColor}
+              bg={inputBg}
+              _placeholder={{ color: placeholderColor }}
             />
           </Box>
         </Flex>

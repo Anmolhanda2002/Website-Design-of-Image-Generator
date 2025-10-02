@@ -11,7 +11,7 @@ const AuthLayout = lazy(() => import('./layouts/auth'));
 const AdminLayout = lazy(() => import('./layouts/admin'));
 const RTLLayout = lazy(() => import('./layouts/rtl'));
 const NotFound = lazy(() => import('views/404Page'));
-import { UserProvider } from "contexts/UserContext";
+import { UserProvider } from "./contexts/UserContext";
 export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
