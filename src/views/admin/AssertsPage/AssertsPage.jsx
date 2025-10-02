@@ -111,14 +111,15 @@ const AssetsPage = () => {
       <Flex justify="flex-end" align="center" mb={5} flexWrap="wrap">
         <InputGroup maxW={{ base: "100%", md: "300px" }}>
           <Input
-            placeholder="Search by Project Name..."
-            value={searchTerm}
-            onChange={handleSearch}
-            bg="navy.900"
-            color="white"
-            borderRadius="full"
-            _placeholder={{ color: "gray.300" }}
-          />
+  placeholder="Search by Project Name..."
+  value={searchTerm}
+  onChange={handleSearch}
+  bg={useColorModeValue("gray.100", "navy.900")}
+  color={useColorModeValue("gray.800", "white")}
+  borderRadius="full"
+  _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
+/>
+
           <InputRightElement pointerEvents="none">
             <SearchIcon color="gray.400" />
           </InputRightElement>

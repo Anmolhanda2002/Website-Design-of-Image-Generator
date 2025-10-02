@@ -19,6 +19,7 @@ import SignInCentered from 'views/auth/signIn';
 import SignUp from 'views/auth/SignUp';
 import UserSettings from 'views/admin/profilesetting/Profilesetting';
 import AssetsPage from 'views/admin/AssertsPage/AssertsPage';
+import VideosPage from 'views/admin/VideoPage/VideoAsserts';
 const routes = [
   {
     name: 'Main Dashboard',
@@ -81,6 +82,15 @@ const routes = [
     path: '/asserts',
     icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
     component: <AssetsPage />,
+    showInSidebar: true,
+   
+  },
+      {
+    name: 'Video Asserts',
+    layout: '/admin',
+    path: '/videoasserts',
+    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    component: <VideosPage />,
     showInSidebar: true,
    
   },
