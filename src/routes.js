@@ -6,6 +6,10 @@ import {
   MdHome,
   MdLock,
   MdOutlineShoppingCart,
+  MdVideoLibrary,
+  MdSettings,
+  MdImage,
+  MdSmartDisplay,
 } from 'react-icons/md';
 
 // Admin Imports
@@ -20,6 +24,7 @@ import SignUp from 'views/auth/SignUp';
 import UserSettings from 'views/admin/profilesetting/Profilesetting';
 import AssetsPage from 'views/admin/AssertsPage/AssertsPage';
 import VideosPage from 'views/admin/VideoPage/VideoAsserts';
+
 const routes = [
   {
     name: 'Main Dashboard',
@@ -28,7 +33,6 @@ const routes = [
     icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
     component: <MainDashboard />,
     showInSidebar: true,
-    
   },
   {
     name: 'Products',
@@ -37,7 +41,7 @@ const routes = [
     icon: <Icon as={MdOutlineShoppingCart} w="20px" h="20px" color="inherit" />,
     component: <NFTMarketplace />,
     showInSidebar: true,
-    // roles: ['Administrator'], // only admin can see
+    roles: ['Administrator'],
   },
   {
     name: 'Data Tables',
@@ -46,61 +50,55 @@ const routes = [
     icon: <Icon as={MdBarChart} w="20px" h="20px" color="inherit" />,
     component: <DataTables />,
     showInSidebar: true,
-    // roles: ['Administrator', 'Manager'],
   },
   {
-    name: 'GenerateVideo',
+    name: 'Generate Video',
     layout: '/admin',
     path: '/generatevideo',
-    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
     component: <Profile />,
     showInSidebar: true,
-    // roles: ['User', 'Administrator'],
   },
   {
-    name: 'NextGenerateVideo',
+    name: 'Next Generate Video',
     layout: '/admin',
     path: '/nextgeneratevideo',
-    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
     component: <DashboardLayout />,
     showInSidebar: true,
-    // roles: ['Administrator'],
   },
   {
     name: 'Profile Setting',
     layout: '/admin',
     path: '/profile-setting',
-    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    icon: <Icon as={MdSettings} w="20px" h="20px" color="inherit" />,
     component: <UserSettings />,
-    showInSidebar: false,
-   
+    showInSidebar: false, // hidden from sidebar
   },
-
-    {
-    name: 'Asserts',
+  {
+    name: 'Assets',
     layout: '/admin',
-    path: '/asserts',
-    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    path: '/assets',
+    icon: <Icon as={MdImage} w="20px" h="20px" color="inherit" />,
     component: <AssetsPage />,
     showInSidebar: true,
-   
   },
-      {
-    name: 'Video Asserts',
+  {
+    name: 'Video Assets',
     layout: '/admin',
-    path: '/videoasserts',
-    icon: <Icon as={MdPerson} w="20px" h="20px" color="inherit" />,
+    path: '/videoassets',
+    icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
     component: <VideosPage />,
     showInSidebar: true,
-   
   },
+  // Auth Routes
   {
     name: 'Sign In',
     layout: '/auth',
     path: '/sign-in',
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <SignInCentered />,
-    showInSidebar: false, // hide from sidebar
+    showInSidebar: false,
   },
   {
     name: 'Sign Up',
