@@ -24,7 +24,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const response = await axiosInstance.post("/forgot-password/", { email });
+      const response = await axiosInstance.post("/reset_password_request/", { email });
       const { status, message } = response.data;
 
       if (status === "success") {
@@ -71,7 +71,7 @@ export default function ForgotPassword() {
         px={{ base: "25px", md: "0px" }}
         mt={{ base: "40px", md: "8vh" }}
       >
-        <Heading mb="10px">Forgot Password</Heading>
+        <Heading mb="20px">Forgot Password</Heading>
         <Text mb="24px" textAlign="center">
           Enter your email to receive a password reset link
         </Text>
@@ -79,16 +79,28 @@ export default function ForgotPassword() {
         <FormControl>
           <FormLabel>Email</FormLabel>
           <Input
+                          isRequired
+                variant="auth"
+                fontSize="sm"
+               
+            
+                mb="24px"
+                fontWeight="500"
+                size="lg"
             type="email"
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            mb="24px"
+
           />
 
           <Button
-            variant="brand"
-            w="100%"
+  fontSize="sm"
+  variant="brand"
+  fontWeight="500"
+  w="100%"
+  h="50"
+
             onClick={handleSubmit}
             isLoading={loading}
           >

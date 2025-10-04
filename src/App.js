@@ -4,6 +4,7 @@ import { ChakraProvider } from '@chakra-ui/react';
 import initialTheme from './theme/theme';
 import { useState, lazy } from 'react';
 import { UserProvider } from "./contexts/UserContext"; // ✅ move this import up
+import CreateNnewPassword from 'views/auth/forgetpassword/Create_new_password';
 
 // Lazy load layouts and pages
 const AuthLayout = lazy(() => import('./layouts/auth'));
@@ -25,6 +26,7 @@ export default function Main() {
           />
           <Route path="rtl/*" element={<RTLLayout />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/create-new-password/:token" element ={<CreateNnewPassword/>}/>
           <Route path="/" element={<Navigate to="/admin" replace />} />
         </Routes>
       </ChakraProvider>

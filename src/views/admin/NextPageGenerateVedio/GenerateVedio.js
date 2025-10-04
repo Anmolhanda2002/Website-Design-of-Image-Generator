@@ -6,6 +6,10 @@ import {
   VStack,
   useColorModeValue,
   useBreakpointValue,
+  Input,
+  FormControl,
+  FormLabel,
+  Select,
 } from "@chakra-ui/react";
 import {
   FaMagic,
@@ -18,6 +22,7 @@ import TextFieldComponent from "../profile/components/TextField";
 
 const DashboardPage = () => {
   const [active, setActive] = useState("Template"); // default selected
+  const [projectName, setProjectName] = useState(""); // editable project name
 
   // Sidebar colors
   const bgSidebar = useColorModeValue("white", "#1B254B");
@@ -45,12 +50,12 @@ const DashboardPage = () => {
 
   return (
     <Flex
-      h="80vh"
+      h="100vh"
       w="100%"
       direction={isMobile ? "column" : "row"}
       style={{ marginTop: "100px" }}
     >
-      {/* Sidebar */}
+      {/* Left Sidebar */}
       <Box
         w={isMobile ? "100%" : "200px"}
         bg={bgSidebar}
@@ -101,6 +106,20 @@ const DashboardPage = () => {
 
       {/* Main Content */}
       <Flex flex="1" direction="column" p={4} bg={bgMain} overflowY="auto">
+        {/* Editable Project Name */}
+        <Input
+          textAlign="center"
+          fontSize="2xl"
+          fontWeight="bold"
+          mb={4}
+          variant="flushed"
+          placeholder="Enter Project Name..."
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          _placeholder={{ color: useColorModeValue("gray.500", "gray.400") }}
+          color={useColorModeValue("gray.800", "white")}
+        />
+
         {/* Video Preview Box */}
         <Flex
           flex="1"
@@ -113,7 +132,7 @@ const DashboardPage = () => {
           minH="200px"
         >
           <Text fontSize="lg" color={cardText}>
-            {active} Preview Area
+            {projectName ? projectName : "No Project"} - {active} Preview Area
           </Text>
         </Flex>
 
@@ -122,6 +141,66 @@ const DashboardPage = () => {
           <TextFieldComponent />
         </Box>
       </Flex>
+
+      {/* Right Sidebar (only for Template) */}
+      {active === "Template" && (
+        <Box
+          w={isMobile ? "100%" : "260px"}
+          bg={bgSidebar}
+          p={4}
+          borderLeft={isMobile ? "none" : "1px solid"}
+          borderTop={isMobile ? "1px solid" : "none"}
+          borderColor={sidebarBorder}
+        >
+          <VStack align="stretch" spacing={4}>
+            {/* Video Name */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="bold">
+                Video Name
+              </FormLabel>
+              <Input placeholder="Enter video name" />
+            </FormControl>
+
+            {/* Goal Option */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="bold">
+                Goal
+              </FormLabel>
+              <Select placeholder="Select goal">
+                <option value="awareness">Awareness</option>
+                <option value="engagement">Engagement</option>
+                <option value="conversion">Conversion</option>
+              </Select>
+            </FormControl>
+
+            {/* Sector Option */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="bold">
+                Sector
+              </FormLabel>
+              <Select placeholder="Select sector">
+                <option value="education">Education</option>
+                <option value="finance">Finance</option>
+                <option value="health">Healthcare</option>
+                <option value="tech">Technology</option>
+              </Select>
+            </FormControl>
+
+            {/* Dimension Option */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="bold">
+                Dimension
+              </FormLabel>
+              <Select placeholder="Select dimension">
+                <option value="16:9">16:9 (Widescreen)</option>
+                <option value="4:3">4:3 (Standard)</option>
+                <option value="1:1">1:1 (Square)</option>
+                <option value="9:16">9:16 (Vertical)</option>
+              </Select>
+            </FormControl>
+          </VStack>
+        </Box>
+      )}
     </Flex>
   );
 };

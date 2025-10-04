@@ -15,7 +15,7 @@ function AuthIllustration({ children }) {
   // Detect if screen is large (≥ 950px)
   const isLargeScreen = useBreakpointValue({ base: false, lg: true });
 
-  const textColor = useColorModeValue("white", "white");
+  const textColor = useColorModeValue("black", "white");
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));

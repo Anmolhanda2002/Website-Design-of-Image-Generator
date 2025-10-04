@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-// Chakra imports
 import {
   Flex,
   Heading,
@@ -14,9 +13,13 @@ import {
   Text,
   useColorModeValue,
   useToast,
+  VStack,
+  HStack,
+  Circle,
 } from "@chakra-ui/react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import { RiEyeCloseLine } from "react-icons/ri";
+import { CheckIcon, CloseIcon } from "@chakra-ui/icons";
 import DefaultAuth from "layouts/auth/Default";
 import illustration from "assets/img/auth/auth.png";
 import axiosInstance from "utils/AxiosInstance";
@@ -41,7 +44,40 @@ function SignUp() {
 
   const handleClick = () => setShow(!show);
 
+  // ✅ Password validation rules
+  const rules = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[@$!%*?&]/.test(password),
+  };
+
+  const isPasswordValid = Object.values(rules).every(Boolean);
+
   const handleSignup = async () => {
+    if (!username || !email || !password) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all required fields",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!isPasswordValid) {
+      toast({
+        title: "Weak Password",
+        description: "Password must meet all requirements",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axiosInstance.post("/signup/", {
@@ -61,7 +97,6 @@ function SignUp() {
           isClosable: true,
         });
 
-        // Navigate to Sign In page
         navigate("/auth/sign-in");
       } else {
         toast({
@@ -95,8 +130,6 @@ function SignUp() {
         h="100%"
         justify="center"
         align="center"
-        alignItems="center"
-        justifyContent="center"
         mb={{ base: "30px", md: "60px" }}
         px={{ base: "25px", md: "0px" }}
         mt={{ base: "40px", md: "8vh" }}
@@ -117,6 +150,7 @@ function SignUp() {
             borderRadius="15px"
           >
             <FormControl>
+              {/* Username */}
               <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
                 Username<Text color={brandStars}>*</Text>
               </FormLabel>
@@ -124,7 +158,6 @@ function SignUp() {
                 isRequired
                 variant="auth"
                 fontSize="sm"
-                ms={{ base: "0px", md: "0px" }}
                 type="text"
                 placeholder="Enter your username"
                 mb="24px"
@@ -134,6 +167,7 @@ function SignUp() {
                 onChange={(e) => setUsername(e.target.value)}
               />
 
+              {/* Email */}
               <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
                 Email<Text color={brandStars}>*</Text>
               </FormLabel>
@@ -141,7 +175,6 @@ function SignUp() {
                 isRequired
                 variant="auth"
                 fontSize="sm"
-                ms={{ base: "0px", md: "0px" }}
                 type="email"
                 placeholder="mail@simmmple.com"
                 mb="24px"
@@ -151,6 +184,7 @@ function SignUp() {
                 onChange={(e) => setEmail(e.target.value)}
               />
 
+              {/* Password */}
               <FormLabel ms="4px" fontSize="sm" fontWeight="500" color={textColor} display="flex">
                 Password<Text color={brandStars}>*</Text>
               </FormLabel>
@@ -159,7 +193,7 @@ function SignUp() {
                   isRequired
                   fontSize="sm"
                   placeholder="Min. 8 characters"
-                  mb="24px"
+                  mb="12px"
                   size="lg"
                   type={show ? "text" : "password"}
                   variant="auth"
@@ -176,20 +210,50 @@ function SignUp() {
                 </InputRightElement>
               </InputGroup>
 
-              <Button
-                fontSize="sm"
-                variant="brand"
-                fontWeight="500"
-                w="100%"
-                h="50"
-                mb="24px"
-                onClick={handleSignup}
-                isLoading={loading}
-              >
-                Sign Up
-              </Button>
+              {/* Password Validation Rules */}
+              <VStack align="start" spacing={2} mb="20px" fontSize="sm">
+                <HStack>
+                  <Circle size="18px" bg={rules.length ? "green.500" : "gray.300"} color="white">
+                    {rules.length ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                  </Circle>
+                  <Text color="gray.600">At least 8 characters</Text>
+                </HStack>
+                <HStack>
+                  <Circle size="18px" bg={rules.uppercase ? "green.500" : "gray.300"} color="white">
+                    {rules.uppercase ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                  </Circle>
+                  <Text color="gray.600">At least 1 uppercase letter</Text>
+                </HStack>
+                <HStack>
+                  <Circle size="18px" bg={rules.special ? "green.500" : "gray.300"} color="white">
+                    {rules.special ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                  </Circle>
+                  <Text color="gray.600">At least 1 special character (@$!%*?&)</Text>
+                </HStack>
+              </VStack>
+
+              {/* Sign Up Button */}
+<Button
+  fontSize="sm"
+  variant="brand"
+  fontWeight="500"
+  w="100%"
+  h="50"
+  mb="24px"
+  onClick={handleSignup}
+  isLoading={loading}
+  isDisabled={!isPasswordValid}
+  _hover={{
+    bg: !isPasswordValid ? "brand.600" : "brand.600", // show hover color
+    cursor: !isPasswordValid ? "not-allowed" : "pointer", // disable pointer when invalid
+  }}
+>
+  Sign Up
+</Button>
+
             </FormControl>
 
+            {/* Already have account? */}
             <Flex flexDirection="column" justifyContent="center" alignItems="center" maxW="100%" mt="0px">
               <Text color={textColorDetails} fontWeight="400" fontSize="14px">
                 Already have an account?
