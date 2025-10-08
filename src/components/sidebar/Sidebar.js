@@ -28,6 +28,8 @@ import { SidebarContext } from "contexts/SidebarContext";
 function Sidebar(props) {
   const { routes } = props;
 
+  console.log("routes",routes)
+
   let variantChange = "0.2s linear";
   let shadow = useColorModeValue(
     "14px 17px 40px 4px rgba(112, 144, 176, 0.08)",

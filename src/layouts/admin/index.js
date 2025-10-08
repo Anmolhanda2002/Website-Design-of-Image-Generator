@@ -23,19 +23,31 @@ export default function Dashboard(props) {
     return route.roles.includes(user.role);
   };
 
-  useEffect(() => {
-    const u = JSON.parse(localStorage.getItem("user"));
-    if (!u) {
-      setLoading(false); // not logged in
-    } else {
-      setUser(u);
-      const filtered = routes.filter(
-        (r) => r.layout === "/admin" && checkAccess(r, u)
-      );
-      setAllowedRoutes(filtered);
-      setLoading(false);
-    }
-  }, []);
+useEffect(() => {
+  const u = JSON.parse(localStorage.getItem("user"));
+  if (!u) {
+    setLoading(false);
+  } else {
+    // Normalize role to single value (first role from array)
+    const normalizedUser = {
+      ...u,
+      role: u.roles && Array.isArray(u.roles) ? u.roles[0] : u.role,
+    };
+
+    setUser(normalizedUser);
+
+    const filtered = routes.filter(
+      (r) => r.layout === "/admin" && checkAccess(r, normalizedUser)
+    );
+    setAllowedRoutes(filtered);
+    setLoading(false);
+
+    // Debugging
+    console.log("Logged in user:", normalizedUser);
+    console.log("User role:", normalizedUser.role);
+      console.log("allow role:", allowedRoutes);
+  }
+}, []);
 
   if (loading) return null; // wait until checked
   if (!user) return <Navigate to="/auth/sign-in" replace />; // redirect if not logged in
@@ -116,7 +128,7 @@ export default function Dashboard(props) {
         {/* Desktop Sidebar */}
         <Sidebar routes={allowedRoutes} {...rest} />
         {/* Responsive Sidebar (Drawer) */}
-        <SidebarResponsive routes={allowedRoutes} {...rest} />
+    
 
         <Box
           float="right"

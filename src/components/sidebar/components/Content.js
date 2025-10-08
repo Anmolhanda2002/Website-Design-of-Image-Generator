@@ -5,13 +5,12 @@ import SidebarCard from "components/sidebar/components/SidebarCard";
 import React from "react";
 
 function SidebarContent(props) {
-  const { routes, currentUserRole = "User" } = props;
+  const { routes } = props;
 
   // Filter routes by role & visibility
   const filteredRoutes = routes.filter(
     (route) =>
-      route.showInSidebar &&
-      (!route.roles || route.roles.includes(currentUserRole))
+      route.showInSidebar 
   );
 
   return (

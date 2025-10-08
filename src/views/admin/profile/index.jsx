@@ -1,103 +1,103 @@
+import {
+  Box,
+  Grid,
+  Input,
+  InputGroup,
+  InputRightElement,
+  Button,
+  Flex,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { SearchIcon } from "@chakra-ui/icons";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Box, Grid } from "@chakra-ui/react";
-
-// Custom components
-import Banner from "views/admin/profile/components/Banner";
-import General from "views/admin/profile/components/General";
-import Notifications from "views/admin/profile/components/Notifications";
 import Projects from "views/admin/profile/components/Projects";
-import Storage from "views/admin/profile/components/Storage";
-import Upload from "views/admin/profile/components/Upload";
-import TextFieldComponent from "./components/TextField";
-// Assets
+import GradientHeading from "./components/Heading";
+import axiosInstance from "utils/AxiosInstance";
+
 import banner from "assets/img/auth/banner.png";
 import avatar from "assets/img/avatars/avatar4.png";
-import React from "react";
-import GradientHeading from "./components/Heading";
+
 export default function Overview() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const navigate = useNavigate();
+
+  // Fetch projects
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        const userId = user?.user_id;
+
+        if (!userId) {
+          console.error("User ID not found in localStorage");
+          setLoading(false);
+          return;
+        }
+
+        const res = await axiosInstance.get(
+          `saved_projects/?user_id=${userId}&page=1&project_name=${searchTerm}`
+        );
+
+        if (res.data.status === "success") {
+          setProjects(res.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [searchTerm]);
+
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
-      {/* Main Fields */}
-      <Grid
-        templateColumns={{
-          base: "1fr",
-          
-        }}
-  
-        // gap={{ base: "20px", xl: "20px" }}
-        
-        mb='20px'>
-        {/* <Banner
-          gridArea='1 / 1 / 2 / 2'
-          banner={banner}
-          avatar={avatar}
-          name='Adela Parkson'
-          job='Product Designer'
-          posts='17'
-          followers='9.7k'
-          following='274'
-        /> */}
-        {/* <Storage
-          gridArea={{ base: "2 / 1 / 3 / 2", lg: "1 / 2 / 2 / 3" }}
-          used={25.6}
-          total={50}
-        /> */}
-<GradientHeading/>
-<TextFieldComponent
-  gridColumn="1 / -1"   // spans all columns
-  w="100%"              // ensures full width
-  minH={{ base: "auto", lg: "420px", "2xl": "365px" }}
-  pe="20px"
-  mb='20px'
-  pb={{ base: "100px", lg: "20px" }}
-/>
+      {/* Heading + Search + Button */}
+      <Grid templateColumns="1fr" mb="20px">
+        <GradientHeading />
 
+        <Flex
+          justify="space-between"
+          align="center"
 
+          mt={6}
+          flexDirection={{ base: "column", md: "row" }}
+          gap={4}
+        >
+          {/* Search Bar */}
+          <InputGroup maxW={{ base: "100%", md: "400px" }}>
+            <Input
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+                bg={useColorModeValue("gray.100", "navy.900")}
+  color={useColorModeValue("gray.800", "white")}
+  borderRadius="full"
+  _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
+            />
+            <InputRightElement children={<SearchIcon color="gray.400" />} />
+          </InputGroup>
 
-
-        {/* <Upload
-          gridArea={{
-            base: "3 / 1 / 4 / 2",
-            lg: "1 / 3 / 2 / 4",
-          }}
-          minH={{ base: "auto", lg: "420px", "2xl": "365px" }}
-          pe='20px'
-          pb={{ base: "100px", lg: "20px" }}
-        /> */}
+          {/* Generate Video Button */}
+          <Button
+            colorScheme="blue"
+            onClick={() => navigate("/admin/nextgeneratevideo")}
+            w={{ base: "100%", md: "auto" }}
+          >
+            Generate Video
+          </Button>
+        </Flex>
       </Grid>
-      <Grid
-        mb='20px'
-        templateColumns={{
-          base: "1fr",
- 
-        }}
-   
-        gap={{ base: "20px", xl: "20px" }}>
-      <Projects
-  gridColumn="1 / -1"
-  banner={banner}
-  avatar={avatar}
-  name='Adela Parkson'
-  job='Product Designer'
-  posts='17'
-  followers='9.7k'
-  following='274'
-/>
 
-        {/* <General
-          gridArea={{ base: "2 / 1 / 3 / 2", lg: "1 / 2 / 2 / 3" }}
-          minH='365px'
-          pe='20px'
-        />
-        <Notifications
-          used={25.6}
-          total={50}
-          gridArea={{
-            base: "3 / 1 / 4 / 2",
-            lg: "2 / 1 / 3 / 3",
-            "2xl": "1 / 3 / 2 / 4",
-          }}
-        /> */}
+      {/* Projects List */}
+      <Grid templateColumns="1fr" gap={{ base: "20px", xl: "20px" }} mb="20px">
+        <Projects projects={projects} loading={loading} />
       </Grid>
     </Box>
   );

@@ -116,6 +116,14 @@ const routes = [
     component: <ForgotPassword />,
     showInSidebar: false,
   },
+  {
+    name: 'Forget Password',
+    layout: '/videocreate',
+    path: '/createvido',
+    icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
+    component: <ForgotPassword />,
+    showInSidebar: false,
+  },
 ];
 
 export default routes;

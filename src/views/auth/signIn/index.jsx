@@ -42,55 +42,64 @@ function SignIn() {
   const [remember, setRemember] = useState(false);
 
   const handleClick = () => setShow(!show);
+const handleLogin = async () => {
+  setLoading(true);
+  try {
+    const response = await axiosInstance.post("/auth/login/", {
+      email,
+      password,
+    });
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.post("/login/", {
-        email,
-        password,
+    const { status, message, data } = response.data;
+
+    if (status === "success" && data) {
+      const { access_token, refresh_token, user } = data;
+
+      // Save tokens + user
+      loginUser(user);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("refresh_token", refresh_token);
+
+      toast({
+        title: "Login Successful",
+        description: `Welcome ${user.username}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
       });
 
-      const { status, data, message } = response.data;
-
-      if (status === "success") {
-        // save user data
-         loginUser(data);
-        localStorage.setItem("user", JSON.stringify(data));
-
-        toast({
-          title: "Login Successful",
-          description: `Welcome ${data.username}`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        // role-based navigation
-        if (data.roles.includes("Administrator")) navigate("/admin/dashboard");
-        else if (data.roles.includes("User")) navigate("/user/dashboard");
-        else navigate("/"); // fallback
+      // role-based navigation
+      if (user.roles.includes("Administrator")) {
+        navigate("/admin/dashboard");
+      } else if (user.roles.includes("Standard User")) {
+        navigate("/admin/default"); // 👈 make separate user dashboard
       } else {
-        toast({
-          title: "Login Failed",
-          description: message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
+        navigate("/"); // fallback
       }
-    } catch (error) {
+    } else {
       toast({
         title: "Login Failed",
-        description: error.response?.data?.message || error.message,
+        description: message || "Something went wrong",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    toast({
+      title: "Login Failed",
+      description: error.response?.data?.message || error.message,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <DefaultAuth illustrationBackground={illustration} image={illustration}>

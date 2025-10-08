@@ -21,19 +21,16 @@ import {
 import TextFieldComponent from "../profile/components/TextField";
 
 const DashboardPage = () => {
-  const [active, setActive] = useState("Template"); // default selected
-  const [projectName, setProjectName] = useState(""); // editable project name
+  const [active, setActive] = useState("Template");
+  const [projectName, setProjectName] = useState("");
 
-  // Sidebar colors
   const bgSidebar = useColorModeValue("white", "#1B254B");
   const sidebarBorder = useColorModeValue("gray.200", "gray.700");
 
-  // Main content colors
   const bgMain = useColorModeValue("gray.50", "#111936");
   const cardBg = useColorModeValue("white", "#1B254B");
   const cardText = useColorModeValue("gray.600", "gray.300");
 
-  // Colors for sidebar items
   const hoverBg = useColorModeValue("gray.100", "gray.700");
   const textColor = useColorModeValue("gray.700", "gray.300");
 
@@ -45,7 +42,6 @@ const DashboardPage = () => {
     { label: "Sound", icon: FaVolumeUp },
   ];
 
-  // Detect small screen to switch sidebar layout
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
@@ -55,9 +51,9 @@ const DashboardPage = () => {
       direction={isMobile ? "column" : "row"}
       style={{ marginTop: "100px" }}
     >
-      {/* Left Sidebar */}
+      {/* Left Navbar */}
       <Box
-        w={isMobile ? "100%" : "200px"}
+        w={isMobile ? "100%" : "80px"}
         bg={bgSidebar}
         color={useColorModeValue("gray.800", "white")}
         p={4}
@@ -65,43 +61,33 @@ const DashboardPage = () => {
         borderBottom={isMobile ? "1px solid" : "none"}
         borderColor={sidebarBorder}
       >
-        <Flex direction={isMobile ? "row" : "column"} overflowX="auto">
-          <VStack
-            align={isMobile ? "center" : "start"}
-            spacing={isMobile ? 0 : 3}
-            w="full"
-            flexDirection={isMobile ? "row" : "column"}
-          >
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = active === item.label;
-              return (
-                <Flex
-                  key={item.label}
-                  align="center"
-                  gap={2}
-                  px={isMobile ? 2 : 3}
-                  py={isMobile ? 1 : 2}
-                  borderRadius="md"
-                  cursor="pointer"
-                  bg={isActive ? "blue.500" : "transparent"}
-                  _hover={{
-                    bg: isActive ? "blue.600" : hoverBg,
-                  }}
-                  color={isActive ? "white" : textColor}
-                  onClick={() => setActive(item.label)}
-                >
-                  <Icon />
-                  {!isMobile && (
-                    <Text fontWeight={isActive ? "bold" : "normal"}>
-                      {item.label}
-                    </Text>
-                  )}
-                </Flex>
-              );
-            })}
-          </VStack>
-        </Flex>
+        <VStack spacing={4} align="center">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = active === item.label;
+            return (
+              <Flex
+                key={item.label}
+                direction="column"
+                align="center"
+                justify="center"
+                w="60px"
+                h="60px"
+                borderRadius="md"
+                cursor="pointer"
+                bg={isActive ? "blue.500" : "transparent"}
+                _hover={{ bg: isActive ? "blue.600" : hoverBg }}
+                color={isActive ? "white" : textColor}
+                onClick={() => setActive(item.label)}
+              >
+                <Icon size={24} />
+                <Text fontSize="xs" mt={1} textAlign="center">
+                  {item.label}
+                </Text>
+              </Flex>
+            );
+          })}
+        </VStack>
       </Box>
 
       {/* Main Content */}
@@ -120,7 +106,7 @@ const DashboardPage = () => {
           color={useColorModeValue("gray.800", "white")}
         />
 
-        {/* Video Preview Box */}
+        {/* Preview Box */}
         <Flex
           flex="1"
           justify="center"
@@ -142,7 +128,7 @@ const DashboardPage = () => {
         </Box>
       </Flex>
 
-      {/* Right Sidebar (only for Template) */}
+      {/* Right Sidebar (Template only) */}
       {active === "Template" && (
         <Box
           w={isMobile ? "100%" : "260px"}
@@ -153,7 +139,6 @@ const DashboardPage = () => {
           borderColor={sidebarBorder}
         >
           <VStack align="stretch" spacing={4}>
-            {/* Video Name */}
             <FormControl>
               <FormLabel fontSize="sm" fontWeight="bold">
                 Video Name
@@ -161,7 +146,6 @@ const DashboardPage = () => {
               <Input placeholder="Enter video name" />
             </FormControl>
 
-            {/* Goal Option */}
             <FormControl>
               <FormLabel fontSize="sm" fontWeight="bold">
                 Goal
@@ -173,7 +157,6 @@ const DashboardPage = () => {
               </Select>
             </FormControl>
 
-            {/* Sector Option */}
             <FormControl>
               <FormLabel fontSize="sm" fontWeight="bold">
                 Sector
@@ -186,7 +169,6 @@ const DashboardPage = () => {
               </Select>
             </FormControl>
 
-            {/* Dimension Option */}
             <FormControl>
               <FormLabel fontSize="sm" fontWeight="bold">
                 Dimension

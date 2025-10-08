@@ -9,6 +9,7 @@ import CreateNnewPassword from 'views/auth/forgetpassword/Create_new_password';
 // Lazy load layouts and pages
 const AuthLayout = lazy(() => import('./layouts/auth'));
 const AdminLayout = lazy(() => import('./layouts/admin'));
+const VideoLayout = lazy(()=>import('./layouts/VedioGeneration/Index.jsx'))
 const RTLLayout = lazy(() => import('./layouts/rtl'));
 const NotFound = lazy(() => import('views/404Page'));
 
@@ -23,6 +24,10 @@ export default function Main() {
           <Route
             path="admin/*"
             element={<AdminLayout theme={currentTheme} setTheme={setCurrentTheme} />}
+          />
+                <Route
+            path="videocreate/*"
+            element={<VideoLayout theme={currentTheme} setTheme={setCurrentTheme} />}
           />
           <Route path="rtl/*" element={<RTLLayout />} />
           <Route path="*" element={<NotFound />} />
