@@ -21,7 +21,8 @@ import { MdOutlineRemoveRedEye } from "react-icons/md";
 import { RiEyeCloseLine } from "react-icons/ri";
 import DefaultAuth from "layouts/auth/Default";
 import illustration from "assets/img/auth/auth.png";
-import axiosInstance from "utils/AxiosInstance";
+// import axiosInstance from "utils/AxiosInstance";
+import axios from "axios";
 import { UserContext } from "contexts/UserContext";
 function SignIn() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ function SignIn() {
 const handleLogin = async () => {
   setLoading(true);
   try {
-    const response = await axiosInstance.post("/auth/login/", {
+    const response = await axios.post(`${process.env.REACT_APP_API_URL}auth/login/`, {
       email,
       password,
     });
@@ -55,12 +56,79 @@ const handleLogin = async () => {
     if (status === "success" && data) {
       const { access_token, refresh_token, user } = data;
 
-      // Save tokens + user
+      // 🔒 Approval & email verification checks
+      if (!user.is_approved) {
+        toast({
+          title: "Login Failed",
+          description: "Your account is not approved yet. Please wait for admin approval.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!user.email_verification) {
+        toast({
+          title: "Login Failed",
+          description: "Please verify your email before logging in.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Save tokens + user info
       loginUser(user);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("refresh_token", refresh_token);
 
+      // ✅ Check for existing API key
+      const existingApiKey = localStorage.getItem("api_key");
+
+      if (!existingApiKey) {
+        try {
+          // Generate new API key only if not exists
+          const apiKeyResponse = await axios.post(
+            `${process.env.REACT_APP_API_URL}factory_development_generate_key/`,
+            {
+              user_id: user.user_id || user._id, // send userId
+              key_name: "first Key", // you can make this dynamic if needed
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${access_token}`,
+              },
+            }
+          );
+
+          const { status: keyStatus, data: keyData } = apiKeyResponse.data;
+
+          if (keyStatus === "success" && keyData?.api_key) {
+            localStorage.setItem("api_key", keyData.api_key);
+            console.log("✅ API Key generated and stored:", keyData.api_key);
+          } else {
+            console.warn("⚠️ API key missing in response:", apiKeyResponse.data);
+          }
+        } catch (apiErr) {
+          console.error("Error generating API key:", apiErr);
+          toast({
+            title: "API Key Generation Failed",
+            description: apiErr.response?.data?.message || "Unable to generate API key.",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+        }
+      } else {
+        console.log("ℹ️ Existing API key found in localStorage, skipping generation.");
+      }
+
+      // ✅ Success toast
       toast({
         title: "Login Successful",
         description: `Welcome ${user.username}`,
@@ -69,13 +137,15 @@ const handleLogin = async () => {
         isClosable: true,
       });
 
-      // role-based navigation
+      // ✅ Role-based navigation
       if (user.roles.includes("Administrator")) {
-        navigate("/admin/dashboard");
+        navigate("/admin/default");
       } else if (user.roles.includes("Standard User")) {
-        navigate("/admin/default"); // 👈 make separate user dashboard
+        navigate("/admin/default");
+      } else if (user.roles.includes("SuperAdmin")) {
+        navigate("/admin/default");
       } else {
-        navigate("/"); // fallback
+        navigate("/");
       }
     } else {
       toast({
@@ -98,6 +168,10 @@ const handleLogin = async () => {
     setLoading(false);
   }
 };
+
+
+
+
 
 
 

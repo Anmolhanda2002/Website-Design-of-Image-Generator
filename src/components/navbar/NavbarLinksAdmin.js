@@ -33,6 +33,8 @@ import { startTransition } from "react";
 import axiosInstance from "utils/AxiosInstance";
 export default function HeaderLinks(props) {
   const { secondary } = props;
+    const { ...rest } = props;
+    const [loading, setLoading] = useState(true);
   const { colorMode, toggleColorMode } = useColorMode();
   const navbarIcon = useColorModeValue('gray.400', 'white');
   const menuBg = useColorModeValue('white', 'navy.800');
@@ -48,13 +50,59 @@ export default function HeaderLinks(props) {
   );
   const borderButton = useColorModeValue('secondaryGray.500', 'whiteAlpha.200');
   const [user, setUser] = useState(null);
-
+  const [allowedRoutes, setAllowedRoutes] = useState([]);
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem("user"));
     if (u) setUser(u);
   }, []);
   const navigate = useNavigate();
   const toast = useToast();
+
+//check access 
+  const checkAccess = (route, user) => {
+    if (!route.roles) return true; // Public route
+    return route.roles.includes(user.role);
+  };
+
+
+
+//sidebar responsive route allowed route 
+ useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser) {
+      setLoading(false);
+      return;
+    }
+
+    // Normalize role (if roles array exists)
+    const normalizedUser = {
+      ...storedUser,
+      role:
+        storedUser.roles && Array.isArray(storedUser.roles)
+          ? storedUser.roles[0]
+          : storedUser.role,
+    };
+
+    setUser(normalizedUser);
+
+    // Filter routes allowed for this user
+    const filteredRoutes = routes.filter(
+      (r) => r.layout === "/admin" && checkAccess(r, normalizedUser)
+    );
+
+    setAllowedRoutes(filteredRoutes);
+    setLoading(false);
+
+    // Debugging info
+    console.log("✅ Logged-in user:", normalizedUser);
+    console.log("✅ User role:", normalizedUser.role);
+    console.log("✅ Allowed routes:", filteredRoutes.map((r) => r.name));
+  }, []);
+
+
+
+
+
 
   // Logout function
 const handleLogout = async () => {
@@ -94,6 +142,14 @@ const handleLogout = async () => {
       duration: 3000,
       isClosable: true,
     });
+
+        localStorage.removeItem("user");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    
+    startTransition(() => {
+      navigate("/auth/sign-in", { replace: true });
+    });
   }
 };
 
@@ -129,7 +185,7 @@ const handleLogout = async () => {
           <Text as="span" display={{ base: 'none', md: 'unset' }}> ETH</Text>
         </Text>
       </Flex>
-      <SidebarResponsive routes={routes} />
+      <SidebarResponsive routes={allowedRoutes} {...rest} />
 
       {/* Other menus like notifications/info omitted for brevity */}
 

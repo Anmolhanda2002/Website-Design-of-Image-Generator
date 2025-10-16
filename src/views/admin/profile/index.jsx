@@ -9,7 +9,7 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { SearchIcon } from "@chakra-ui/icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState , startTransition } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Projects from "views/admin/profile/components/Projects";
@@ -26,6 +26,11 @@ export default function Overview() {
 
   const navigate = useNavigate();
 
+    const handleClick = () => {
+    startTransition(() => {
+      navigate("/videocreate/createvideo");
+    });
+  };
   // Fetch projects
   useEffect(() => {
     const fetchProjects = async () => {
@@ -87,7 +92,8 @@ export default function Overview() {
           {/* Generate Video Button */}
           <Button
             colorScheme="blue"
-            onClick={() => navigate("/admin/nextgeneratevideo")}
+                 onClick={handleClick}
+
             w={{ base: "100%", md: "auto" }}
           >
             Generate Video

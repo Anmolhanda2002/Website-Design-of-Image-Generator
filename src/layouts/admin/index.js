@@ -10,48 +10,57 @@ import routes from "routes.js";
 
 export default function Dashboard(props) {
   const { ...rest } = props;
-  const [loading, setLoading] = useState(true); // for checking auth
-  const [user, setUser] = useState(null); // logged-in user
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const [toggleSidebar, setToggleSidebar] = useState(false);
   const [allowedRoutes, setAllowedRoutes] = useState([]);
   const [fixed] = useState(false);
   const { onOpen } = useDisclosure();
 
-  // Role-based access
+  // ✅ Check route access based on role
   const checkAccess = (route, user) => {
-    if (!route.roles) return true; // everyone can see
+    if (!route.roles) return true; // Public route
     return route.roles.includes(user.role);
   };
 
-useEffect(() => {
-  const u = JSON.parse(localStorage.getItem("user"));
-  if (!u) {
-    setLoading(false);
-  } else {
-    // Normalize role to single value (first role from array)
+  // ✅ Load user and filter allowed routes
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser) {
+      setLoading(false);
+      return;
+    }
+
+    // Normalize role (if roles array exists)
     const normalizedUser = {
-      ...u,
-      role: u.roles && Array.isArray(u.roles) ? u.roles[0] : u.role,
+      ...storedUser,
+      role:
+        storedUser.roles && Array.isArray(storedUser.roles)
+          ? storedUser.roles[0]
+          : storedUser.role,
     };
 
     setUser(normalizedUser);
 
-    const filtered = routes.filter(
+    // Filter routes allowed for this user
+    const filteredRoutes = routes.filter(
       (r) => r.layout === "/admin" && checkAccess(r, normalizedUser)
     );
-    setAllowedRoutes(filtered);
+
+    setAllowedRoutes(filteredRoutes);
     setLoading(false);
 
-    // Debugging
-    console.log("Logged in user:", normalizedUser);
-    console.log("User role:", normalizedUser.role);
-      console.log("allow role:", allowedRoutes);
-  }
-}, []);
+    // Debugging info
+    console.log("✅ Logged-in user:", normalizedUser);
+    console.log("✅ User role:", normalizedUser.role);
+    console.log("✅ Allowed routes:", filteredRoutes.map((r) => r.name));
+  }, []); // ✅ Empty dependency array to prevent infinite re-render
 
-  if (loading) return null; // wait until checked
-  if (!user) return <Navigate to="/auth/sign-in" replace />; // redirect if not logged in
+  // Loading & Auth check
+  if (loading) return null;
+  if (!user) return <Navigate to="/auth/sign-in" replace />;
 
+  // Helpers
   const getRoute = () => window.location.pathname !== "/admin/full-screen-maps";
 
   const getActiveRoute = (routesList) => {
@@ -101,7 +110,8 @@ useEffect(() => {
         if (collapseActiveNavbar !== activeNavbar) return collapseActiveNavbar;
       } else if (route.category) {
         const categoryActiveNavbar = getActiveNavbarText(route.items);
-        if (categoryActiveNavbar !== activeNavbar) return categoryActiveNavbar;
+        if (categoryActiveNavbar !== activeNavbar)
+          return categoryActiveNavbar;
       } else {
         if (window.location.href.indexOf(route.layout + route.path) !== -1) {
           return route.messageNavbar;
@@ -111,6 +121,7 @@ useEffect(() => {
     return activeNavbar;
   };
 
+  // ✅ Generate routes
   const getRoutes = (routesList) =>
     routesList.map((route, key) => {
       if (route.layout === "/admin") {
@@ -125,11 +136,13 @@ useEffect(() => {
   return (
     <Box>
       <SidebarContext.Provider value={{ toggleSidebar, setToggleSidebar }}>
-        {/* Desktop Sidebar */}
+        {/* ✅ Desktop Sidebar */}
         <Sidebar routes={allowedRoutes} {...rest} />
-        {/* Responsive Sidebar (Drawer) */}
-    
 
+        {/* ✅ Responsive Sidebar */}
+        {/* <SidebarResponsive routes={allowedRoutes} {...rest} /> */}
+
+        {/* ✅ Main Page Content */}
         <Box
           float="right"
           minHeight="100vh"
@@ -137,22 +150,20 @@ useEffect(() => {
           overflow="auto"
           position="relative"
           maxHeight="100%"
-          w={{ base: "100%", xl: "calc( 100% - 290px )" }}
-          maxWidth={{ base: "100%", xl: "calc( 100% - 290px )" }}
+          w={{ base: "100%", xl: "calc(100% - 290px)" }}
+          maxWidth={{ base: "100%", xl: "calc(100% - 290px)" }}
           transition="all 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
         >
           <Portal>
-            <Box>
-              <Navbar
-                onOpen={onOpen}
-                logoText="Project Name"
-                brandText={getActiveRoute(allowedRoutes)}
-                secondary={getActiveNavbar(allowedRoutes)}
-                message={getActiveNavbarText(allowedRoutes)}
-                fixed={fixed}
-                {...rest}
-              />
-            </Box>
+            <Navbar
+              onOpen={onOpen}
+              logoText="Project Name"
+              brandText={getActiveRoute(allowedRoutes)}
+              secondary={getActiveNavbar(allowedRoutes)}
+              message={getActiveNavbarText(allowedRoutes)}
+              fixed={fixed}
+              {...rest}
+            />
           </Portal>
 
           {getRoute() && (

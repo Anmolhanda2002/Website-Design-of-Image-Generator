@@ -16,13 +16,15 @@ import {
   VStack,
   HStack,
   Circle,
+  Select,
 } from "@chakra-ui/react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import { RiEyeCloseLine } from "react-icons/ri";
 import { CheckIcon, CloseIcon } from "@chakra-ui/icons";
 import DefaultAuth from "layouts/auth/Default";
 import illustration from "assets/img/auth/auth.png";
-import axiosInstance from "utils/AxiosInstance";
+// import axiosInstance from "utils/AxiosInstance";
+import axios from "axios";
 
 function SignUp() {
   const navigate = useNavigate();
@@ -37,25 +39,29 @@ function SignUp() {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // form state
+  // Step management
+  const [step, setStep] = useState(1);
+
+  // Step 1
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Step 2
+  const [userType, setUserType] = useState("");
+
   const handleClick = () => setShow(!show);
 
-  // ✅ Password validation rules
+  // Password rules
   const rules = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
     special: /[@$!%*?&]/.test(password),
   };
-
   const isPasswordValid = Object.values(rules).every(Boolean);
 
-  const handleSignup = async () => {
+  const handleNext = () => {
     if (!username || !email || !password) {
       toast({
         title: "Missing Fields",
@@ -66,7 +72,6 @@ function SignUp() {
       });
       return;
     }
-
     if (!isPasswordValid) {
       toast({
         title: "Weak Password",
@@ -77,48 +82,64 @@ function SignUp() {
       });
       return;
     }
+    setStep(2);
+  };
 
-    setLoading(true);
-    try {
-      const response = await axiosInstance.post("/auth/signup/", {
-        username,
-        email,
-        password,
+const handleSignup = async () => {
+  if (!userType) {
+    toast({
+      title: "Select User Type",
+      description: "Please choose Admin or User",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_API_URL}auth/signup/`, {
+      username,
+      email,
+      password,
+      user_type: userType.toLowerCase(), // send snake_case
+    });
+
+    const { status, message } = response.data;
+
+    if (status === "success") {
+      toast({
+        title: "Account Created",
+        description: `Welcome ${username}, your account has been created! Please sign in.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
       });
-
-      const { status, data, message } = response.data;
-
-      if (status === "success") {
-        toast({
-          title: "Account Created",
-          description: `Welcome ${data.username}, please sign in`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-
-        navigate("/auth/sign-in");
-      } else {
-        toast({
-          title: "Signup Failed",
-          description: message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
+      navigate("/auth/sign-in");
+    } else {
       toast({
         title: "Signup Failed",
-        description: error.response?.data?.message || error.message,
+        description: message || "Something went wrong",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    toast({
+      title: "Signup Failed",
+      description: error.response?.data?.message || error.message,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <DefaultAuth illustrationBackground={illustration} image={illustration}>
@@ -150,110 +171,155 @@ function SignUp() {
             borderRadius="15px"
           >
             <FormControl>
-              {/* Username */}
-              <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
-                Username<Text color={brandStars}>*</Text>
-              </FormLabel>
-              <Input
-                isRequired
-                variant="auth"
-                fontSize="sm"
-                type="text"
-                placeholder="Enter your username"
-                mb="24px"
-                fontWeight="500"
-                size="lg"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-
-              {/* Email */}
-              <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="8px">
-                Email<Text color={brandStars}>*</Text>
-              </FormLabel>
-              <Input
-                isRequired
-                variant="auth"
-                fontSize="sm"
-                type="email"
-                placeholder="mail@simmmple.com"
-                mb="24px"
-                fontWeight="500"
-                size="lg"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-              {/* Password */}
-              <FormLabel ms="4px" fontSize="sm" fontWeight="500" color={textColor} display="flex">
-                Password<Text color={brandStars}>*</Text>
-              </FormLabel>
-              <InputGroup size="md">
-                <Input
-                  isRequired
-                  fontSize="sm"
-                  placeholder="Min. 8 characters"
-                  mb="12px"
-                  size="lg"
-                  type={show ? "text" : "password"}
-                  variant="auth"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <InputRightElement display="flex" alignItems="center" mt="4px">
-                  <Icon
-                    color={textColorSecondary}
-                    _hover={{ cursor: "pointer" }}
-                    as={show ? RiEyeCloseLine : MdOutlineRemoveRedEye}
-                    onClick={handleClick}
+              {step === 1 && (
+                <>
+                  {/* Username */}
+                  <FormLabel display="flex" fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                    Username<Text color={brandStars}>*</Text>
+                  </FormLabel>
+                  <Input
+                    isRequired
+                    variant="auth"
+                    fontSize="sm"
+                    type="text"
+                    placeholder="Enter your username"
+                    mb="15px"
+                    fontWeight="500"
+                    size="lg"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                   />
-                </InputRightElement>
-              </InputGroup>
 
-              {/* Password Validation Rules */}
-              <VStack align="start" spacing={2} mb="20px" fontSize="sm">
-                <HStack>
-                  <Circle size="18px" bg={rules.length ? "green.500" : "gray.300"} color="white">
-                    {rules.length ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
-                  </Circle>
-                  <Text color="gray.600">At least 8 characters</Text>
-                </HStack>
-                <HStack>
-                  <Circle size="18px" bg={rules.uppercase ? "green.500" : "gray.300"} color="white">
-                    {rules.uppercase ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
-                  </Circle>
-                  <Text color="gray.600">At least 1 uppercase letter</Text>
-                </HStack>
-                <HStack>
-                  <Circle size="18px" bg={rules.special ? "green.500" : "gray.300"} color="white">
-                    {rules.special ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
-                  </Circle>
-                  <Text color="gray.600">At least 1 special character (@$!%*?&)</Text>
-                </HStack>
-              </VStack>
+                  {/* Email */}
+                  <FormLabel display="flex" ms="4px" fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                    Email<Text color={brandStars}>*</Text>
+                  </FormLabel>
+                  <Input
+                    isRequired
+                    variant="auth"
+                    fontSize="sm"
+                    type="email"
+                    placeholder="mail@simmmple.com"
+                    mb="15px"
+                    fontWeight="500"
+                    size="lg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
 
-              {/* Sign Up Button */}
-<Button
-  fontSize="sm"
-  variant="brand"
-  fontWeight="500"
-  w="100%"
-  h="50"
-  mb="24px"
-  onClick={handleSignup}
-  isLoading={loading}
-  isDisabled={!isPasswordValid}
-  _hover={{
-    bg: !isPasswordValid ? "brand.600" : "brand.600", // show hover color
-    cursor: !isPasswordValid ? "not-allowed" : "pointer", // disable pointer when invalid
-  }}
->
-  Sign Up
-</Button>
+                  {/* Password */}
+                  <FormLabel fontSize="sm" fontWeight="500" color={textColor} display="flex">
+                    Password<Text color={brandStars}>*</Text>
+                  </FormLabel>
+                  <InputGroup size="md">
+                    <Input
+                      isRequired
+                      fontSize="sm"
+                      placeholder="Min. 8 characters"
+                      mb="12px"
+                      size="lg"
+                      type={show ? "text" : "password"}
+                      variant="auth"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <InputRightElement display="flex" alignItems="center" mt="4px">
+                      <Icon
+                        color={textColorSecondary}
+                        _hover={{ cursor: "pointer" }}
+                        as={show ? RiEyeCloseLine : MdOutlineRemoveRedEye}
+                        onClick={handleClick}
+                      />
+                    </InputRightElement>
+                  </InputGroup>
 
+                  {/* Password Validation */}
+                  <VStack align="start" spacing={2} mb="15px" fontSize="sm">
+                    <HStack>
+                      <Circle size="18px" bg={rules.length ? "green.500" : "gray.300"} color="white">
+                        {rules.length ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                      </Circle>
+                      <Text color="gray.600">At least 8 characters</Text>
+                    </HStack>
+                    <HStack>
+                      <Circle size="18px" bg={rules.uppercase ? "green.500" : "gray.300"} color="white">
+                        {rules.uppercase ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                      </Circle>
+                      <Text color="gray.600">At least 1 uppercase letter</Text>
+                    </HStack>
+                    <HStack>
+                      <Circle size="18px" bg={rules.special ? "green.500" : "gray.300"} color="white">
+                        {rules.special ? <CheckIcon boxSize={3} /> : <CloseIcon boxSize={3} />}
+                      </Circle>
+                      <Text color="gray.600">At least 1 special character (@$!%*?&)</Text>
+                    </HStack>
+                  </VStack>
+
+                  {/* Next Button */}
+                  <Button
+                    fontSize="sm"
+                    variant="brand"
+                    fontWeight="500"
+                    w="100%"
+                    h="50"
+                    mb="15px"
+                    onClick={handleNext}
+                    isDisabled={!isPasswordValid}
+                  >
+                    Next
+                  </Button>
+                </>
+              )}
+
+              {step === 2 && (
+                <>
+                  {/* User Type */}
+                  <FormLabel display="flex" fontSize="sm" fontWeight="500" color={textColor} mb="4px">
+                    Select User Type<Text color={brandStars}>*</Text>
+                  </FormLabel>
+                  <Select
+                    placeholder="Select user type"
+                    value={userType}
+                       fontSize="sm"
+                    size="lg"
+                    onChange={(e) => setUserType(e.target.value)}
+                    mb="24px"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="User">User</option>
+                  </Select>
+
+                  {/* Sign Up Button */}
+                  <Button
+                    fontSize="sm"
+                    variant="brand"
+                    fontWeight="500"
+                    w="100%"
+                    h="50"
+                    mb="24px"
+                    onClick={handleSignup}
+                    isLoading={loading}
+                  >
+                    Sign Up
+                  </Button>
+
+                  {/* Back Button */}
+                  <Button
+                    fontSize="sm"
+                    variant="outline"
+                    fontWeight="500"
+                    w="100%"
+                    h="50"
+                    mb="15px"
+                    onClick={() => setStep(1)}
+                  >
+                    Back
+                  </Button>
+                </>
+              )}
             </FormControl>
 
-            {/* Already have account? */}
+            {/* Already have account */}
             <Flex flexDirection="column" justifyContent="center" alignItems="center" maxW="100%" mt="0px">
               <Text color={textColorDetails} fontWeight="400" fontSize="14px">
                 Already have an account?

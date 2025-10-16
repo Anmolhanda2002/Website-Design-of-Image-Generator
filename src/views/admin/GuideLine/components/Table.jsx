@@ -9,140 +9,109 @@ import {
   IconButton,
   Select,
   useColorModeValue,
-  Circle,
 } from '@chakra-ui/react';
 import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
-import { createColumnHelper, flexRender, getCoreRowModel, useReactTable, getPaginationRowModel } from '@tanstack/react-table';
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  getPaginationRowModel,
+} from '@tanstack/react-table';
 import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate } from 'react-router-dom';
 
-export default function AdminTable() {
+export default function GuidelineTable() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
-  const [admins, setAdmins] = useState([]);
+  const [guidelines, setGuidelines] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100');
-
   const navigate = useNavigate();
 
-  // Fetch admins
-  useEffect(() => {
-    const fetchAdmins = async () => {
+  // Fetch Guidelines
+      const fetchGuidelines = async () => {
       try {
-        const response = await axiosInstance.get(
-          `/view_all_accounts/?admin_page=${pageIndex + 1}&per_page=${pageSize}`
-        );
-
+        const response = await axiosInstance.get(`/list_image_guidelines`);
         if (response.data.status === 'success') {
-          setAdmins(response.data.admins.results || []);
-          setTotalPages(response.data.admins.total_pages || 1);
+          setGuidelines(response.data.results || []);
+          setTotalPages(1); // assuming backend doesn’t support pagination
         }
       } catch (error) {
-        console.error('Error fetching admins:', error);
+        console.error('Error fetching guidelines:', error);
       }
     };
-    fetchAdmins();
-  }, [pageIndex, pageSize]);
+  useEffect(() => {
+
+    fetchGuidelines();
+  }, []);
 
   const columnHelper = createColumnHelper();
 
- const handleDelete = async (id) => {
+  // Delete Guideline
+const handleDelete = async (id) => {
   Swal.fire({
-    title: "Are you sure?",
-    text: "This action cannot be undone!",
-    icon: "warning",
+    title: 'Are you sure?',
+    text: 'This action cannot be undone!',
+    icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, delete it!",
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, delete it!',
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
-        console.log("Deleting user:", id);
+        // Get api_key from localStorage
+        const api_key = localStorage.getItem("api_key");
 
-        // ✅ Use DELETE method and send body via 'data'
-        await axiosInstance.delete("/factory_development/delete/", {
-          data: { user_id: id },
+        if (!api_key) {
+          Swal.fire('Error!', 'API key not found in local storage.', 'error');
+          return;
+        }
+
+        // ✅ Call your delete API with body data
+        await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
+          api_key: api_key,
+          guideline_id: id,
         });
 
-        Swal.fire("Deleted!", "The account has been deleted.", "success");
-
-        // ✅ Optionally update your UI list (if needed)
-        // setUsers((prev) => prev.filter((user) => user.user_id !== id));
-
+        Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+    fetchGuidelines();
+        // ✅ Remove deleted guideline from UI
+        // setGuidelines((prev) => prev.filter((g) => g.guideline_id !== id));
       } catch (err) {
-        console.error("Delete error:", err);
-        Swal.fire("Error!", "Failed to delete the account.", "error");
+        console.error(err);
+        Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
       }
     }
   });
 };
 
-
-
-  const handleAddAdmin = () => {
-    Swal.fire({
-      title: 'Add New Admin',
-      html: `
-        <input type="text" id="username" class="swal2-input" placeholder="Username">
-        <input type="email" id="email" class="swal2-input" placeholder="Email">
-        <input type="password" id="password" class="swal2-input" placeholder="Password">
-      `,
-      confirmButtonText: 'Add',
-      showCancelButton: true,
-      preConfirm: () => {
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        if (!username || !email || !password) {
-          Swal.showValidationMessage('Please fill all fields');
-          return false;
-        }
-        return { username, email, password };
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await axiosInstance.post('/add_admin/', result.value);
-          Swal.fire('Success!', 'Admin added successfully.', 'success');
-          setPageIndex(0); // refresh from first page
-        } catch (err) {
-          Swal.fire('Error!', 'Failed to add admin.', 'error');
-        }
-      }
-    });
+  // Add Guideline
+  const handleAddGuideline = () => {
+    navigate('/admin/add/guidelines');
   };
 
+  // Define Table Columns
   const columns = useMemo(
     () => [
-      columnHelper.accessor('username', {
-        header: 'Username / Email',
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <Flex align="center" gap={3}>
-              <Circle size="10px" bg={row.is_approved ? 'green.400' : 'gray.300'} />
-              <Flex direction="column">
-                <Text fontSize="sm" fontWeight="500" color={textColor}>
-                  {row.username}
-                </Text>
-                <Text fontSize="xs" color="gray.500">
-                  {row.email}
-                </Text>
-              </Flex>
-            </Flex>
-          );
-        },
-      }),
-      columnHelper.accessor('created_at', {
-        header: 'Created',
+      columnHelper.accessor('guideline_id', {
+        header: 'ID',
         cell: (info) => (
-          <Text fontSize="xs" color="gray.500">
-            {new Date(info.getValue()).toLocaleString() || '-'}
+          <Text fontSize="sm" color={textColor}>
+            {info.getValue()}
+          </Text>
+        ),
+      }),
+      columnHelper.accessor('name', {
+        header: 'Guideline Name',
+        cell: (info) => (
+          <Text fontSize="sm" fontWeight="500" color={textColor}>
+            {info.getValue()}
           </Text>
         ),
       }),
@@ -158,14 +127,14 @@ export default function AdminTable() {
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() => navigate(`/admin/edit_user/${row.user_id}`)}
+                onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
               />
               <IconButton
                 aria-label="Delete"
                 icon={<DeleteIcon />}
                 size="xs"
                 colorScheme="red"
-                onClick={() => handleDelete(row.user_id)}
+                onClick={() => handleDelete(row.guideline_id)}
               />
             </Flex>
           );
@@ -176,13 +145,10 @@ export default function AdminTable() {
   );
 
   const filteredData = useMemo(() => {
-    return admins.filter((row) => {
-      return (
-        (row.username?.toLowerCase() || '').includes(globalFilter.toLowerCase()) ||
-        (row.email?.toLowerCase() || '').includes(globalFilter.toLowerCase())
-      );
-    });
-  }, [admins, globalFilter]);
+    return guidelines.filter((row) =>
+      (row.name?.toLowerCase() || '').includes(globalFilter.toLowerCase())
+    );
+  }, [guidelines, globalFilter]);
 
   const table = useReactTable({
     data: filteredData,
@@ -203,15 +169,15 @@ export default function AdminTable() {
     <Card w="100%" p={5}>
       <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-          Admins Table
+          Guidelines Table
         </Text>
-        <Button size="sm" colorScheme="blue" onClick={handleAddAdmin}>
-          + Add Admin
+        <Button size="sm" colorScheme="blue" onClick={handleAddGuideline}>
+          + Add Guideline
         </Button>
       </Flex>
 
       <Input
-        placeholder="Search admins by username or email..."
+        placeholder="Search guidelines..."
         mb={4}
         value={globalFilter}
         onChange={(e) => setGlobalFilter(e.target.value)}
