@@ -18,20 +18,25 @@ import axiosInstance from "utils/AxiosInstance"; // Your configured Axios instan
 export default function AssignUsersPage() {
   const toast = useToast();
 
+  // ✅ Color mode values declared at the top level
+  const cardBg = useColorModeValue("white", "gray.800");
+  const pageBg = useColorModeValue("gray.50", "gray.900");
+
+  // ✅ States
   const [admins, setAdmins] = useState([]);
   const [users, setUsers] = useState([]);
   const [assignments, setAssignments] = useState({});
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  // Pagination states
+  // ✅ Pagination
   const [adminPage, setAdminPage] = useState(1);
   const [userPage, setUserPage] = useState(1);
-  const [perPage] = useState(10); // items per page
+  const [perPage] = useState(10);
   const [totalAdminPages, setTotalAdminPages] = useState(1);
   const [totalUserPages, setTotalUserPages] = useState(1);
 
-  // Fetch accounts with pagination
+  // ✅ Fetch accounts (admins + users) with pagination
   const fetchAccounts = async () => {
     try {
       setLoading(true);
@@ -44,10 +49,11 @@ export default function AssignUsersPage() {
       setTotalAdminPages(res.data.admins.total_pages);
       setTotalUserPages(res.data.users.total_pages);
 
-      // Initialize assignment map if not exists
+      // Initialize assignment map
       const initialAssignments = {};
       res.data.admins.results.forEach((admin) => {
-        if (!assignments[admin.user_id]) initialAssignments[admin.user_id] = new Set();
+        if (!assignments[admin.user_id])
+          initialAssignments[admin.user_id] = new Set();
         else initialAssignments[admin.user_id] = assignments[admin.user_id];
       });
       setAssignments(initialAssignments);
@@ -65,41 +71,63 @@ export default function AssignUsersPage() {
     }
   };
 
+  // ✅ Load accounts when page changes
   useEffect(() => {
     fetchAccounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminPage, userPage]);
 
+  // ✅ Handle assign/unassign actions
   const handleCheckboxChange = async (adminId, userId, isChecked) => {
     try {
       setUpdating(true);
       if (isChecked) {
-        await axiosInstance.post("/assign_user_to_admin/", { admin_id: adminId, user_id: userId });
+        await axiosInstance.post("/assign_user_to_admin/", {
+          admin_id: adminId,
+          user_id: userId,
+        });
         setAssignments((prev) => {
           const updated = { ...prev };
           updated[adminId].add(userId);
           return updated;
         });
-        toast({ title: "User assigned", status: "success", duration: 2000, isClosable: true });
+        toast({
+          title: "User assigned successfully",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
       } else {
-        await axiosInstance.post("/unassign_user_to_admin/", { admin_id: adminId, user_id: userId });
+        await axiosInstance.post("/unassign_user_to_admin/", {
+          admin_id: adminId,
+          user_id: userId,
+        });
         setAssignments((prev) => {
           const updated = { ...prev };
           updated[adminId].delete(userId);
           return updated;
         });
-        toast({ title: "User unassigned", status: "info", duration: 2000, isClosable: true });
+        toast({
+          title: "User unassigned",
+          status: "info",
+          duration: 2000,
+          isClosable: true,
+        });
       }
       setUpdating(false);
     } catch (err) {
       console.error(err);
-      toast({ title: "Action failed", status: "error", duration: 3000, isClosable: true });
+      toast({
+        title: "Action failed",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
       setUpdating(false);
     }
   };
 
-  const cardBg = useColorModeValue("white", "gray.800");
-
+  // ✅ Loading Spinner
   if (loading) {
     return (
       <Box minH="100vh" display="flex" justifyContent="center" alignItems="center">
@@ -108,15 +136,27 @@ export default function AssignUsersPage() {
     );
   }
 
+  // ✅ UI
   return (
-    <Box py={[8, 10, 16]} px={[4, 6, 10]} minH="100vh" bg={useColorModeValue("gray.50", "gray.900")}>
+    <Box
+      py={[8, 10, 16]}
+      px={[4, 6, 10]}
+      minH="100vh"
+      bg={pageBg}
+    >
       <VStack spacing={10} maxW="1200px" mx="auto" align="stretch">
         <Heading textAlign="center" color="blue.600" size="xl" mb={8}>
           Assign Users to Admins
         </Heading>
 
         {admins.map((admin) => (
-          <Box key={admin.user_id} bg={cardBg} p={6} borderRadius="2xl" shadow="lg">
+          <Box
+            key={admin.user_id}
+            bg={cardBg}
+            p={6}
+            borderRadius="2xl"
+            shadow="lg"
+          >
             <Text fontSize="lg" fontWeight="600" color="blue.500">
               {admin.username} ({admin.email})
             </Text>
@@ -127,7 +167,11 @@ export default function AssignUsersPage() {
                   key={user.user_id}
                   isChecked={assignments[admin.user_id]?.has(user.user_id)}
                   onChange={(e) =>
-                    handleCheckboxChange(admin.user_id, user.user_id, e.target.checked)
+                    handleCheckboxChange(
+                      admin.user_id,
+                      user.user_id,
+                      e.target.checked
+                    )
                   }
                   size="lg"
                   colorScheme="blue"
@@ -140,7 +184,7 @@ export default function AssignUsersPage() {
           </Box>
         ))}
 
-        {/* Pagination */}
+        {/* Admin Pagination */}
         <HStack justify="center" spacing={4} mt={4}>
           <Button
             onClick={() => setAdminPage((p) => Math.max(p - 1, 1))}
@@ -152,13 +196,16 @@ export default function AssignUsersPage() {
             Admin Page {adminPage} / {totalAdminPages}
           </Text>
           <Button
-            onClick={() => setAdminPage((p) => Math.min(p + 1, totalAdminPages))}
+            onClick={() =>
+              setAdminPage((p) => Math.min(p + 1, totalAdminPages))
+            }
             isDisabled={adminPage === totalAdminPages}
           >
             Next Admins
           </Button>
         </HStack>
 
+        {/* User Pagination */}
         <HStack justify="center" spacing={4} mt={2}>
           <Button
             onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
