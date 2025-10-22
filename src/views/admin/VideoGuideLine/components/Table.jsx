@@ -10,7 +10,7 @@ import {
   Select,
   useColorModeValue,
 } from '@chakra-ui/react';
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { EditIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons';
 import {
   createColumnHelper,
   flexRender,
@@ -34,62 +34,63 @@ export default function GuidelineTable() {
   const navigate = useNavigate();
 
   // Fetch Guidelines
-      const fetchGuidelines = async () => {
-      try {
-        const response = await axiosInstance.get(`/list_video_guidelines/`);
-        if (response.data.status === 'success') {
-          setGuidelines(response.data.results || []);
-          setTotalPages(1); // assuming backend doesn’t support pagination
-        }
-      } catch (error) {
-        console.error('Error fetching guidelines:', error);
+  const fetchGuidelines = async () => {
+    try {
+      const response = await axiosInstance.get(`/list_video_guidelines/`);
+      if (response.data.status === 'success') {
+        setGuidelines(response.data.results || []);
+        setTotalPages(1); // assuming backend doesn’t support pagination
       }
-    };
-  useEffect(() => {
+    } catch (error) {
+      console.error('Error fetching guidelines:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchGuidelines();
   }, []);
 
   const columnHelper = createColumnHelper();
 
   // Delete Guideline
-const handleDelete = async (id) => {
-  Swal.fire({
-    title: 'Are you sure?',
-    text: 'This action cannot be undone!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Yes, delete it!',
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        // Get api_key from localStorage
-        const api_key = localStorage.getItem("api_key");
-
-        if (!api_key) {
-          Swal.fire('Error!', 'API key not found in local storage.', 'error');
-          return;
+  const handleDelete = async (id) => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'This action cannot be undone!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axiosInstance.post(`/factory_development_delete_video_guideline/`, {
+            guideline_id: id,
+          });
+          Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+          fetchGuidelines();
+        } catch (err) {
+          console.error(err);
+          Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
         }
-
-        // ✅ Call your delete API with body data
-        await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
-          api_key: api_key,
-          guideline_id: id,
-        });
-
-        Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-    fetchGuidelines();
-        // ✅ Remove deleted guideline from UI
-        // setGuidelines((prev) => prev.filter((g) => g.guideline_id !== id));
-      } catch (err) {
-        console.error(err);
-        Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
       }
+    });
+  };
+
+  // Set Default Guideline
+  const handleSetDefault = async (id) => {
+    try {
+      await axiosInstance.post(`/factory_development_activate_video_guideline/`, {
+        guideline_id: id,
+      });
+      Swal.fire('Success!', 'This guideline is now set as default.', 'success');
+      fetchGuidelines();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error!', 'Failed to set the guideline as default.', 'error');
     }
-  });
-};
+  };
 
   // Add Guideline
   const handleAddGuideline = () => {
@@ -114,6 +115,27 @@ const handleDelete = async (id) => {
             {info.getValue()}
           </Text>
         ),
+      }),
+      columnHelper.accessor('is_default', {
+        header: 'Default',
+        cell: (info) => {
+          const isDefault = info.getValue();
+          const row = info.row.original;
+          return isDefault ? (
+            <Text color="green.500" fontWeight="bold">
+              Default
+            </Text>
+          ) : (
+            <Button
+              size="sm"
+              colorScheme="green"
+              leftIcon={<CheckIcon />}
+              onClick={() => handleSetDefault(row.guideline_id)}
+            >
+              Set Default
+            </Button>
+          );
+        },
       }),
       columnHelper.display({
         id: 'actions',
@@ -146,7 +168,7 @@ const handleDelete = async (id) => {
 
   const filteredData = useMemo(() => {
     return guidelines.filter((row) =>
-      (row.name?.toLowerCase() || '').includes(globalFilter.toLowerCase())
+      (row.guideline_name?.toLowerCase() || '').includes(globalFilter.toLowerCase())
     );
   }, [guidelines, globalFilter]);
 
@@ -169,7 +191,7 @@ const handleDelete = async (id) => {
     <Card w="100%" p={5}>
       <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
-          Guidelines Table
+          Video Guidelines
         </Text>
         <Button size="sm" colorScheme="blue" onClick={handleAddGuideline}>
           + Add Guideline

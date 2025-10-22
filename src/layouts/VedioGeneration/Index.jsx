@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,startTransition } from "react";
 import {
   Flex,
   Box,
@@ -33,6 +33,54 @@ export default function PixVerseLayout() {
   const isMobile = useBreakpointValue({ base: true, md: false });
 const mobileTabBg = useColorModeValue("gray.100", "gray.700");
 const contentBg = useColorModeValue("gray.50", "gray.900");
+const [previewData, setPreviewData] = useState(null);
+
+
+  const handleDataChange = (newData) => {
+    // Wrap in startTransition to avoid "synchronous suspend" warning
+    startTransition(() => {
+      setPreviewData(newData);
+    });
+  };
+
+
+
+const [imageCreationSettings, setImageCreationSettings] = useState({
+  guidelineId:"",
+  targetMethod: "disable",
+  targetWidth: "",
+  targetHeight: "",
+  resizeMethod: "",
+  quality: "",
+});
+const [resizeImageSettings, setResizeImageSettings] = useState({
+  customId: "",
+  productId: "",
+  targetWidth: "",
+  targetHeight: "",
+  resizeMethod: "",
+  quality: "",
+});
+
+const [imageToVideoSettings, setImageToVideoSettings] = useState({
+  customer_ID: "",
+  product_ID: "",
+  layover_text: "",
+  project_name: "",
+  tags: "",
+  sector: "",
+  goal: "",
+  key_instructions: "",
+  consumer_message: "",
+  M_key: "",
+  resize: false,
+  resize_width: "",
+  resize_height: "",
+  duration: "",
+  aspect_ratio: "",
+});
+
+
   return (
     <Flex direction="column" h="100vh" overflow="hidden">
       {/* ---------- Navbar ---------- */}
@@ -140,6 +188,14 @@ const contentBg = useColorModeValue("gray.50", "gray.900");
             setResolution={setResolution}
             ratio={ratio}
             setRatio={setRatio}
+              imageCreationSettings={imageCreationSettings}
+  setImageCreationSettings={setImageCreationSettings}
+  resizeImageSettings={resizeImageSettings}
+  setResizeImageSettings={setResizeImageSettings}
+  imageToVideoSettings={imageToVideoSettings}
+  setImageToVideoSettings={setImageToVideoSettings}
+  onDataChange={handleDataChange}
+  
           />
         </Flex>
       ) : (
@@ -174,16 +230,25 @@ const contentBg = useColorModeValue("gray.50", "gray.900");
       }}
     >
       <Panel
-        activeTab={activeTab}
-        model={model}
-        setModel={setModel}
-        duration={duration}
-        setDuration={setDuration}
-        resolution={resolution}
-        setResolution={setResolution}
-        ratio={ratio}
-        setRatio={setRatio}
-      />
+  activeTab={activeTab}
+  onDataChange={handleDataChange}
+  model={model}
+  setModel={setModel}
+  duration={duration}
+  setDuration={setDuration}
+  resolution={resolution}
+  setResolution={setResolution}
+  ratio={ratio}
+  setRatio={setRatio}
+  imageCreationSettings={imageCreationSettings}
+  setImageCreationSettings={setImageCreationSettings}
+  resizeImageSettings={resizeImageSettings}
+  setResizeImageSettings={setResizeImageSettings}
+  imageToVideoSettings={imageToVideoSettings}
+  setImageToVideoSettings={setImageToVideoSettings}
+  
+/>
+
     </Box>
 
     {/* Preview Area (fixed full height) */}
@@ -196,6 +261,7 @@ const contentBg = useColorModeValue("gray.50", "gray.900");
       flexDirection="column"
     >
       <PreviewArea
+      activeTab={activeTab}
         text={text}
         setText={setText}
         images={images}
@@ -208,6 +274,9 @@ const contentBg = useColorModeValue("gray.50", "gray.900");
         duration={duration}
         resolution={resolution}
         ratio={ratio}
+          imageCreationSettings={imageCreationSettings}
+  resizeImageSettings={resizeImageSettings}
+  imageToVideoSettings={imageToVideoSettings}
       />
     </Box>
   </Flex>

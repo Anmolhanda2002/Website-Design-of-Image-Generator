@@ -10,7 +10,7 @@ import {
   Select,
   useColorModeValue,
 } from '@chakra-ui/react';
-import { EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { EditIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons';
 import {
   createColumnHelper,
   flexRender,
@@ -34,62 +34,75 @@ export default function GuidelineTable() {
   const navigate = useNavigate();
 
   // Fetch Guidelines
-      const fetchGuidelines = async () => {
-      try {
-        const response = await axiosInstance.get(`/list_image_guidelines`);
-        if (response.data.status === 'success') {
-          setGuidelines(response.data.results || []);
-          setTotalPages(1); // assuming backend doesn’t support pagination
-        }
-      } catch (error) {
-        console.error('Error fetching guidelines:', error);
+  const fetchGuidelines = async () => {
+    try {
+      const response = await axiosInstance.get(`/list_image_guidelines`);
+      if (response.data.status === 'success') {
+        setGuidelines(response.data.results || []);
+        setTotalPages(1); // backend doesn’t support pagination yet
       }
-    };
-  useEffect(() => {
+    } catch (error) {
+      console.error('Error fetching guidelines:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchGuidelines();
   }, []);
 
   const columnHelper = createColumnHelper();
 
   // Delete Guideline
-const handleDelete = async (id) => {
-  Swal.fire({
-    title: 'Are you sure?',
-    text: 'This action cannot be undone!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Yes, delete it!',
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        // Get api_key from localStorage
-        const api_key = localStorage.getItem("api_key");
-
-        if (!api_key) {
-          Swal.fire('Error!', 'API key not found in local storage.', 'error');
-          return;
+  const handleDelete = async (id) => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'This action cannot be undone!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const api_key = localStorage.getItem('api_key');
+          if (!api_key) {
+            Swal.fire('Error!', 'API key not found in local storage.', 'error');
+            return;
+          }
+          await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
+            api_key,
+            guideline_id: id,
+          });
+          Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+          fetchGuidelines();
+        } catch (err) {
+          console.error(err);
+          Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
         }
-
-        // ✅ Call your delete API with body data
-        await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
-          api_key: api_key,
-          guideline_id: id,
-        });
-
-        Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-    fetchGuidelines();
-        // ✅ Remove deleted guideline from UI
-        // setGuidelines((prev) => prev.filter((g) => g.guideline_id !== id));
-      } catch (err) {
-        console.error(err);
-        Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
       }
+    });
+  };
+
+  // Activate Guideline
+  const handleActivate = async (id) => {
+    try {
+      const api_key = localStorage.getItem('api_key');
+      if (!api_key) {
+        Swal.fire('Error!', 'API key not found in local storage.', 'error');
+        return;
+      }
+      await axiosInstance.post(`/factory_development_activate_image_guideline/`, {
+        api_key,
+        guideline_id: id,
+      });
+      Swal.fire('Activated!', 'The guideline is now active.', 'success');
+      fetchGuidelines();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error!', 'Failed to activate the guideline.', 'error');
     }
-  });
-};
+  };
 
   // Add Guideline
   const handleAddGuideline = () => {
@@ -101,19 +114,29 @@ const handleDelete = async (id) => {
     () => [
       columnHelper.accessor('guideline_id', {
         header: 'ID',
-        cell: (info) => (
-          <Text fontSize="sm" color={textColor}>
-            {info.getValue()}
-          </Text>
-        ),
+        cell: (info) => <Text fontSize="sm" color={textColor}>{info.getValue()}</Text>,
       }),
       columnHelper.accessor('name', {
         header: 'Guideline Name',
-        cell: (info) => (
-          <Text fontSize="sm" fontWeight="500" color={textColor}>
-            {info.getValue()}
-          </Text>
-        ),
+        cell: (info) => <Text fontSize="sm" fontWeight="500" color={textColor}>{info.getValue()}</Text>,
+      }),
+      columnHelper.accessor('is_active', {
+        header: 'Status',
+        cell: (info) => {
+          const isActive = info.getValue();
+          return isActive ? (
+            <Text color="green.500" fontWeight="bold">Active</Text>
+          ) : (
+            <Button
+              size="sm"
+              colorScheme="green"
+              leftIcon={<CheckIcon />}
+              onClick={() => handleActivate(info.row.original.guideline_id)}
+            >
+              Activate
+            </Button>
+          );
+        },
       }),
       columnHelper.display({
         id: 'actions',

@@ -229,7 +229,7 @@ const EditUser = () => {
               />
             </TabPanel>
              <TabPanel>
-            <AssignUsersPage/>
+            <AssignUsersPage adminid={id}/>
             </TabPanel>
           </TabPanels>
         </Tabs>

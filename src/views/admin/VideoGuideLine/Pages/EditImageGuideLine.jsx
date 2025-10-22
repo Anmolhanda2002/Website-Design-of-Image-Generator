@@ -1,477 +1,271 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Grid,
   VStack,
-  HStack,
+  Grid,
   Input,
-  Textarea,
   Select,
+  Switch,
+  FormControl,
+  FormLabel,
   Button,
   Spinner,
-  useToast,
-  useColorModeValue,
   Divider,
-  Text,
   Heading,
+  Text,
+  useColorMode,
+  useColorModeValue,
+  HStack,
 } from "@chakra-ui/react";
-import { useParams } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
+import { useNavigate, useParams } from "react-router-dom";
+import { showAlert } from "utils/AlertHelper";
 
-export default function EditImageGuideline() {
+export default function EditVideoGuideline() {
   const { guideline_id } = useParams();
-  const toast = useToast();
-
-  const [choices, setChoices] = useState({});
-  const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [choices, setChoices] = useState({});
+  const { colorMode } = useColorMode();
+  const navigate = useNavigate();
 
-  const cardBg = useColorModeValue("white", "navy.700");
-  const textColor = useColorModeValue("black", "white");
-  const textcolor = useColorModeValue("black","white")
-  // ✅ Utility function for safe mapping
-  const safeEntries = (obj) =>
-    obj && typeof obj === "object" ? Object.entries(obj) : [];
+  const [form, setForm] = useState({
+    guideline_name: "",
+    pace: "",
+    aspect_ratio: "",
+    video_style: "",
+    special_effects_or_transition: "",
+    camera_motion: "",
+    location_of_overlay: "",
+    video_provider: "",
+    video_provider_key: "",
+    prompt_llm: "",
+    prompt_llm_key: "",
+    vision_llm: "",
+    vision_llm_key: "",
+    is_default: false,
+  });
 
-  // ✅ Fetch data on mount
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+
+  const safeEntries = (obj) => (obj && typeof obj === "object" ? Object.entries(obj) : []);
+
+  // Fetch choices and guideline details
   useEffect(() => {
     const fetchData = async () => {
       try {
         const api_key = localStorage.getItem("api_key");
         if (!api_key) {
-          toast({
-            title: "Missing API Key",
-            description: "Please login first.",
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
+          showAlert("warning", "Missing API Key", "Please login first.", colorMode);
           return;
         }
 
         const [choicesRes, guidelineRes] = await Promise.all([
-          axiosInstance.get("/get_image_guideline_choices"),
-          axiosInstance.post("/factory_development_get_image_guideline/", {
-            api_key,
-            guideline_id,
-          }),
+          axiosInstance.get("/get_video_guideline_choices/"),
+          axiosInstance.post("/factory_development_get_video_guideline_detail/", {guideline_id }),
         ]);
 
-        const choicesData = choicesRes?.data?.data || {};
-        const guidelineData =
-          guidelineRes?.data?.data?.guidelines?.[0]?.summary || {};
+        if (choicesRes.data.status === "success") {
+          setChoices(choicesRes.data.data);
+        }
 
-        setChoices(choicesData);
-
-        setForm({
-          name: guidelineData.name || "",
-          description: guidelineData.description || "",
-          use_case: guidelineData.use_case_sector?.use_case || "",
-          sector: guidelineData.use_case_sector?.sector || "",
-          product_name: guidelineData.product?.name || "",
-          product_info: guidelineData.product?.info || "",
-          goal: guidelineData.goal?.primary_goal || "",
-          goal_description: guidelineData.goal?.goal_description || "",
-          goal_of_image: guidelineData.goal?.goal_of_image || "",
-          main_focus_of_image: guidelineData.goal?.main_focus || "",
-          model_ethnicity: guidelineData.model?.ethnicity || "",
-          model_gender: guidelineData.model?.gender || "",
-          model_built: guidelineData.model?.built || "",
-          model_age_range: guidelineData.model?.age_range || "",
-          model_personality_features:
-            guidelineData.model?.personality_features || "",
-          model_other_features: guidelineData.model?.other_features || "",
-          environment_category: guidelineData.environment?.category || "",
-          environment_interior: guidelineData.environment?.interior || "",
-          environment_exterior: guidelineData.environment?.exterior || "",
-          environment_lifestyle_editorial:
-            guidelineData.environment?.lifestyle_editorial || "",
-          environment_other: guidelineData.environment?.other || "",
-          pose_category: guidelineData.pose?.category || "",
-          pose_general: guidelineData.pose?.general || "",
-          pose_yoga: guidelineData.pose?.yoga || "",
-          pose_activity: guidelineData.pose?.activity || "",
-          pose_other: guidelineData.pose?.other || "",
-          mood: guidelineData.mood || "",
-          lighting_preference: guidelineData.styling?.lighting || "",
-          color_palette: guidelineData.styling?.color_palette || "",
-          style_preference: guidelineData.styling?.style || "",
-          human_instruction: guidelineData.instructions?.human_instruction || "",
-          additional_instructions:
-            guidelineData.instructions?.additional_instructions || "",
-        });
+        if (guidelineRes.data.status === "success") {
+          const g = guidelineRes.data.data;
+          setForm({
+            guideline_name: g.guideline_name || "",
+            pace: g.video_pace || "",
+            aspect_ratio: g.target_aspect_ratio || "",
+            video_style: g.video_style || "",
+            special_effects_or_transition: g.special_effects_or_transition || "",
+            camera_motion: g.camera_motion || "",
+            location_of_overlay: g.location_of_overlay || "",
+            video_provider: g.video_provider || "",
+            video_provider_key: g.video_provider_key_masked || "",
+            prompt_llm: g.prompt_llm || "",
+            prompt_llm_key: g.prompt_llm_key_masked || "",
+            vision_llm: g.vision_llm || "",
+            vision_llm_key: g.vision_llm_key_masked || "",
+            is_default: g.is_default || false,
+          });
+        }
       } catch (error) {
-        console.error("Error fetching guideline:", error);
-        toast({
-          title: "Error loading guideline",
-          description: "Could not load guideline data.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
+        console.error("Error fetching data:", error);
+        showAlert("error", "Error", "Failed to load guideline details.", colorMode);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [guideline_id, toast]);
+  }, [guideline_id, colorMode]);
 
-  // ✅ Handle input change
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  // ✅ Update API Call
   const handleUpdate = async () => {
     try {
       setSubmitting(true);
       const api_key = localStorage.getItem("api_key");
-
       if (!api_key) {
-        toast({
-          title: "Missing API Key",
-          description: "Please login or add your API key first.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
+        showAlert("warning", "Missing API Key", "Please login first.", colorMode);
         return;
       }
 
-      const payload = {
-        api_key,
-        guideline_id,
-        ...form, // All fields directly from form
-      };
-
-      console.log("📝 Update Payload:", payload);
-
-      const { data } = await axiosInstance.post(
-        "/factory_development_update_image_guideline/",
-        payload
-      );
+      const payload = { api_key, guideline_id, ...form };
+      const { data } = await axiosInstance.post("/factory_development_update_video_guideline/", payload);
 
       if (data.status === "success") {
-        toast({
-          title: "✅ Guideline Updated Successfully",
-          description: "Your changes have been saved.",
-          status: "success",
-          duration: 4000,
-          isClosable: true,
-        });
+        showAlert("success", "Updated", "Video guideline updated successfully.", colorMode);
+        setTimeout(() => navigate("/admin/videoguidelines"), 1500);
       } else {
-        toast({
-          title: "Update Failed ❌",
-          description: data.message || "Something went wrong.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
+        showAlert("error", "Failed", data.message || "Something went wrong.", colorMode);
       }
     } catch (error) {
       console.error("Error updating guideline:", error);
-      toast({
-        title: "Update Failed ❌",
-        description: "Please try again later.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      showAlert("error", "Error", "Server error. Please try again later.", colorMode);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ✅ Loading spinner
-  if (loading)
+  if (loading) {
     return (
       <Box textAlign="center" py={10}>
         <Spinner size="xl" />
       </Box>
     );
+  }
 
-  // ✅ Section generator
-  const sections = [
-    {
-      title: "Basic Information",
-      fields: [
-        { type: "input", name: "name", placeholder: "Guideline Name" },
-        { type: "textarea", name: "description", placeholder: "Description" },
-        {
-          type: "select",
-          name: "use_case",
-          placeholder: "Select Use Case",
-          choices: choices.use_case_choices,
-        },
-        {
-          type: "select",
-          name: "sector",
-          placeholder: "Select Sector",
-          choices: choices.sector_choices,
-        },
-      ],
-    },
-    {
-      title: "Product Information",
-      fields: [
-        { type: "input", name: "product_name", placeholder: "Product Name" },
-        { type: "textarea", name: "product_info", placeholder: "Product Info" },
-      ],
-    },
-    {
-      title: "Goals & Objectives",
-      fields: [
-        {
-          type: "select",
-          name: "goal",
-          placeholder: "Select Goal",
-          choices: choices.goal_choices,
-        },
-        {
-          type: "textarea",
-          name: "goal_description",
-          placeholder: "Goal Description",
-        },
-        { type: "input", name: "goal_of_image", placeholder: "Goal of Image" },
-        {
-          type: "input",
-          name: "main_focus_of_image",
-          placeholder: "Main Focus of Image",
-        },
-      ],
-    },
-    {
-      title: "Model Details",
-      fields: [
-        {
-          type: "select",
-          name: "model_ethnicity",
-          placeholder: "Ethnicity",
-          choices: choices.ethnicity_choices,
-        },
-        {
-          type: "select",
-          name: "model_gender",
-          placeholder: "Gender",
-          choices: choices.gender_choices,
-        },
-        {
-          type: "select",
-          name: "model_built",
-          placeholder: "Body Type",
-          choices: choices.built_choices,
-        },
-        {
-          type: "select",
-          name: "model_age_range",
-          placeholder: "Age Range",
-          choices: choices.age_choices,
-        },
-        {
-          type: "input",
-          name: "model_personality_features",
-          placeholder: "Personality Features",
-        },
-        {
-          type: "input",
-          name: "model_other_features",
-          placeholder: "Other Features",
-        },
-      ],
-    },
-    {
-      title: "Environment",
-      fields: [
-        {
-          type: "select",
-          name: "environment_category",
-          placeholder: "Category",
-          choices: choices.environment_choices,
-        },
-        { type: "input", name: "environment_interior", placeholder: "Interior" },
-        { type: "input", name: "environment_exterior", placeholder: "Exterior" },
-        {
-          type: "input",
-          name: "environment_lifestyle_editorial",
-          placeholder: "Lifestyle/Editorial",
-        },
-        { type: "input", name: "environment_other", placeholder: "Other" },
-      ],
-    },
-    {
-      title: "Pose Details",
-      fields: [
-        {
-          type: "select",
-          name: "pose_category",
-          placeholder: "Pose Category",
-          choices: choices.pose_category_choices,
-        },
-        { type: "input", name: "pose_general", placeholder: "General Pose" },
-        { type: "input", name: "pose_yoga", placeholder: "Yoga Pose" },
-        { type: "input", name: "pose_activity", placeholder: "Activity Pose" },
-        { type: "input", name: "pose_other", placeholder: "Other Pose" },
-      ],
-    },
-    {
-      title: "Mood & Styling",
-      fields: [
-        { type: "input", name: "mood", placeholder: "Mood" },
-        {
-          type: "input",
-          name: "lighting_preference",
-          placeholder: "Lighting Preference",
-        },
-        { type: "input", name: "color_palette", placeholder: "Color Palette" },
-        {
-          type: "input",
-          name: "style_preference",
-          placeholder: "Style Preference",
-        },
-      ],
-    },
-    {
-      title: "Instructions",
-      fields: [
-        {
-          type: "textarea",
-          name: "human_instruction",
-          placeholder: "Human Instruction",
-        },
-        {
-          type: "textarea",
-          name: "additional_instructions",
-          placeholder: "Additional Instructions",
-        },
-      ],
-    },
-  ];
-
-  // ✅ Render UI
   return (
-<Box
-  py={[4, 10, 20]}
+    <Box py={20} minH="100vh" display="flex" justifyContent="center">
+      <Box bg={cardBg} borderRadius="2xl" shadow="2xl" p={[6, 10]} w="100%" maxW="1000px">
+        <Heading size="lg" mb={8} color="blue.500" textAlign="center">
+          Edit Video Guideline
+        </Heading>
 
-  minH="100vh"
-  display="flex"
-  justifyContent="center"
-  alignItems="flex-start"
->
-  <Box
-    borderRadius="2xl"
-    p={[4, 4, 8]}
-    w="100%"
-    maxW="1200px"
-    overflowY="auto"
-    sx={{
-      "&::-webkit-scrollbar": { width: "6px" },
-      "&::-webkit-scrollbar-thumb": {
-        background: "#cbd5e0",
-        borderRadius: "full",
-      },
-    }}
-  >
-    <Heading
-      size="xl"
-      mb={12}
-      textAlign="center"
-      color="blue.600"
-      letterSpacing="wide"
-    >
-      Edit Image Guideline
-    </Heading>
+        {/* --- Basic Details --- */}
+        <VStack align="start" spacing={4} mb={8}>
+          <Text fontSize="xl" fontWeight="600">
+            Basic Details
+          </Text>
+          <Divider />
+          <Grid templateColumns={["1fr", "1fr 1fr"]} gap={6} w="100%">
+            <Input color={textColor} placeholder="Guideline Name" name="guideline_name" value={form.guideline_name} onChange={handleChange} />
+            <FormControl display="flex" alignItems="center">
+              <FormLabel htmlFor="is_default" mb="0">
+                Set as Default
+              </FormLabel>
+              <Switch id="is_default" name="is_default" isChecked={form.is_default} onChange={handleChange} colorScheme="blue" />
+            </FormControl>
+          </Grid>
+        </VStack>
 
-    {sections.map((section, index) => (
-      <VStack
-        key={index}
-        align="stretch"
-        spacing={6}
-        mb={12}
-        borderRadius="lg"
-      >
-        <Text fontSize={["lg", "xl"]} fontWeight="600" color="blue.500">
-          {section.title}
-        </Text>
-        <Divider borderColor="blue.200" />
+        {/* --- Video Style Options --- */}
+        <VStack align="start" spacing={4} mb={8}>
+          <Text fontSize="xl" fontWeight="600">
+            Video Style Settings
+          </Text>
+          <Divider />
+          <Grid templateColumns={["1fr", "1fr 1fr"]} gap={6} w="100%">
+            <Select placeholder="Select Pace" name="pace" value={form.pace} onChange={handleChange}>
+              {safeEntries(choices.pace_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
 
-        <Grid
-  templateColumns={["1fr", null, "1fr 1fr"]} // 1 column on mobile, 2 on md+
-  gap={[4, 6]}
-  alignItems="start"
->
-  {section.fields.map((field) => {
-    if (field.type === "input") {
-      return (
-        <Input
-          key={field.name}
-          name={field.name}
-          value={form[field.name] || ""}
-          onChange={handleChange}
-          placeholder={field.placeholder}
-          size="lg"
-          color={textcolor}
-        />
-      );
-    }
-    if (field.type === "textarea") {
-      return (
-        <Textarea
-          key={field.name}
-          name={field.name}
-          value={form[field.name] || ""}
-          onChange={handleChange}
-          placeholder={field.placeholder}
-          size="lg"
-          minH="120px"
-        />
-      );
-    }
-    if (field.type === "select") {
-      return (
-        <Select
-          key={field.name}
-          name={field.name}
-          value={form[field.name] || ""}
-          onChange={handleChange}
-          placeholder={field.placeholder}
-          size="lg"
-        >
-          {safeEntries(field.choices).map(([label, value]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-      );
-    }
-    return null;
-  })}
-</Grid>
+            <Select placeholder="Select Aspect Ratio" name="aspect_ratio" value={form.aspect_ratio} onChange={handleChange}>
+              {safeEntries(choices.aspect_ratio_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
 
-      </VStack>
-    ))}
+            <Select placeholder="Select Video Style" name="video_style" value={form.video_style} onChange={handleChange}>
+              {safeEntries(choices.video_style_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
 
-    <HStack justify="flex-end" mt={8}>
-      <Button
-        colorScheme="blue"
-        size="lg"
-        px={10}
-        onClick={handleUpdate}
-        isLoading={submitting}
-        loadingText="Updating..."
-        borderRadius="full"
-      >
-        💾 Update Guideline
-      </Button>
-    </HStack>
-  </Box>
-</Box>
+            <Select placeholder="Special Effects / Transitions" name="special_effects_or_transition" value={form.special_effects_or_transition} onChange={handleChange}>
+              {safeEntries(choices.special_effects_or_transition_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
 
+            <Select placeholder="Camera Motion" name="camera_motion" value={form.camera_motion} onChange={handleChange}>
+              {safeEntries(choices.camera_motion_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
 
+            <Select placeholder="Overlay Location" name="location_of_overlay" value={form.location_of_overlay} onChange={handleChange}>
+              {safeEntries(choices.location_of_overlay_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
+          </Grid>
+        </VStack>
+
+        {/* --- AI Provider and Models --- */}
+        <VStack align="start" spacing={4} mb={8}>
+          <Text fontSize="xl" fontWeight="600">
+            AI Provider and Models
+          </Text>
+          <Divider />
+          <Grid templateColumns={["1fr", "1fr 1fr"]} gap={6} w="100%">
+            <Select placeholder="Video Provider" name="video_provider" value={form.video_provider} onChange={handleChange}>
+              {safeEntries(choices.video_provider_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
+            <Input color={textColor} placeholder="Video Provider Key" name="video_provider_key" value={form.video_provider_key} onChange={handleChange} />
+
+            <Select placeholder="Prompt LLM" name="prompt_llm" value={form.prompt_llm} onChange={handleChange}>
+              {safeEntries(choices.prompt_llm_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
+            <Input color={textColor} placeholder="Prompt LLM Key" name="prompt_llm_key" value={form.prompt_llm_key} onChange={handleChange} />
+
+            <Select placeholder="Vision LLM" name="vision_llm" value={form.vision_llm} onChange={handleChange}>
+              {safeEntries(choices.vision_llm_choices).map(([key, val]) => (
+                <option key={val} value={val}>
+                  {key}
+                </option>
+              ))}
+            </Select>
+            <Input color={textColor} placeholder="Vision LLM Key" name="vision_llm_key" value={form.vision_llm_key} onChange={handleChange} />
+          </Grid>
+        </VStack>
+
+        {/* --- Submit Button --- */}
+        <HStack justify="flex-end">
+          <Button colorScheme="blue" size="lg" px={10} onClick={handleUpdate} isLoading={submitting} loadingText="Updating...">
+            💾 Update Guideline
+          </Button>
+        </HStack>
+      </Box>
+    </Box>
   );
 }

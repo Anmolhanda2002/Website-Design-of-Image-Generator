@@ -10,8 +10,10 @@ import {
   Input,
   useColorModeValue,
   Textarea
+  ,useToast,Spinner,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState,useEffect,startTransition  } from "react";
+import axiosInstance from "utils/AxiosInstance";
 export default function Panel({
   activeTab,
   model,
@@ -22,71 +24,122 @@ export default function Panel({
   setResolution,
   ratio,
   setRatio,
+  onDataChange,
+    imageCreationSettings,
+  setImageCreationSettings,
+
+  resizeImageSettings,
+  setResizeImageSettings,
+
+  imageToVideoSettings,
+  setImageToVideoSettings,
 }) {
   const panelBg = useColorModeValue("white", "gray.800");
 
   const handleChange = (field, value) => {
     console.log(`[${activeTab}] ${field}:`, value);
   };
-const [imageCreationSettings, setImageCreationSettings] = useState({
-  compositionId: "",
-  targetMethod: "disable",
-  targetWidth: "",
-  targetHeight: "",
-  resizeMethod: "",
-  quality: "",
-});
-const [resizeImageSettings, setResizeImageSettings] = useState({
-  customId: "",
-  productId: "",
-  targetWidth: "",
-  targetHeight: "",
-  resizeMethod: "",
-  quality: "",
-});
 
-const [imageToVideoSettings, setImageToVideoSettings] = useState({
-  customer_ID: "",
-  product_ID: "",
-  layover_text: "",
-  project_name: "",
-  tags: "",
-  sector: "",
-  goal: "",
-  key_instructions: "",
-  consumer_message: "",
-  M_key: "",
-  resize: false,
-  resize_width: "",
-  resize_height: "",
-  duration: "",
-  aspect_ratio: "",
-});
+
+  // console.log("hello",imageCreationSettings)
+
+ const [searchTerm, setSearchTerm] = useState("");
+  const [guidelines, setGuidelines] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+
+  // 🔍 Fetch Guidelines from API
+useEffect(() => {
+  const fetchGuidelines = async () => {
+    if (!searchTerm.trim()) return;
+    setLoading(true);
+    try {
+      const res = await axiosInstance.get(`/search_image_guidelines/?name=${searchTerm}`);
+
+      // ✅ Extract 'results' safely
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
+
+      setGuidelines(data);
+    } catch (error) {
+      toast({
+        title: "Failed to fetch guidelines",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const delayDebounce = setTimeout(fetchGuidelines, 500);
+  return () => clearTimeout(delayDebounce);
+}, [searchTerm, toast]);
+
+
+
+
+
 
 
   const renderPanelContent = () => {
     switch (activeTab) {
   case "Image Creation":
   return (
-    <>
-      {/* Composition ID */}
+    <VStack align="stretch" spacing={4}>
+      {/* 🔍 Search Image Guidelines */}
       <Box>
-        <Text fontWeight="bold">Composition ID</Text>
+        <Text fontWeight="bold">Search Image Guidelines</Text>
         <Input
-          placeholder="Enter composition ID"
-          value={imageCreationSettings.compositionId}
-          onChange={(e) =>
-            setImageCreationSettings((prev) => ({
-              ...prev,
-              compositionId: e.target.value,
-            }))
-          }
+          placeholder="Enter guideline name..."
+          value={searchTerm}
+         onChange={(e) =>
+    startTransition(() => {
+      setSearchTerm(e.target.value);
+    })
+  }
           mt={2}
         />
       </Box>
 
-      {/* Target Method */}
-      <Box mt={4}>
+      {/* 🧩 Select Guideline */}
+      <Box>
+        <Text fontWeight="bold">Select Guideline</Text>
+        {loading ? (
+          <Spinner mt={3} />
+        ) : (
+          <Select
+            placeholder="Select a guideline"
+            value={imageCreationSettings.guidelineId}
+            onChange={(e) =>
+              setImageCreationSettings((prev) => ({
+                ...prev,
+                guidelineId: e.target.value,
+              }))
+            }
+            mt={2}
+          >
+        {Array.isArray(guidelines) && guidelines.length > 0 ? (
+  guidelines.map((g) => (
+     <option key={g.guideline_id} value={g.guideline_id}>
+      {g.name}
+    </option>
+  ))
+) : (
+  <option disabled>No guidelines found</option>
+)}
+
+          </Select>
+        )}
+      </Box>
+
+
+
+      {/* 🎯 Target Method */}
+      <Box>
         <Text fontWeight="bold">Target Method</Text>
         <Select
           placeholder="Select option"
@@ -96,7 +149,6 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
             setImageCreationSettings((prev) => ({
               ...prev,
               targetMethod: value,
-              // Reset width/height if disabled
               ...(value === "disable" && { targetWidth: "", targetHeight: "" }),
             }));
           }}
@@ -107,10 +159,10 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
         </Select>
       </Box>
 
-      {/* Target Width & Height only if Target Method is Enabled */}
+      {/* 📏 Width / Height if Enabled */}
       {imageCreationSettings.targetMethod === "enable" && (
         <>
-          <Box mt={4}>
+          <Box>
             <Text fontWeight="bold">Target Width (px)</Text>
             <Input
               type="number"
@@ -126,7 +178,7 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
             />
           </Box>
 
-          <Box mt={4}>
+          <Box>
             <Text fontWeight="bold">Target Height (px)</Text>
             <Input
               type="number"
@@ -144,8 +196,8 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
         </>
       )}
 
-      {/* Resize Method */}
-      <Box mt={4}>
+      {/* 🔄 Resize Method */}
+      <Box>
         <Text fontWeight="bold">Resize Method</Text>
         <Select
           placeholder="Select resize method"
@@ -164,9 +216,9 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
         </Select>
       </Box>
 
-      {/* Quality */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Quality (1-100)</Text>
+      {/* 💎 Quality */}
+      <Box>
+        <Text fontWeight="bold">Quality (1–100)</Text>
         <Input
           type="number"
           min="1"
@@ -183,8 +235,8 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
         />
       </Box>
 
-      {/* Optional Preview for Debugging */}
-      <Box
+      {/* 🧠 Debug Preview */}
+      {/* <Box
         mt={6}
         p={3}
         borderWidth="1px"
@@ -196,8 +248,8 @@ const [imageToVideoSettings, setImageToVideoSettings] = useState({
           🧩 Current Image Creation Settings:
         </Text>
         <pre>{JSON.stringify(imageCreationSettings, null, 2)}</pre>
-      </Box>
-    </>
+      </Box> */}
+    </VStack>
   );
 
 

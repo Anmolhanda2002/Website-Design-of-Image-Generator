@@ -12,57 +12,57 @@ import {
   HStack,
   Button,
   useColorModeValue,
+  Input,
 } from "@chakra-ui/react";
-import axiosInstance from "utils/AxiosInstance"; // Your configured Axios instance
+import { useParams } from "react-router-dom";
+import axiosInstance from "utils/AxiosInstance";
 
-export default function AssignUsersPage() {
+export default function AssignUsersPage(adminid) {
+
+    console.log(adminid.adminid)
+  // ✅ Get adminId from URL params
+  const { id: adminId } = useParams(); 
   const toast = useToast();
 
-  // ✅ Color mode values declared at the top level
   const cardBg = useColorModeValue("white", "gray.800");
   const pageBg = useColorModeValue("gray.50", "gray.900");
 
-  // ✅ States
-  const [admins, setAdmins] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [assignments, setAssignments] = useState({});
+  const [assignedUsers, setAssignedUsers] = useState([]);
+  const [unassignedUsers, setUnassignedUsers] = useState([]);
+  const [assignments, setAssignments] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [search, setSearch] = useState("");
 
-  // ✅ Pagination
-  const [adminPage, setAdminPage] = useState(1);
-  const [userPage, setUserPage] = useState(1);
+  const [assignedPage, setAssignedPage] = useState(1);
+  const [unassignedPage, setUnassignedPage] = useState(1);
   const [perPage] = useState(10);
-  const [totalAdminPages, setTotalAdminPages] = useState(1);
-  const [totalUserPages, setTotalUserPages] = useState(1);
+  const [totalAssignedPages, setTotalAssignedPages] = useState(1);
+  const [totalUnassignedPages, setTotalUnassignedPages] = useState(1);
 
-  // ✅ Fetch accounts (admins + users) with pagination
-  const fetchAccounts = async () => {
+  // ✅ Fetch users for this admin
+  const fetchUsers = async () => {
+    if (!adminId) return;
+
     try {
       setLoading(true);
       const res = await axiosInstance.get(
-        `/view_all_accounts/?user_page=${userPage}&admin_page=${adminPage}&per_page=${perPage}`
+        `/admin_profile_and_search_users/?admin_user_id=${adminid.adminid}&search=${search}&assigned_page=${assignedPage}&unassigned_page=${unassignedPage}&per_page=${perPage}`
       );
 
-      setAdmins(res.data.admins.results);
-      setUsers(res.data.users.results);
-      setTotalAdminPages(res.data.admins.total_pages);
-      setTotalUserPages(res.data.users.total_pages);
+      const { assigned_users, unassigned_users } = res.data;
 
-      // Initialize assignment map
-      const initialAssignments = {};
-      res.data.admins.results.forEach((admin) => {
-        if (!assignments[admin.user_id])
-          initialAssignments[admin.user_id] = new Set();
-        else initialAssignments[admin.user_id] = assignments[admin.user_id];
-      });
-      setAssignments(initialAssignments);
+      setAssignedUsers(assigned_users.results || []);
+      setUnassignedUsers(unassigned_users.results || []);
+      setTotalAssignedPages(assigned_users.total_pages || 1);
+      setTotalUnassignedPages(unassigned_users.total_pages || 1);
 
+      setAssignments(new Set((assigned_users.results || []).map((u) => u.user_id)));
       setLoading(false);
     } catch (err) {
       console.error(err);
       toast({
-        title: "Error fetching accounts",
+        title: "Error fetching users",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -71,49 +71,36 @@ export default function AssignUsersPage() {
     }
   };
 
-  // ✅ Load accounts when page changes
   useEffect(() => {
-    fetchAccounts();
+    fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminPage, userPage]);
+  }, [adminId, search, assignedPage, unassignedPage]);
 
-  // ✅ Handle assign/unassign actions
-  const handleCheckboxChange = async (adminId, userId, isChecked) => {
+  // ✅ Assign / Unassign user
+  const handleCheckboxChange = async (userId, isChecked) => {
     try {
       setUpdating(true);
-      if (isChecked) {
-        await axiosInstance.post("/assign_user_to_admin/", {
-          admin_id: adminId,
-          user_id: userId,
-        });
-        setAssignments((prev) => {
-          const updated = { ...prev };
-          updated[adminId].add(userId);
-          return updated;
-        });
-        toast({
-          title: "User assigned successfully",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
-        });
-      } else {
-        await axiosInstance.post("/unassign_user_to_admin/", {
-          admin_id: adminId,
-          user_id: userId,
-        });
-        setAssignments((prev) => {
-          const updated = { ...prev };
-          updated[adminId].delete(userId);
-          return updated;
-        });
-        toast({
-          title: "User unassigned",
-          status: "info",
-          duration: 2000,
-          isClosable: true,
-        });
-      }
+      const endpoint = isChecked
+        ? "/assign_user_to_admin/"
+        : "/unassign_user_to_admin/";
+
+      await axiosInstance.post(endpoint, { admin_id: adminId, user_id: userId });
+
+      setAssignments((prev) => {
+        const updated = new Set(prev);
+        if (isChecked) updated.add(userId);
+        else updated.delete(userId);
+        return updated;
+      });
+
+      toast({
+        title: isChecked ? "User assigned" : "User unassigned",
+        status: isChecked ? "success" : "info",
+        duration: 2000,
+        isClosable: true,
+      });
+
+      fetchUsers();
       setUpdating(false);
     } catch (err) {
       console.error(err);
@@ -127,7 +114,6 @@ export default function AssignUsersPage() {
     }
   };
 
-  // ✅ Loading Spinner
   if (loading) {
     return (
       <Box minH="100vh" display="flex" justifyContent="center" alignItems="center">
@@ -136,93 +122,105 @@ export default function AssignUsersPage() {
     );
   }
 
-  // ✅ UI
   return (
-    <Box
-      py={[8, 10, 16]}
-      px={[4, 6, 10]}
-      minH="100vh"
-      bg={pageBg}
-    >
+    <Box py={[8, 10, 16]} px={[4, 6, 10]} minH="100vh" bg={pageBg}>
       <VStack spacing={10} maxW="1200px" mx="auto" align="stretch">
         <Heading textAlign="center" color="blue.600" size="xl" mb={8}>
-          Assign Users to Admins
+          Assign Users to Admin
         </Heading>
 
-        {admins.map((admin) => (
-          <Box
-            key={admin.user_id}
-            bg={cardBg}
-            p={6}
-            borderRadius="2xl"
-            shadow="lg"
-          >
-            <Text fontSize="lg" fontWeight="600" color="blue.500">
-              {admin.username} ({admin.email})
+        <Input
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          mb={4}
+        />
+
+        <Box bg={cardBg} p={6} borderRadius="2xl" shadow="lg">
+          <Text fontSize="lg" fontWeight="600" color="blue.500">
+            Assigned Users
+          </Text>
+          <Divider my={4} />
+          <SimpleGrid columns={[1, 2, 3]} spacing={4}>
+            {assignedUsers.map((user) => (
+              <Checkbox
+                key={user.user_id}
+                isChecked={assignments.has(user.user_id)}
+                onChange={(e) =>
+                  handleCheckboxChange(user.user_id, e.target.checked)
+                }
+                size="lg"
+                colorScheme="blue"
+                isDisabled={updating}
+              >
+                {user.username}
+              </Checkbox>
+            ))}
+          </SimpleGrid>
+
+          <HStack justify="center" spacing={4} mt={4}>
+            <Button
+              onClick={() => setAssignedPage((p) => Math.max(p - 1, 1))}
+              isDisabled={assignedPage === 1}
+            >
+              Previous
+            </Button>
+            <Text>
+              Page {assignedPage} / {totalAssignedPages}
             </Text>
-            <Divider my={4} />
-            <SimpleGrid columns={[1, 2, 3]} spacing={4}>
-              {users.map((user) => (
-                <Checkbox
-                  key={user.user_id}
-                  isChecked={assignments[admin.user_id]?.has(user.user_id)}
-                  onChange={(e) =>
-                    handleCheckboxChange(
-                      admin.user_id,
-                      user.user_id,
-                      e.target.checked
-                    )
-                  }
-                  size="lg"
-                  colorScheme="blue"
-                  isDisabled={updating}
-                >
-                  {user.username}
-                </Checkbox>
-              ))}
-            </SimpleGrid>
-          </Box>
-        ))}
+            <Button
+              onClick={() =>
+                setAssignedPage((p) => Math.min(p + 1, totalAssignedPages))
+              }
+              isDisabled={assignedPage === totalAssignedPages}
+            >
+              Next
+            </Button>
+          </HStack>
+        </Box>
 
-        {/* Admin Pagination */}
-        <HStack justify="center" spacing={4} mt={4}>
-          <Button
-            onClick={() => setAdminPage((p) => Math.max(p - 1, 1))}
-            isDisabled={adminPage === 1}
-          >
-            Previous Admins
-          </Button>
-          <Text>
-            Admin Page {adminPage} / {totalAdminPages}
+        <Box bg={cardBg} p={6} borderRadius="2xl" shadow="lg">
+          <Text fontSize="lg" fontWeight="600" color="blue.500">
+            Unassigned Users
           </Text>
-          <Button
-            onClick={() =>
-              setAdminPage((p) => Math.min(p + 1, totalAdminPages))
-            }
-            isDisabled={adminPage === totalAdminPages}
-          >
-            Next Admins
-          </Button>
-        </HStack>
+          <Divider my={4} />
+          <SimpleGrid columns={[1, 2, 3]} spacing={4}>
+            {unassignedUsers.map((user) => (
+              <Checkbox
+                key={user.user_id}
+                isChecked={assignments.has(user.user_id)}
+                onChange={(e) =>
+                  handleCheckboxChange(user.user_id, e.target.checked)
+                }
+                size="lg"
+                colorScheme="blue"
+                isDisabled={updating}
+              >
+                {user.username}
+              </Checkbox>
+            ))}
+          </SimpleGrid>
 
-        {/* User Pagination */}
-        <HStack justify="center" spacing={4} mt={2}>
-          <Button
-            onClick={() => setUserPage((p) => Math.max(p - 1, 1))}
-            isDisabled={userPage === 1}
-          >
-            Previous Users
-          </Button>
-          <Text>
-            User Page {userPage} / {totalUserPages}
-          </Text>
-          <Button
-            onClick={() => setUserPage((p) => Math.min(p + 1, totalUserPages))}
-            isDisabled={userPage === totalUserPages}
-          >
-            Next Users
-          </Button>
-        </HStack>
+          <HStack justify="center" spacing={4} mt={4}>
+            <Button
+              onClick={() => setUnassignedPage((p) => Math.max(p - 1, 1))}
+              isDisabled={unassignedPage === 1}
+            >
+              Previous
+            </Button>
+            <Text>
+              Page {unassignedPage} / {totalUnassignedPages}
+            </Text>
+            <Button
+              onClick={() =>
+                setUnassignedPage((p) => Math.min(p + 1, totalUnassignedPages))
+              }
+              isDisabled={unassignedPage === totalUnassignedPages}
+            >
+              Next
+            </Button>
+          </HStack>
+        </Box>
       </VStack>
     </Box>
   );
