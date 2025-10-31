@@ -24,7 +24,7 @@ import axiosInstance from "utils/AxiosInstance";
 import PersonalInfo from "./pages/PersonalInfo";
 import ImageGuideline from "./pages/ImageGuideLine";
 import BrandGuideline from "./pages/BrandGuideLine";
-import AssignUsersPage from "./pages/AssignUser";
+
 const EditUser = () => {
   const { id } = useParams();
   const toast = useToast();
@@ -162,7 +162,7 @@ const EditUser = () => {
           <Flex align="center" gap={4}>
             <Box position="relative">
               <Avatar size="xl" src={profilePic} />
-              <Box position="absolute" bottom="-12px" right="10%">
+              <Box position="absolute" bottom="4px" right="-2%">
                 {isApproved ? (
                   <CheckCircleIcon color="green.400" boxSize={6} />
                 ) : (
@@ -207,7 +207,6 @@ const EditUser = () => {
             <Tab>Personal Info</Tab>
             <Tab>Image Guideline</Tab>
             <Tab>Brand Guideline</Tab>
-             <Tab>Assign User</Tab>
           </TabList>
 
           <TabPanels>
@@ -227,9 +226,6 @@ const EditUser = () => {
                 brandGuideline={brandGuideline}
                 setBrandGuideline={setBrandGuideline}
               />
-            </TabPanel>
-             <TabPanel>
-            <AssignUsersPage adminid={id}/>
             </TabPanel>
           </TabPanels>
         </Tabs>

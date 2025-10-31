@@ -38,8 +38,8 @@ axiosInstance.interceptors.response.use(
 
         // Step 2: call refresh API
         const res = await axios.post(
-          `${process.env.REACT_APP_API_URL}/auth/refresh/`,
-          { refresh: refresh_token },
+          `${process.env.REACT_APP_API_URL}auth/refresh/`,
+          { refresh_token: refresh_token },
           { headers: { "Content-Type": "application/json" } }
         );
 

@@ -45,11 +45,14 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       top="70px"
       overflowY="auto"
       overflowX="hidden"
-      sx={{
-        "&::-webkit-scrollbar": { display: "none" }, // hide scrollbar
-        "-ms-overflow-style": "none",
-        "scrollbar-width": "none",
-      }}
+     sx={{
+  "&::-webkit-scrollbar": {
+    display: "none",
+  },
+  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
+  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
+}}
+
     >
       <VStack spacing={1} align="stretch" p={1}>
         {sidebarItems.map((item) => (

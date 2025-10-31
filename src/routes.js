@@ -33,6 +33,8 @@ import EditGuideLine from "views/admin/GuideLine/Pages/EditImageGuideLine"
 import VideoGuideLine from "views/admin/VideoGuideLine/Index"
 import AddVideoGuideLine from "views/admin/VideoGuideLine/Pages/AddImageGuideLine"
 import EditVideoGuideLine from "views/admin/VideoGuideLine/Pages/EditImageGuideLine"
+import AssignUsersPage from 'views/admin/EditUser/pages/AssignUser';
+import EditPreviewBox from 'layouts/VedioGeneration/components/EditPreviewBox/EditPreviewBox';
 const routes = [
   {
     name: 'Main Dashboard',
@@ -207,6 +209,22 @@ const routes = [
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <EditGuideLine />,
     showInSidebar:false,
+  },
+    {
+    name: 'Assign User',
+    layout: '/admin',
+    path: '/assign_user/:id',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <AssignUsersPage />,
+    showInSidebar: false,
+  },
+    {
+    name: 'temp',
+    layout: '/admin',
+    path: '/editpreview',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <EditPreviewBox />,
+    showInSidebar: true,
   },
 ];
 

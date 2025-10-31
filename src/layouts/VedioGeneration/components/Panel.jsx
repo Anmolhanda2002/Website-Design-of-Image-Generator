@@ -11,9 +11,13 @@ import {
   useColorModeValue,
   Textarea
   ,useToast,Spinner,
+  HStack,SimpleGrid,
+  Icon, Flex
 } from "@chakra-ui/react";
 import { useState,useEffect,startTransition  } from "react";
 import axiosInstance from "utils/AxiosInstance";
+import { MdAccessTime, MdMovieEdit } from "react-icons/md";
+import { MdCrop169, MdCropPortrait, MdCropSquare } from "react-icons/md";
 export default function Panel({
   activeTab,
   model,
@@ -32,7 +36,7 @@ export default function Panel({
   setResizeImageSettings,
 
   imageToVideoSettings,
-  setImageToVideoSettings,
+  setImageToVideoSettings,captionData, setCaptionData
 }) {
   const panelBg = useColorModeValue("white", "gray.800");
 
@@ -47,6 +51,13 @@ export default function Panel({
   const [guidelines, setGuidelines] = useState([]);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+
+
+  const [dropdownData, setDropdownData] = useState({
+    video_dimensions_choices: {},
+    sector_choices: [],
+    M_key: {},
+  });
 
   // 🔍 Fetch Guidelines from API
 useEffect(() => {
@@ -79,7 +90,51 @@ useEffect(() => {
   return () => clearTimeout(delayDebounce);
 }, [searchTerm, toast]);
 
+// section for image to video
+  const generateShortUUID = () => {
+    return (
+      "PRD-" +
+      Math.random().toString(36).substring(2, 10) +
+      "-" +
+      Date.now().toString(36)
+    ).slice(0, 48);
+  };
 
+  useEffect(() => {
+    const fetchDropdowns = async () => {
+      try {
+        const res = await axiosInstance.get("/get_creation_dropdowns/");
+        if (res.data.status === "success") {
+          setDropdownData(res.data.data);
+        }
+      } catch (err) {
+        toast({
+          title: "Error fetching dropdown data",
+          description: err.message,
+          status: "error",
+          duration: 4000,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Get user_id from localStorage
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user?.user_id) {
+      setImageToVideoSettings((prev) => ({
+        ...prev,
+        customer_ID: `CRM-${user.user_id}`,
+        product_ID: generateShortUUID(),
+      }));
+    }
+
+    fetchDropdowns();
+  }, []);
+
+  if (loading) return <Spinner size="lg" mt={5} />;
+
+  const { video_dimensions_choices, sector_choices, M_key } = dropdownData;
 
 
 
@@ -223,7 +278,7 @@ useEffect(() => {
           type="number"
           min="1"
           max="100"
-          placeholder="Enter quality"
+          placeholder="85"
           value={imageCreationSettings.quality}
           onChange={(e) =>
             setImageCreationSettings((prev) => ({
@@ -256,37 +311,9 @@ useEffect(() => {
       case "Resize Image":
   return (
     <>
-      {/* Custom ID */}
-      <Box>
-        <Text fontWeight="bold">Custom ID</Text>
-        <Input
-          placeholder="Enter custom ID"
-          value={resizeImageSettings.customId}
-          onChange={(e) =>
-            setResizeImageSettings((prev) => ({
-              ...prev,
-              customId: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
 
-      {/* Product ID */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Product ID</Text>
-        <Input
-          placeholder="Enter product ID"
-          value={resizeImageSettings.productId}
-          onChange={(e) =>
-            setResizeImageSettings((prev) => ({
-              ...prev,
-              productId: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
+
+
 
       {/* Target Width */}
       <Box mt={4}>
@@ -349,7 +376,7 @@ useEffect(() => {
           type="number"
           min="1"
           max="100"
-          placeholder="Enter quality"
+          placeholder="85"
           value={resizeImageSettings.quality}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
@@ -361,56 +388,32 @@ useEffect(() => {
         />
       </Box>
 
-      {/* Optional Debug Preview */}
-      <Box
-        mt={6}
-        p={3}
-        borderWidth="1px"
-        borderRadius="md"
-        bg="gray.50"
-        fontSize="sm"
-      >
-        <Text fontWeight="bold" mb={1}>
-          🧩 Current Resize Image Settings:
-        </Text>
-        <pre>{JSON.stringify(resizeImageSettings, null, 2)}</pre>
-      </Box>
+
+
     </>
   );
 case "Image to Video":
   return (
     <>
-      {/* Customer ID */}
-      <Box>
+      {/* Customer ID (Auto-filled) */}
+      {/* <Box>
         <Text fontWeight="bold">Customer ID</Text>
         <Input
-          placeholder="Enter customer ID"
           value={imageToVideoSettings.customer_ID}
-          onChange={(e) =>
-            setImageToVideoSettings((prev) => ({
-              ...prev,
-              customer_ID: e.target.value,
-            }))
-          }
+          isReadOnly
           mt={2}
         />
-      </Box>
+      </Box> */}
 
-      {/* Product ID */}
-      <Box mt={4}>
+      {/* Product ID (Auto-generated unique) */}
+      {/* <Box mt={4}>
         <Text fontWeight="bold">Product ID</Text>
         <Input
-          placeholder="Enter product ID"
           value={imageToVideoSettings.product_ID}
-          onChange={(e) =>
-            setImageToVideoSettings((prev) => ({
-              ...prev,
-              product_ID: e.target.value,
-            }))
-          }
+          isReadOnly
           mt={2}
         />
-      </Box>
+      </Box> */}
 
       {/* Layover Text */}
       <Box mt={4}>
@@ -460,30 +463,41 @@ case "Image to Video":
         />
       </Box>
 
-      {/* Sector */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Sector</Text>
-        <Select
-          placeholder="Select sector"
-          value={imageToVideoSettings.sector}
-          onChange={(e) =>
-            setImageToVideoSettings((prev) => ({
-              ...prev,
-              sector: e.target.value,
-            }))
-          }
-          mt={2}
-        >
-          <option value="E-commerce">E-commerce</option>
-          <option value="Technology">Technology</option>
-          <option value="Healthcare">Healthcare</option>
-          <option value="Education">Education</option>
-          <option value="Finance">Finance</option>
-          <option value="Entertainment">Entertainment</option>
-        </Select>
-      </Box>
+      {/* Sector (Dynamic) */}
+<Box mt={4}>
+  <Text fontWeight="bold">Sector</Text>
+  <Select
+    placeholder="Select sector"
+    value={imageToVideoSettings.sector}
+    onChange={(e) =>
+      setImageToVideoSettings((prev) => ({
+        ...prev,
+        sector: e.target.value,
+      }))
+    }
+    mt={2}
+  >
+    {/* Group by category */}
+    {Object.entries(
+      sector_choices.reduce((acc, item) => {
+        if (!acc[item.category]) acc[item.category] = [];
+        acc[item.category].push(item);
+        return acc;
+      }, {})
+    ).map(([category, subcategories]) => (
+      <optgroup key={category} label={category}>
+        {subcategories.map((s, i) => (
+          <option key={i} value={s.label}>
+            {s.subcategory}
+          </option>
+        ))}
+      </optgroup>
+    ))}
+  </Select>
+</Box>
 
-      {/* Goal */}
+
+      {/* Goal / Description */}
       <Box mt={4}>
         <Text fontWeight="bold">Goal / Description</Text>
         <Textarea
@@ -499,21 +513,8 @@ case "Image to Video":
         />
       </Box>
 
-      {/* Key Instructions */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Key Instructions</Text>
-        <Textarea
-          placeholder="Enter key points to highlight"
-          value={imageToVideoSettings.key_instructions}
-          onChange={(e) =>
-            setImageToVideoSettings((prev) => ({
-              ...prev,
-              key_instructions: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
+
+
 
       {/* Consumer Message */}
       <Box mt={4}>
@@ -531,11 +532,11 @@ case "Image to Video":
         />
       </Box>
 
-      {/* M_key */}
+      {/* M_Key (Dynamic) */}
       <Box mt={4}>
         <Text fontWeight="bold">M_Key</Text>
-        <Input
-          placeholder="Enter M_key"
+        <Select
+          placeholder="Select M_Key"
           value={imageToVideoSettings.M_key}
           onChange={(e) =>
             setImageToVideoSettings((prev) => ({
@@ -544,121 +545,204 @@ case "Image to Video":
             }))
           }
           mt={2}
-        />
-      </Box>
-
-      {/* Resize Toggle */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Resize</Text>
-        <Select
-          placeholder="Select resize option"
-          value={imageToVideoSettings.resize ? "true" : "false"}
-          onChange={(e) => {
-            const val = e.target.value === "true";
-            setImageToVideoSettings((prev) => ({
-              ...prev,
-              resize: val,
-              ...(val === false && { resize_width: "", resize_height: "" }),
-            }));
-          }}
-          mt={2}
         >
-          <option value="true">True</option>
-          <option value="false">False</option>
+          {Object.entries(M_key).map(([key, val]) => (
+            <option key={key} value={val}>
+              {key} ({val})
+            </option>
+          ))}
         </Select>
       </Box>
 
-      {/* Width & Height only if resize = true */}
-      {imageToVideoSettings.resize && (
-        <>
-          <Box mt={4}>
-            <Text fontWeight="bold">Resize Width (px)</Text>
-            <Input
-              type="number"
-              placeholder="Enter width in px"
-              value={imageToVideoSettings.resize_width}
-              onChange={(e) =>
-                setImageToVideoSettings((prev) => ({
-                  ...prev,
-                  resize_width: e.target.value,
-                }))
-              }
-              mt={2}
-            />
-          </Box>
+{/* video type */}
+<Box mt={4}>
+  <Text fontWeight="bold">Video Type</Text>
+  <Select
+    placeholder="Select video type"
+    value={imageToVideoSettings.video_type}
+    onChange={(e) =>
+      setImageToVideoSettings((prev) => ({
+        ...prev,
+        video_type: e.target.value,
+      }))
+    }
+    mt={2}
+  >
+    <option value="cloudinary">Cloudinary</option>
+    <option value="processed">Processed</option>
+    <option value="animated">Animated</option>
+  </Select>
+</Box>
 
-          <Box mt={4}>
-            <Text fontWeight="bold">Resize Height (px)</Text>
-            <Input
-              type="number"
-              placeholder="Enter height in px"
-              value={imageToVideoSettings.resize_height}
-              onChange={(e) =>
-                setImageToVideoSettings((prev) => ({
-                  ...prev,
-                  resize_height: e.target.value,
-                }))
-              }
-              mt={2}
-            />
-          </Box>
-        </>
-      )}
 
       {/* Video Duration */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Video Duration</Text>
-        <RadioGroup
-          value={imageToVideoSettings.duration}
-          onChange={(val) =>
+<Box mt={4}>
+  <Text fontWeight="bold" mb={2}>
+    Video Duration
+  </Text>
+
+  <SimpleGrid
+    columns={{ base: 2, sm: 3 }} // 👈 responsive: 2 on mobile, 3 on desktop
+    spacing="3px" // 👈 30px gap between items
+  >
+    {[
+      { label: "5s", icon: MdAccessTime },
+      { label: "10s", icon: MdMovieEdit },
+      { label: "15s", icon: MdAccessTime },
+    ].map((item) => {
+      const isSelected = imageToVideoSettings.duration === item.label;
+      return (
+        <Flex
+          key={item.label}
+          align="center"
+          justify="center"
+          borderWidth="2px"
+          borderColor={isSelected ? "blue.500" : panelBg}
+          bg={isSelected ? panelBg : "transparent"}
+          color={isSelected ? "blue.600" : "inherit"}
+          borderRadius="xl"
+          p={1}
+          
+          w="80px" // 👈 fixed width
+          mx="auto"
+          cursor="pointer"
+          transition="all 0.2s"
+          _hover={{ borderColor: "blue.400", bg: panelBg, transform: "scale(1.05)" }}
+          onClick={() =>
             setImageToVideoSettings((prev) => ({
               ...prev,
-              duration: val,
+              duration: item.label,
             }))
           }
+          flexDirection="column"
         >
-          <Stack direction="row" mt={2}>
-            <Radio value="5s">5s</Radio>
-            <Radio value="10s">10s</Radio>
-            <Radio value="15s">15s</Radio>
-          </Stack>
-        </RadioGroup>
-      </Box>
+          <Icon as={item.icon} boxSize={6} mb={2} />
+          <Text fontWeight="medium">{item.label}</Text>
+        </Flex>
+      );
+    })}
+  </SimpleGrid>
+</Box>
 
-      {/* Aspect Ratio */}
-      <Box mt={4}>
-        <Text fontWeight="bold">Aspect Ratio</Text>
-        <RadioGroup
-          value={imageToVideoSettings.aspect_ratio}
-          onChange={(val) =>
+      {/* Aspect Ratio (Dynamic from API) */}
+<Box mt={4}>
+  <Text fontWeight="bold" mb={2}>
+    Aspect Ratio
+  </Text>
+
+  <SimpleGrid
+    columns={{ base: 2, sm: 2}} // responsive: 2 per row on mobile, 3 on desktop
+    spacing="30px"
+    mt={2}
+  >
+    {Object.entries(video_dimensions_choices).map(([label, val]) => {
+      // Pick icon based on aspect ratio
+      const icon =
+        label.includes("16:9") ? MdCrop169 :
+        label.includes("9:16") ? MdCropPortrait :
+        MdCropSquare;
+
+      const isSelected = imageToVideoSettings.aspect_ratio === val;
+      return (
+        <Flex
+          key={val}
+          direction="column"
+          align="center"
+          justify="center"
+          borderWidth="2px"
+          borderColor={isSelected ? "blue.500" : panelBg}
+          bg={isSelected ? panelBg : "transparent"}
+          color={isSelected ? "blue.600" : "inherit"}
+          borderRadius="xl"
+          p={3}
+          w="120px"
+          mx="auto"
+          cursor="pointer"
+          transition="all 0.2s"
+          _hover={{
+            borderColor: "blue.400",
+            bg: panelBg,
+            transform: "scale(1.05)",
+          }}
+          onClick={() =>
             setImageToVideoSettings((prev) => ({
               ...prev,
               aspect_ratio: val,
             }))
           }
         >
-          <Stack direction="row" mt={2}>
-            <Radio value="16:9">16:9</Radio>
-            <Radio value="9:16">9:16</Radio>
-            <Radio value="1:1">1:1</Radio>
-          </Stack>
-        </RadioGroup>
+          <Icon as={icon} boxSize={7} mb={2} />
+          <Text fontWeight="small" fontSize="sm" textAlign="center">
+            {label}
+          </Text>
+          <Text fontSize="xs" color="gray.500">
+            ({val})
+          </Text>
+        </Flex>
+      );
+    })}
+  </SimpleGrid>
+</Box>
+
+<Box mt={4}>
+  <Text fontWeight="bold">Custom Size</Text>
+  <Select
+    placeholder="Select option"
+    value={imageToVideoSettings.customSize}
+    onChange={(e) => {
+      const value = e.target.value;
+      setImageToVideoSettings((prev) => ({
+        ...prev,
+        customSize: value,
+        ...(value === "false" && { customWidth: "", customHeight: "" }),
+      }));
+    }}
+    mt={2}
+  >
+    <option value="true">True</option>
+    <option value="false">False</option>
+  </Select>
+
+  {/* 📏 Width / Height if True */}
+  {imageToVideoSettings.customSize === "true" && (
+    <>
+      <Box mt={4}>
+        <Text fontWeight="bold">Custom Width (px)</Text>
+        <Input
+          type="number"
+          placeholder="Width in px"
+          value={imageToVideoSettings.customWidth}
+          onChange={(e) =>
+            setImageToVideoSettings((prev) => ({
+              ...prev,
+              customWidth: e.target.value,
+            }))
+          }
+          mt={2}
+        />
       </Box>
 
-      {/* Optional JSON Preview */}
-      <Box
-        mt={6}
-        p={3}
-        borderWidth="1px"
-        borderRadius="md"
-        bg="gray.50"
-        fontSize="sm"
-      >
-        <Text fontWeight="bold" mb={1}>
-          🧩 Current Image to Video Settings:
-        </Text>
-        <pre>{JSON.stringify(imageToVideoSettings, null, 2)}</pre>
+      <Box mt={4}>
+        <Text fontWeight="bold">Custom Height (px)</Text>
+        <Input
+          type="number"
+          placeholder="Height in px"
+          value={imageToVideoSettings.customHeight}
+          onChange={(e) =>
+            setImageToVideoSettings((prev) => ({
+              ...prev,
+              customHeight: e.target.value,
+            }))
+          }
+          mt={2}
+        />
       </Box>
+    </>
+  )}
+</Box>
+
+      {/* JSON Preview */}
+
     </>
   );
 
@@ -687,27 +771,275 @@ case "Image to Video":
           </>
         );
 
+    case "Caption Segment":
+      return (
+        <VStack align="stretch" spacing={4} p={4}>
+          {/* 🆔 Edit ID */}
+          <Box>
+            <Text fontWeight="bold">Edit ID</Text>
+            <Input
+              placeholder="Enter edit ID"
+              value={captionData.edit_id}
+              onChange={(e) =>
+                setCaptionData((prev) => ({
+                  ...prev,
+                  edit_id: e.target.value,
+                }))
+              }
+              mt={2}
+            />
+          </Box>
+
+          {/* 🔢 Segment Number */}
+          <Box>
+            <Text fontWeight="bold">Segment Number</Text>
+            <Input
+              type="number"
+              placeholder="Enter segment number"
+              value={captionData.segment_number}
+              onChange={(e) =>
+                setCaptionData((prev) => ({
+                  ...prev,
+                  segment_number: e.target.value,
+                }))
+              }
+              mt={2}
+            />
+          </Box>
+
+          {/* 💬 Caption Text */}
+          <Box>
+            <Text fontWeight="bold">Caption Text</Text>
+            <Input
+              placeholder="Enter caption text"
+              value={captionData.text}
+              onChange={(e) =>
+                setCaptionData((prev) => ({
+                  ...prev,
+                  text: e.target.value,
+                }))
+              }
+              mt={2}
+            />
+          </Box>
+
+          {/* ⏱️ Start / End Time */}
+          <Flex gap={4}>
+            <Box flex="1">
+              <Text fontWeight="bold">Start Time (sec)</Text>
+              <Input
+                type="number"
+                placeholder="e.g. 0.25"
+                value={captionData.start_time}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    start_time: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+
+            <Box flex="1">
+              <Text fontWeight="bold">End Time (sec)</Text>
+              <Input
+                type="number"
+                placeholder="e.g. 4.0"
+                value={captionData.end_time}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    end_time: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+          </Flex>
+
+          {/* 🅰️ Font Settings */}
+          <Flex gap={4}>
+            <Box flex="1">
+              <Text fontWeight="bold">Font Size (px)</Text>
+              <Input
+                type="number"
+                placeholder="e.g. 52"
+                value={captionData.font_size}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    font_size: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+
+            <Box flex="1">
+              <Text fontWeight="bold">Font Color</Text>
+              <Input
+                type="color"
+                value={captionData.font_color}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    font_color: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+          </Flex>
+
+          {/* 🎨 Background Settings */}
+          <Flex gap={4}>
+            <Box flex="1">
+              <Text fontWeight="bold">Background Color</Text>
+              <Input
+                type="color"
+                value={captionData.background_color}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    background_color: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+
+            <Box flex="1">
+              <Text fontWeight="bold">Background Opacity (0–1)</Text>
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                max="1"
+                placeholder="e.g. 0.9"
+                value={captionData.background_opacity}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    background_opacity: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+          </Flex>
+
+          {/* 📍 Position */}
+          <Flex gap={4}>
+            <Box flex="1">
+              <Text fontWeight="bold">X Position</Text>
+              <Input
+                placeholder="e.g. 5%"
+                value={captionData.x}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    x: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+
+            <Box flex="1">
+              <Text fontWeight="bold">Y Position</Text>
+              <Input
+                placeholder="e.g. 10%"
+                value={captionData.y}
+                onChange={(e) =>
+                  setCaptionData((prev) => ({
+                    ...prev,
+                    y: e.target.value,
+                  }))
+                }
+                mt={2}
+              />
+            </Box>
+          </Flex>
+
+          {/* ✨ Animation */}
+          <Box>
+            <Text fontWeight="bold">Animation</Text>
+            <Select
+              placeholder="Select animation"
+              value={captionData.animation}
+              onChange={(e) =>
+                setCaptionData((prev) => ({
+                  ...prev,
+                  animation: e.target.value,
+                }))
+              }
+              mt={2}
+            >
+              <option value="none">None</option>
+              <option value="fade">Fade</option>
+              <option value="flash">Flash</option>
+              <option value="slide">Slide</option>
+              <option value="zoom">Zoom</option>
+            </Select>
+          </Box>
+
+          {/* ⚡ Animation Speed */}
+          <Box>
+            <Text fontWeight="bold">Animation Speed</Text>
+            <Select
+              placeholder="Select speed"
+              value={captionData.animation_speed}
+              onChange={(e) =>
+                setCaptionData((prev) => ({
+                  ...prev,
+                  animation_speed: e.target.value,
+                }))
+              }
+              mt={2}
+            >
+              <option value="slow">Slow</option>
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+            </Select>
+          </Box>
+
+          {/* 🧩 Optional: include CaptionedEdit */}
+      
+        </VStack>
+      )
       default:
         return <Text>⚙️ Adjust your {activeTab} settings here</Text>;
     }
   };
 
   return (
-    <VStack
-      w="100%"
-      h="100%"
-      bg={panelBg}
-      p={4}
-      borderRadius="lg"
-      align="stretch"
-      spacing={6}
-      overflowY="auto"
-      sx={{
-  "&::-webkit-scrollbar": { width: "6px", background: "transparent" },
-  "&:hover::-webkit-scrollbar-thumb": { background: "#ccc", borderRadius: "3px" },
-}}
+<VStack
+  w="100%"
+  h="100%"
+  bg={panelBg}
+  p={4}
+  borderRadius="lg"
+  align="stretch"
+  spacing={6}
+  overflowY="auto"
+  sx={{
+    "&::-webkit-scrollbar": {
+      width: "6px",
+      background: "transparent",
+    },
+    "&::-webkit-scrollbar-thumb": {
+      background: "transparent",
+      borderRadius: "3px",
+    },
+    "&:hover::-webkit-scrollbar-thumb": {
+      background: "#ccc",
+    },
+  }}
+>
 
-    >
+
+    
       {renderPanelContent()}
     </VStack>
   );

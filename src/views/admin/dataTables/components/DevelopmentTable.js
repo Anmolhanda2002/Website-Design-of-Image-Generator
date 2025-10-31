@@ -17,7 +17,7 @@ import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate } from 'react-router-dom';
-
+import { MdPersonAddAlt1 } from "react-icons/md"
 export default function AdminTable() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
@@ -153,6 +153,13 @@ export default function AdminTable() {
           const row = info.row.original;
           return (
             <Flex gap={2}>
+                    <IconButton
+                aria-label="Assign User"
+                icon={<MdPersonAddAlt1 />}
+                size="xs"
+                variant="outline"
+                onClick={() => navigate(`/admin/assign_user/${row.user_id}`)}
+              />
               <IconButton
                 aria-label="Edit"
                 icon={<EditIcon />}
