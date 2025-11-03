@@ -36,7 +36,7 @@ export default function Panel({
   setResizeImageSettings,
 
   imageToVideoSettings,
-  setImageToVideoSettings,captionData, setCaptionData
+  setImageToVideoSettings,captionData, setCaptionData,MergeData,setMergeData
 }) {
   const panelBg = useColorModeValue("white", "gray.800");
 
@@ -1008,6 +1008,139 @@ case "Image to Video":
       
         </VStack>
       )
+case "Merge Video":
+  return (
+    <>
+      {/* 🧩 User ID */}
+      <Box>
+        <Text fontWeight="bold">User ID</Text>
+        <Input
+          type="text"
+          placeholder="Enter User ID"
+          value={MergeData.user_id || ""}
+          onChange={(e) =>
+            setMergeData({ ...MergeData, user_id: e.target.value })
+          }
+          mt={2}
+        />
+      </Box>
+
+      {/* 🧩 Hygaar Key */}
+      <Box mt={3}>
+        <Text fontWeight="bold">Hygaar Key</Text>
+        <Input
+          type="text"
+          placeholder="Enter Hygaar Key"
+          value={MergeData.hygaar_key || ""}
+          onChange={(e) =>
+            setMergeData({ ...MergeData, hygaar_key: e.target.value })
+          }
+          mt={2}
+        />
+      </Box>
+
+      {/* 🧩 Edit ID */}
+      <Box mt={3}>
+        <Text fontWeight="bold">Edit ID</Text>
+        <Input
+          type="text"
+          placeholder="Enter Edit ID"
+          value={MergeData.edit_id || ""}
+          onChange={(e) =>
+            setMergeData({ ...MergeData, edit_id: e.target.value })
+          }
+          mt={2}
+        />
+      </Box>
+
+      {/* 🧩 Brand Outro Video */}
+      <Box mt={3}>
+        <Text fontWeight="bold">Brand Outro Video URL</Text>
+        <Input
+          type="text"
+          placeholder="Enter Brand Outro Video URL"
+          value={MergeData.brand_outro_video_url || ""}
+          onChange={(e) =>
+            setMergeData({
+              ...MergeData,
+              brand_outro_video_url: e.target.value,
+            })
+          }
+          mt={2}
+        />
+      </Box>
+
+      {/* 🔹 Dropdown for Custom Resize */}
+      <Box mt={4}>
+        <Text fontWeight="bold" mb={2}>
+          Enable Custom Resize
+        </Text>
+        <select
+          value={MergeData.custom_resize ? "true" : "false"}
+          onChange={(e) =>
+            setMergeData({
+              ...MergeData,
+              custom_resize: e.target.value === "true",
+            })
+          }
+          style={{
+            width: "100%",
+            padding: "8px",
+            borderRadius: "8px",
+            border: "1px solid #CBD5E0",
+          }}
+        >
+          <option value="false">False</option>
+          <option value="true">True</option>
+        </select>
+      </Box>
+
+      {/* 🔸 Show only when Custom Resize is true */}
+      {MergeData.custom_resize && (
+        <>
+          <Box mt={4}>
+            <Text fontWeight="bold">Merge ID</Text>
+            <Input
+              type="text"
+              placeholder="Enter Merge ID"
+              value={MergeData.mearg_id || ""}
+              onChange={(e) =>
+                setMergeData({ ...MergeData, mearg_id: e.target.value })
+              }
+              mt={2}
+            />
+          </Box>
+
+          <Box mt={4}>
+            <Text fontWeight="bold">Height (px)</Text>
+            <Input
+              type="number"
+              placeholder="1080"
+              value={MergeData.height || ""}
+              onChange={(e) =>
+                setMergeData({ ...MergeData, height: e.target.value })
+              }
+              mt={2}
+            />
+          </Box>
+
+          <Box mt={4}>
+            <Text fontWeight="bold">Width (px)</Text>
+            <Input
+              type="number"
+              placeholder="1920"
+              value={MergeData.width || ""}
+              onChange={(e) =>
+                setMergeData({ ...MergeData, width: e.target.value })
+              }
+              mt={2}
+            />
+          </Box>
+        </>
+      )}
+    </>
+  );
+  
       default:
         return <Text>⚙️ Adjust your {activeTab} settings here</Text>;
     }

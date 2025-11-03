@@ -18,13 +18,13 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     { name: "Image Creation", icon: MdBrush },
     { name: "Resize Image", icon: MdCrop },
     { name: "Image to Video", icon: MdMovie },
-    { name: "Creatomate", icon: MdViewInAr },
+    // { name: "Creatomate", icon: MdViewInAr },
     { name: "Edit Video", icon: MdEdit },
     { name: "Caption Segment", icon: MdTextFields },
     { name: "Captioned Edit", icon: MdVideoLibrary },
-    { name: "Collage Video", icon: MdPhotoLibrary },
+    // { name: "Collage Video", icon: MdPhotoLibrary },
     { name: "Merge Video", icon: MdMergeType },
-    { name: "Resize Merge", icon: MdCrop },
+    // { name: "Resize Merge", icon: MdCrop },
     { name: "Add Music", icon: MdVolumeUp },
   ];
 

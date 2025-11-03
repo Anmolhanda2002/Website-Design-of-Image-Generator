@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// Create Axios instance
+// ✅ Create a centralized Axios instance
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
   headers: {
@@ -8,56 +8,83 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor: attach access_token
+// ✅ Helper to safely save tokens
+const saveTokens = (access, refresh) => {
+  if (access) localStorage.setItem("access_token", access);
+  if (refresh) localStorage.setItem("refresh_token", refresh);
+};
+
+// ✅ Helper to clean logout
+const handleLogout = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  window.location.href = "/auth/sign-in";
+};
+
+// ✅ Request interceptor — attach token if available
 axiosInstance.interceptors.request.use(
   (config) => {
-    const access_token = localStorage.getItem("access_token");
-    if (access_token) {
-      config.headers.Authorization = `Bearer ${access_token}`;
+    const token = localStorage.getItem("access_token");
+
+    // Only attach if token exists and is non-empty
+    if (token && token !== "undefined" && token !== "null") {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Remove bad tokens
+      localStorage.removeItem("access_token");
     }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: handle 401
+// ✅ Response interceptor — handle 401 & refresh token
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Only handle 401 once
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refresh_token = localStorage.getItem("refresh_token");
-        if (!refresh_token) throw new Error("No refresh token found");
 
-        // Step 1: temporarily use refresh_token as access_token
-        localStorage.setItem("access_token", refresh_token);
+        if (!refresh_token || refresh_token === "undefined" || refresh_token === "null") {
+          console.warn("⚠️ No valid refresh token found, logging out...");
+          handleLogout();
+          return Promise.reject(error);
+        }
 
-        // Step 2: call refresh API
+        // Request new tokens using refresh token
         const res = await axios.post(
           `${process.env.REACT_APP_API_URL}auth/refresh/`,
-          { refresh_token: refresh_token },
+          { refresh_token },
           { headers: { "Content-Type": "application/json" } }
         );
 
-        // Step 3: replace tokens in localStorage
         const newAccessToken =
-          res.data.access_token || res.data.access || res.data.token;
+          res.data?.access_token || res.data?.access || res.data?.token;
         const newRefreshToken =
-          res.data.refresh_token || res.data.refresh || refresh_token;
+          res.data?.refresh_token || res.data?.refresh || refresh_token;
 
-        localStorage.setItem("access_token", newAccessToken);
-        localStorage.setItem("refresh_token", newRefreshToken);
+        if (!newAccessToken) {
+          console.error("❌ Refresh API did not return a valid access token");
+          handleLogout();
+          return Promise.reject(error);
+        }
 
-        // Step 4: retry original request with new access token
+        // Save and retry
+        saveTokens(newAccessToken, newRefreshToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
-        // Keep using refresh token as access_token if needed
+        console.error("❌ Token refresh failed:", refreshError);
+        handleLogout();
         return Promise.reject(refreshError);
       }
     }

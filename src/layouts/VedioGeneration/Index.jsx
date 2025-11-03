@@ -19,7 +19,10 @@ import EditVedioComponent from "./components/EditPreviewBox/EditPreviewBox";
 import Image from "assets/image.png";
 import { useToast } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-import CaptionedEdit from "./components/CaptionSegment/CaptionSegment";
+import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
+import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
+import MergeVideo from "./components/MergeData/MergeVideo";
+import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
 export default function PixVerseLayout() {
   const toast = useToast();
   const navigate = useNavigate();
@@ -154,6 +157,27 @@ useEffect(() => {
     animation: "",
     animation_speed: "",
   });
+
+
+const [MergeData, setMergeData] = useState({
+    // 🎬 Edit Video
+    trim_start: "",
+    trim_end: "",
+
+    // 🎞 Merge Video
+    user_id: "",
+    hygaar_key: "",
+    edit_id: "",
+    brand_outro_video_url: "",
+    custom_resize: false,
+    mearg_id: "",
+    height: "",
+    width: "",
+  });
+
+
+
+
   const handleDataChange = (newData) => {
     startTransition(() => {
       setPreviewData(newData);
@@ -413,6 +437,8 @@ useEffect(() => {
                 setImageToVideoSettings={setImageToVideoSettings}
                 captionData={captionData}
                   setCaptionData={setCaptionData}
+                  MergeData={MergeData}
+                  setMergeData={setMergeData}
               />
             </>
           )}
@@ -493,6 +519,8 @@ useEffect(() => {
                   setImageToVideoSettings={setImageToVideoSettings}
                   captionData={captionData}
                   setCaptionData={setCaptionData}
+                   MergeData={MergeData}
+                  setMergeData={setMergeData}
                 />
               </Box>
 
@@ -506,7 +534,7 @@ useEffect(() => {
                 flexDirection="column"
               >
 
-<CaptionedEdit selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
+<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
               </Box>
             </Flex>
 
@@ -514,7 +542,66 @@ useEffect(() => {
 
 
             </>
-          ) : (
+          ) :activeTab ==="Captioned Edit" ?(<>
+              <CaptionedEdit/>
+          </>):activeTab ==="Merge Video"?(<>
+<Flex flex="1" overflow="hidden">
+              {/* Panel */}
+              <Box
+                w={{ base: "100%", md: "350px" }}
+                h="calc(100vh - 70px)"
+                overflowY="auto"
+                p={4}
+               sx={{
+  "&::-webkit-scrollbar": {
+    display: "none",
+  },
+  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
+  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
+}}
+
+              >
+                <Panel
+                  activeTab={activeTab}
+                  onDataChange={handleDataChange}
+                  model={model}
+                  setModel={setModel}
+                  duration={duration}
+                  setDuration={setDuration}
+                  resolution={resolution}
+                  setResolution={setResolution}
+                  ratio={ratio}
+                  setRatio={setRatio}
+                  imageCreationSettings={imageCreationSettings}
+                  setImageCreationSettings={setImageCreationSettings}
+                  resizeImageSettings={resizeImageSettings}
+                  setResizeImageSettings={setResizeImageSettings}
+                  imageToVideoSettings={imageToVideoSettings}
+                  setImageToVideoSettings={setImageToVideoSettings}
+                  captionData={captionData}
+                  setCaptionData={setCaptionData}
+                   MergeData={MergeData}
+                  setMergeData={setMergeData}
+                />
+              </Box>
+
+              {/* Preview Area */}
+              <Box
+                flex="1"
+                h="calc(100vh - 70px)"
+                p={6}
+                overflow="hidden"
+                display="flex"
+                flexDirection="column"
+              >
+<MergeVideo     MergeData={MergeData}
+                  setMergeData={setMergeData}/>
+              </Box>
+            </Flex>
+
+          </>):activeTab ==="Add Music"?(<>
+            <AddMusic/>
+          </>) : (
             <Flex flex="1" overflow="hidden">
               {/* Panel */}
               <Box
@@ -550,6 +637,8 @@ useEffect(() => {
                   setImageToVideoSettings={setImageToVideoSettings}
                   captionData={captionData}
                   setCaptionData={setCaptionData}
+                   MergeData={MergeData}
+                  setMergeData={setMergeData}
                 />
               </Box>
 
