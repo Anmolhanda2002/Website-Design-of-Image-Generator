@@ -186,11 +186,11 @@ export default function UserReports() {
           value={dashboardData?.total_keys ?? 0}
         />
       </SimpleGrid>
-
+{/* 
       <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap="20px" mb="20px">
         <TotalSpent />
         <WeeklyRevenue />
-      </SimpleGrid>
+      </SimpleGrid> */}
 
       {/* keep existing commented code */}
       {/* <SimpleGrid columns={{ base: 1, md: 0, xl: 0 }} gap='20px' mb='20px'>

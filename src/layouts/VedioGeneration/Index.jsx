@@ -1,680 +1,425 @@
 import React, { useState, useEffect, startTransition } from "react";
 import {
-  Flex,
-  Box,
-  Button,
-  Text,
-  useColorMode,
-  useColorModeValue,
-  useBreakpointValue,
+    Flex,
+    Box,
+    Button,
+    Text,
+    useColorMode,
+    useColorModeValue,
+    useBreakpointValue,
     Select,
-  Spinner,
+    Spinner,
+    useToast,
+    Drawer,
+    DrawerOverlay,
+    DrawerContent,
+    DrawerCloseButton,
+    DrawerHeader,
+    DrawerBody,
+    useDisclosure,
+    HStack,
 } from "@chakra-ui/react";
 import { MdArrowBack } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
+import Sidebar, { MobileSidebarItems, MobileMenuButton } from "./components/Sidebar"; 
 import Panel from "./components/Panel";
 import PreviewArea from "./components/Privewarea";
 import EditVedioComponent from "./components/EditPreviewBox/EditPreviewBox";
 import Image from "assets/image.png";
-import { useToast } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
 import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
 import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
 import MergeVideo from "./components/MergeData/MergeVideo";
 import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
+
+// --- Initial State Definitions for Reset (Must be outside the component) ---
+const initialImageCreationSettings = {
+    guidelineId: "", targetMethod: "disable", targetWidth: "", 
+    targetHeight: "", resizeMethod: "", quality: "",
+};
+const initialResizeImageSettings = {
+    customId: "", productId: "", targetWidth: "", targetHeight: "", 
+    resizeMethod: "", quality: "",
+};
+const initialImageToVideoSettings = {
+    customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
+    tags: "", sector: "", goal: "", key_instructions: "", consumer_message: "", 
+    M_key: "", resize: false, resize_width: "", resize_height: "", 
+    duration: "8s", aspect_ratio: "16:9", customSize: "false", 
+    customWidth: "", customHeight: "", video_type: "",
+};
+const initialCaptionData = {
+    edit_id: "", segment_number: "", text: "", start_time: "", end_time: "", 
+    font_size: "", font_color: "#ffffff", background_color: "#000000", 
+    background_opacity: 0.8, x: "", y: "", animation: "", animation_speed: "",
+};
+const initialMergeData = {
+    trim_start: "", trim_end: "", user_id: "", hygaar_key: "", edit_id: "", 
+    brand_outro_video_url: "", custom_resize: false, mearg_id: "", 
+    height: "", width: "",
+};
+// -------------------------------------------------------------------------
+
 export default function PixVerseLayout() {
-  const toast = useToast();
-  const navigate = useNavigate();
-  const { colorMode, toggleColorMode } = useColorMode();
-  const [clone,setclone]=useState(false)
-  const isMobile = useBreakpointValue({ base: true, md: false });
+    const toast = useToast();
+    const navigate = useNavigate();
+    const { colorMode, toggleColorMode } = useColorMode();
+    const [clone, setclone] = useState(false);
+    const isMobile = useBreakpointValue({ base: true, md: false });
+    const { isOpen, onOpen, onClose } = useDisclosure(); 
 
-  // Persist Active Tab across refresh
-  const [activeTab, setActiveTab] = useState(
-    localStorage.getItem("activeTab") || "Image Creation"
-  );
+    // User context
+    const user = JSON.parse(localStorage.getItem("user")) || {};
+    const isManager = user.roles && user.roles.includes("Manager");
 
-  // fetch user for dropdown 
+    // Core States
+    const [activeTab, setActiveTab] = useState(
+        localStorage.getItem("activeTab") || "Image Creation"
+    );
     const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState("");
-  const [loadingUsers, setLoadingUsers] = useState(false);
-const bgColor = useColorModeValue("gray.200", "gray.700");
+    const [selectedUser, setSelectedUser] = useState("");
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    
+    // UI/Style States
+    const bgColor = useColorModeValue("gray.200", "gray.700");
+    const color =useColorModeValue("white", "gray.800")
+    const navbarBg = useColorModeValue("white", "gray.800");
+    
+    // Tool States (Inputs, Outputs, Settings)
+    const [model, setModel] = useState("V5");
+    const [duration, setDuration] = useState("8s");
+    const [resolution, setResolution] = useState("360P");
+    const [ratio, setRatio] = useState("16:9");
+    const [text, setText] = useState("");
+    const [images, setImages] = useState([]);
+    const [loadingImages, setLoadingImages] = useState({});
+    const [sending, setSending] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
+    const [clonecreationid, setclonecreationid] = useState("");
 
-  useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
+    // Video-specific states
+    const [captionedVideos, setCaptionedVideos] = useState([]);
+    const [loadingCaptioned, setLoadingCaptioned] = useState(false);
+    const [selectedVideo, setSelectedVideo] = useState(null);
 
-  const [model, setModel] = useState("V5");
-  const [duration, setDuration] = useState("8s");
-  const [resolution, setResolution] = useState("360P");
-  const [ratio, setRatio] = useState("16:9");
-
-  const [text, setText] = useState("");
-  const [images, setImages] = useState([]);
-  const [loadingImages, setLoadingImages] = useState({});
-  const [sending, setSending] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-
-  const navbarBg = useColorModeValue("white", "gray.800");
-  const mobileTabBg = useColorModeValue("gray.100", "gray.700");
-  const [clonecreationid ,setclonecreationid]=useState("")
+    // Settings states, initialized with constants
+    const [imageCreationSettings, setImageCreationSettings] = useState(initialImageCreationSettings);
+    const [resizeImageSettings, setResizeImageSettings] = useState(initialResizeImageSettings);
+    const [imageToVideoSettings, setImageToVideoSettings] = useState(initialImageToVideoSettings);
+    const [captionData, setCaptionData] = useState(initialCaptionData);
+    const [MergeData, setMergeData] = useState(initialMergeData);
 
 
-// 📽 Captioned Edit tab data
-const [captionedVideos, setCaptionedVideos] = useState([]);
-const [loadingCaptioned, setLoadingCaptioned] = useState(false);
-const [selectedVideo, setSelectedVideo] = useState(null);
+    // ------------------------------------------------------------------
+    // 1. Core Logic: Function to reset all relevant states
+    // ------------------------------------------------------------------
 
+    const resetAllData = () => {
+        // Reset core data/UI state
+        setText("");
+        setImages([]);
+        setPreviewData(null);
+        setSending(false);
+        setclone(false);
+        setclonecreationid("");
 
-useEffect(() => {
-  if (activeTab !== "Captioned Edit" || !selectedUser) return;
+        // Reset all settings using initial state objects
+        setImageCreationSettings(initialImageCreationSettings);
+        setResizeImageSettings(initialResizeImageSettings);
+        setImageToVideoSettings(initialImageToVideoSettings);
+        setCaptionData(initialCaptionData);
+        setMergeData(initialMergeData);
 
-  const fetchCaptionedVideos = async () => {
-    try {
-      setLoadingCaptioned(true);
-      const res = await axiosInstance.get(`/get_edited_videos_by_user/?user_id=${selectedUser}`);
-      if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-        setCaptionedVideos(res.data.data);
-      } else {
+        // Reset video selection data 
+        setSelectedVideo(null);
         setCaptionedVideos([]);
-        toast({
-          title: "No videos found for this user",
-          status: "warning",
-          duration: 2000,
-        });
-      }
-    } catch (err) {
-      console.error("Error fetching captioned videos:", err);
-      toast({
-        title: "Failed to load videos",
-        status: "error",
-        duration: 2000,
-      });
-    } finally {
-      setLoadingCaptioned(false);
-    }
-  };
-
-  fetchCaptionedVideos();
-}, [activeTab, selectedUser]);
-
-
-  // State for settings
-  const [imageCreationSettings, setImageCreationSettings] = useState({
-    guidelineId: "",
-    targetMethod: "disable",
-    targetWidth: "",
-    targetHeight: "",
-    resizeMethod: "",
-    quality: "",
-  });
-
-  const [resizeImageSettings, setResizeImageSettings] = useState({
-    customId: "",
-    productId: "",
-    targetWidth: "",
-    targetHeight: "",
-    resizeMethod: "",
-    quality: "",
-  });
-
-  const [imageToVideoSettings, setImageToVideoSettings] = useState({
-    customer_ID: "",
-    product_ID: "",
-    layover_text: "",
-    project_name: "",
-    tags: "",
-    sector: "",
-    goal: "",
-    key_instructions: "",
-    consumer_message: "",
-    M_key: "",
-    resize: false,
-    resize_width: "",
-    resize_height: "",
-    duration: "",
-    aspect_ratio: "",
-    customSize: "false",
-    customWidth: "",
-    customHeight: "",
-    video_type: "",
-  });
-
-
-  const [captionData, setCaptionData] = useState({
-    edit_id: "",
-    segment_number: "",
-    text: "",
-    start_time: "",
-    end_time: "",
-    font_size: "",
-    font_color: "#ffffff",
-    background_color: "#000000",
-    background_opacity: 0.8,
-    x: "",
-    y: "",
-    animation: "",
-    animation_speed: "",
-  });
-
-
-const [MergeData, setMergeData] = useState({
-    // 🎬 Edit Video
-    trim_start: "",
-    trim_end: "",
-
-    // 🎞 Merge Video
-    user_id: "",
-    hygaar_key: "",
-    edit_id: "",
-    brand_outro_video_url: "",
-    custom_resize: false,
-    mearg_id: "",
-    height: "",
-    width: "",
-  });
-
-
-
-
-  const handleDataChange = (newData) => {
-    startTransition(() => {
-      setPreviewData(newData);
-    });
-  };
-
-
-//fetch user dropdown api 
-useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoadingUsers(true);
-        const res = await axiosInstance.get("/my_user_dropdown/");
-        if (res.data?.status === "success" && Array.isArray(res.data.users)) {
-          setUsers(res.data.users);
-          if (res.data.users.length > 0) {
-            setSelectedUser(res.data.users[0].user_id); // auto-select first user
-          }
-        } else {
-          toast({
-            title: "No users found",
-            status: "warning",
-            duration: 2000,
-          });
-        }
-      } catch (error) {
-        console.error("User fetch error:", error);
-        toast({
-          title: "Failed to load users",
-          status: "error",
-          duration: 2000,
-        });
-      } finally {
-        setLoadingUsers(false);
-      }
     };
 
-    fetchUsers();
-  }, []);
+    // 2. New Handler: Used by Sidebar components to set the tab
+    const handleSetActiveTab = (tabName) => {
+        // The reset happens in the useEffect hook, ensuring it fires reliably
+        setActiveTab(tabName);
+    };
 
+    // 3. useEffect: Triggers reset when activeTab changes
+    useEffect(() => {
+        // 💾 Save the active tab to local storage
+        localStorage.setItem("activeTab", activeTab);
 
-
-
-useEffect(() => {
-  if (!clone) return; // Only run when clone = true
-
-  const fetchCloneData = async () => {
-    try {
-      toast({
-        title: "Fetching cloned project...",
-        status: "info",
-        duration: 1500,
-      });
-
-      // 👇 Send creation_id in body
-      const res = await axiosInstance.post(`/clone_creation/`, {
-        creation_id: clonecreationid,
-      });
-
-      const data = res.data?.data;
-      console.log("🧩 Clone response:", data);
-
-      if (data) {
-        // ✅ Map API response fields properly
-        setImageToVideoSettings((prev) => ({
-          ...prev,
-          project_name: data.project_id || prev.project_name,
-          tags: data.tags || prev.tags,
-          sector: data.sector || prev.sector,
-          goal: data.goal || prev.goal,
-          key_instructions: data.key_instructions || prev.key_instructions,
-          duration: data.duration ? `${data.duration}s` : prev.duration,
-          aspect_ratio: data.video_dimensions || prev.aspect_ratio,
-          resize: false,
-          resize_width: "",
-          resize_height: "",
-          customSize: "false",
-          customWidth: "",
-          customHeight: "",
-          video_type: "clone",
-        }));
-
-        // ✅ Fix: Format image URLs to proper structure
-        if (Array.isArray(data.image_urls) && data.image_urls.length > 0) {
-          const formattedImages = data.image_urls.map((url, index) => ({
-            id: `clone-${index}`,
-            url,
-          }));
-          setImages(formattedImages);
-        }
-
-        toast({
-          title: "Clone loaded successfully!",
-          status: "success",
-          duration: 1500,
+        // 🔄 Reset all data on tab change
+        startTransition(() => {
+            resetAllData();
         });
 
-        // ✅ Switch to “Image to Video” tab
-        setActiveTab("Image to Video");
-      } else {
-        toast({
-          title: "No cloned data found",
-          status: "warning",
-          duration: 1500,
+    }, [activeTab]);
+    // ------------------------------------------------------------------
+
+
+    // Existing useEffect for Captioned Videos 
+    useEffect(() => {
+        if (activeTab !== "Captioned Edit" || !selectedUser) return;
+
+        const fetchCaptionedVideos = async () => {
+            try {
+                setLoadingCaptioned(true);
+                const res = await axiosInstance.get(
+                    `/get_edited_videos_by_user/?user_id=${selectedUser}`
+                );
+                if (res.data?.status === "success" && Array.isArray(res.data.data)) {
+                    setCaptionedVideos(res.data.data);
+                } else {
+                    setCaptionedVideos([]);
+                    toast({ title: "No videos found for this user", status: "warning", duration: 2000, });
+                }
+            } catch (err) {
+                console.error("Error fetching captioned videos:", err);
+                toast({ title: "Failed to load videos", status: "error", duration: 2000, });
+            } finally {
+                setLoadingCaptioned(false);
+            }
+        };
+
+        fetchCaptionedVideos();
+    }, [activeTab, selectedUser]);
+
+
+    const handleDataChange = (newData) => {
+        startTransition(() => {
+            setPreviewData(newData);
         });
-      }
-    } catch (error) {
-      console.error("Clone API error:", error);
-      toast({
-        title: "Error fetching clone data",
-        status: "error",
-      });
-    } finally {
-      setclone(false); // prevent re-run
-    }
-  };
+    };
 
-  fetchCloneData();
-}, [clone]);
+    // fetch user dropdown api
+    useEffect(() => {
+        if (!isManager) return; 
+
+        const fetchUsers = async () => {
+            try {
+                setLoadingUsers(true);
+                const res = await axiosInstance.get("/my_user_dropdown/");
+                if (res.data?.status === "success" && Array.isArray(res.data.users)) {
+                    setUsers(res.data.users);
+                    if (res.data.users.length > 0) {
+                        setSelectedUser(res.data.users[0].user_id);
+                    }
+                } else {
+                    toast({ title: "No users found", status: "warning", duration: 2000, });
+                }
+            } catch (error) {
+                console.error("User fetch error:", error);
+                toast({ title: "Failed to load users", status: "error", duration: 2000, });
+            } finally {
+                setLoadingUsers(false);
+            }
+        };
+
+        fetchUsers();
+    }, [isManager]); 
+
+    useEffect(() => {
+        if (!clone) return; 
+
+        const fetchCloneData = async () => {
+            try {
+                toast({ title: "Fetching cloned project...", status: "info", duration: 1500, });
+                const res = await axiosInstance.post(`/clone_creation/`, { creation_id: clonecreationid, });
+                const data = res.data?.data;
+                
+                if (data) {
+                    setImageToVideoSettings((prev) => ({
+                        ...prev,
+                        project_name: data.project_id || prev.project_name, tags: data.tags || prev.tags,
+                        sector: data.sector || prev.sector, goal: data.goal || prev.goal,
+                        key_instructions: data.key_instructions || prev.key_instructions,
+                        duration: data.duration ? `${data.duration}s` : prev.duration,
+                        aspect_ratio: data.video_dimensions || prev.aspect_ratio, resize: false,
+                        resize_width: "", resize_height: "", customSize: "false", 
+                        customWidth: "", customHeight: "", video_type: "clone",
+                    }));
+
+                    if (Array.isArray(data.image_urls) && data.image_urls.length > 0) {
+                        const formattedImages = data.image_urls.map((url, index) => ({
+                            id: `clone-${index}`, url,
+                        }));
+                        setImages(formattedImages);
+                    }
+                    toast({ title: "Clone loaded successfully!", status: "success", duration: 1500, });
+                    setActiveTab("Image to Video");
+                } else {
+                    toast({ title: "No cloned data found", status: "warning", duration: 1500, });
+                }
+            } catch (error) {
+                console.error("Clone API error:", error);
+                toast({ title: "Error fetching clone data", status: "error", });
+            } finally {
+                setclone(false); // prevent re-run
+            }
+        };
+
+        fetchCloneData();
+    }, [clone]);
 
 
-
-  // ---------- JSX ----------
-  return (
-    <Flex direction="column" h="100vh" overflow="hidden">
-      {/* ---------- Navbar ---------- */}
-      <Flex
-        h="70px"
-        px={6}
-        py={3}
-        bg={navbarBg}
-        align="center"
-        justify="space-between"
-        borderBottom="1px solid"
-        borderColor={useColorModeValue("gray.200", "gray.700")}
-        flexShrink={0}
-      >
-        {/* Left Section */}
-        <Flex align="center" gap={4}>
-          <Button
-            onClick={() => navigate(-1)}
-            size="sm"
-            bg={useColorModeValue("blue.500", "blue.400")}
-            color="white"
-            _hover={{ bg: useColorModeValue("blue.600", "blue.500") }}
-            p={2}
-            borderRadius="full"
-          >
-            <MdArrowBack size={18} />
-          </Button>
-
-          <Flex align="center" gap={2}>
-            <Box as="img" src={Image} alt="Hygaar Logo" boxSize="30px" borderRadius="md" />
-            <Text fontSize="lg" fontWeight="bold">
-              Hygaar
-            </Text>
-          </Flex>
-        </Flex>
-
-
-{loadingUsers ? (
-            <Spinner size="sm" />
-          ) : (
-            <Select
-              placeholder="Select User"
-              size="sm"
-              w="200px"
-              value={selectedUser}
-               onChange={(e) => {
-    const userId = e.target.value;
-    startTransition(() => {
-      setSelectedUser(userId);
-    });
-  }}
+    // ---------- JSX ----------
+    return (
+        <Flex direction="column" h="100vh" overflow="hidden">
+            {/* ---------- Navbar ---------- */}
+            <Flex
+                h="70px" px={6} py={3} bg={navbarBg} align="center" justify="space-between" borderBottom="1px solid"
+                borderColor={useColorModeValue("gray.200", "gray.700")} flexShrink={0}
             >
-              {users.map((u) => (
-                <option key={u.user_id} value={u.user_id}>
-                  {u.username}
-                </option>
-              ))}
-            </Select>
-          )}
-        {/* Mode Toggle */}
-        <Button onClick={toggleColorMode} size="sm" variant="ghost" p={2} borderRadius="full">
-          {colorMode === "light" ? "🌙" : "☀️"}
-        </Button>
-      </Flex>
-
-      {/* ---------- BODY ---------- */}
-      {isMobile ? (
-        /* ===== Mobile Layout ===== */
-        <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
-          {activeTab === "Edit Video" ? (
-            <Box
-              mt="50px"
-              overflowY="auto"
-              h="calc(100vh - 120px)"
-              p={4}
-              sx={{
-                "::-webkit-scrollbar": { display: "none" },
-                msOverflowStyle: "none",
-                scrollbarWidth: "none",
-              }}
-            >
-              <EditVedioComponent previewData={previewData} />
-            </Box>
-          ) : (
-            <>
-              <PreviewArea
-                text={text}
-                setText={setText}
-                images={images}
-                setImages={setImages}
-                loadingImages={loadingImages}
-                setLoadingImages={setLoadingImages}
-                sending={sending}
-                setSending={setSending}
-                model={model}
-                duration={duration}
-                resolution={resolution}
-                ratio={ratio}
-              />
-
-              {/* Mobile Tabs */}
-              <Flex justify="space-around" bg={mobileTabBg} borderRadius="md" py={2} boxShadow="sm">
-                {["Template", "Transition", "Fusion", "Extend", "Sound", "Edit Video"].map(
-                  (tab) => (
+                {/* Left Section (Arrow + Logo) */}
+                <Flex align="center" gap={4}>
                     <Button
-                      key={tab}
-                      size="sm"
-                      variant={activeTab === tab ? "solid" : "ghost"}
-                      colorScheme="blue"
-                      onClick={() => setActiveTab(tab)}
+                        onClick={() => navigate(-1)} size="sm" bg={useColorModeValue("blue.500", "blue.400")} color="white"
+                        _hover={{ bg: useColorModeValue("blue.600", "blue.500") }} p={2} borderRadius="full"
                     >
-                      {tab}
+                        <MdArrowBack size={18} />
                     </Button>
-                  )
-                )}
-              </Flex>
 
-              <Panel
-                activeTab={activeTab}
-                onDataChange={handleDataChange}
-                model={model}
-                setModel={setModel}
-                duration={duration}
-                setDuration={setDuration}
-                resolution={resolution}
-                setResolution={setResolution}
-                ratio={ratio}
-                setRatio={setRatio}
-                imageCreationSettings={imageCreationSettings}
-                setImageCreationSettings={setImageCreationSettings}
-                resizeImageSettings={resizeImageSettings}
-                setResizeImageSettings={setResizeImageSettings}
-                imageToVideoSettings={imageToVideoSettings}
-                setImageToVideoSettings={setImageToVideoSettings}
-                captionData={captionData}
-                  setCaptionData={setCaptionData}
-                  MergeData={MergeData}
-                  setMergeData={setMergeData}
-              />
-            </>
-          )}
+                    <Flex align="center" gap={2}>
+                        <Box as="img" src={Image} alt="Hygaar Logo" boxSize="30px" borderRadius="md" />
+                        <Text fontSize="lg" fontWeight="bold">Hygaar</Text>
+                    </Flex>
+                </Flex>
+                
+                {/* Right Section (User Dropdown + Toggle + Mobile Menu Button) */}
+                <HStack spacing={4}>
+                    {/* User Dropdown (Manager Role Only) */}
+                    {isManager && (
+                        <Flex align="center" gap={4}>
+                            {loadingUsers ? (<Spinner size="sm" />) : (
+                                <Select
+                                    placeholder="Select User" size="sm" w="200px" value={selectedUser}
+                                    onChange={(e) => {
+                                        const userId = e.target.value;
+                                        startTransition(() => { setSelectedUser(userId); });
+                                    }}
+                                    display={{ base: "none", sm: "block" }}
+                                >
+                                    {users.map((u) => (<option key={u.user_id} value={u.user_id}>{u.username}</option>))}
+                                </Select>
+                            )}
+                        </Flex>
+                    )}
+                    
+                    {/* Mode Toggle */}
+                    <Button onClick={toggleColorMode} size="sm" variant="ghost" p={2} borderRadius="full">
+                        {colorMode === "light" ? "🌙" : "☀️"}
+                    </Button>
+                    
+                    {/* Mobile Menu Button - Visible only on mobile (base) */}
+                    <MobileMenuButton onOpen={onOpen} />
+                </HStack>
+            </Flex>
+
+            {/* =========================================================
+              Mobile Sidebar Drawer 
+              =========================================================
+            */}
+            <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
+                <DrawerOverlay />
+                <DrawerContent>
+                    <DrawerCloseButton />
+                    <DrawerHeader borderBottomWidth="1px">Menu</DrawerHeader>
+                    <DrawerBody p={0}>
+                        <MobileSidebarItems
+                            activeTab={activeTab}
+                            setActiveTab={handleSetActiveTab} 
+                            onClose={onClose}
+                        />
+                    </DrawerBody>
+                </DrawerContent>
+            </Drawer>
+
+            {/* ---------- BODY ---------- */}
+            {isMobile ? (
+                /* ===== Mobile Layout (Simplified) ===== */
+                <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
+                    {/* Conditional full-screen components for specific tabs */}
+                    {(activeTab === "Edit Video" || activeTab === "Caption Segment" || activeTab === "Captioned Edit" || activeTab === "Merge Video" || activeTab === "Add Music") ? (
+                        <Box
+                            overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
+                            sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
+                        >
+                            {activeTab === "Edit Video" && (<EditVedioComponent previewData={previewData} />)}
+                            {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
+                            {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
+                            {activeTab === "Merge Video" && (<MergeVideo MergeData={MergeData} setMergeData={setMergeData} />)}
+                            {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} />}
+                        </Box>
+                    ) : (
+                        // Default Panel/Preview Layout for other tabs
+                        <>
+                            <PreviewArea
+                                text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} resolution={resolution} ratio={ratio} activeTab={activeTab} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser}
+                            />
+                            {/* Panel Below Preview in Mobile */}
+                            <Panel
+                                activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData}
+                            />
+                        </>
+                    )}
+                </Flex>
+            ) : (
+                /* ===== Desktop Layout (Existing Logic) ===== */
+                <Flex flex="1" overflow="hidden">
+                    {/* Sidebar */}
+                    <Box
+                        w="100px" h="calc(100vh - 70px)" overflowY="auto" flexShrink={0}
+                        sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
+                    >
+                        <Sidebar activeTab={activeTab} setActiveTab={handleSetActiveTab} /> {/* ✅ Uses the reset handler */}
+                    </Box>
+
+                    {/* Conditional Rendering */}
+                    {activeTab === "Edit Video" ? (
+                        <Box
+                            flex="1" bg={bgColor} overflowY="auto" mt={"-50"}
+                            sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
+                        >
+                            <EditVedioComponent previewData={previewData} setActiveTab={handleSetActiveTab} setclone={setclone} setclonecreationid={setclonecreationid} /> {/* ✅ Uses the reset handler */}
+                        </Box>
+                    ) : activeTab === "Caption Segment" ? (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                                <CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
+                            </Box>
+                        </Flex>
+                    ) : activeTab === "Captioned Edit" ? (
+                        <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
+                    ) : activeTab === "Merge Video" ? (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                                <MergeVideo MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                        </Flex>
+                    ) : activeTab === "Add Music" ? (
+                        <AddMusic selectedUser={selectedUser} />
+                    ) : (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                                <PreviewArea activeTab={activeTab} text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser} />
+                            </Box>
+                        </Flex>
+                    )}
+                </Flex>
+            )}
         </Flex>
-      ) : (
-        /* ===== Desktop Layout ===== */
-        <Flex flex="1" overflow="hidden">
-          {/* Sidebar */}
-          <Box
-            w="100px"
-            h="calc(100vh - 70px)"
-            overflowY="auto"
-         sx={{
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
-  msOverflowStyle: "none",
-  scrollbarWidth: "none",
-}}
-          >
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-          </Box>
-
-          {/* Conditional Rendering */}
-          {activeTab === "Edit Video" ? (
-            <Box
-              flex="1"
-              bg={bgColor}
-          
-              overflowY="auto"
-              
-              mt={"-50"}
-           sx={{
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
-  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
-  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
-}}
-
-            >
-              <EditVedioComponent previewData={previewData} setActiveTab={setActiveTab} setclone={setclone} setclonecreationid={setclonecreationid}/>
-            </Box>
-          ):activeTab === "Caption Segment"?(
-            <>
-              <Flex flex="1" overflow="hidden">
-              {/* Panel */}
-              <Box
-                w={{ base: "100%", md: "350px" }}
-                h="calc(100vh - 70px)"
-                overflowY="auto"
-                p={4}
-               sx={{
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
-  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
-  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
-}}
-
-              >
-                <Panel
-                  activeTab={activeTab}
-                  onDataChange={handleDataChange}
-                  model={model}
-                  setModel={setModel}
-                  duration={duration}
-                  setDuration={setDuration}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  ratio={ratio}
-                  setRatio={setRatio}
-                  imageCreationSettings={imageCreationSettings}
-                  setImageCreationSettings={setImageCreationSettings}
-                  resizeImageSettings={resizeImageSettings}
-                  setResizeImageSettings={setResizeImageSettings}
-                  imageToVideoSettings={imageToVideoSettings}
-                  setImageToVideoSettings={setImageToVideoSettings}
-                  captionData={captionData}
-                  setCaptionData={setCaptionData}
-                   MergeData={MergeData}
-                  setMergeData={setMergeData}
-                />
-              </Box>
-
-              {/* Preview Area */}
-              <Box
-                flex="1"
-                h="calc(100vh - 70px)"
-                p={6}
-                overflow="hidden"
-                display="flex"
-                flexDirection="column"
-              >
-
-<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
-              </Box>
-            </Flex>
-
-
-
-
-            </>
-          ) :activeTab ==="Captioned Edit" ?(<>
-              <CaptionedEdit/>
-          </>):activeTab ==="Merge Video"?(<>
-<Flex flex="1" overflow="hidden">
-              {/* Panel */}
-              <Box
-                w={{ base: "100%", md: "350px" }}
-                h="calc(100vh - 70px)"
-                overflowY="auto"
-                p={4}
-               sx={{
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
-  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
-  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
-}}
-
-              >
-                <Panel
-                  activeTab={activeTab}
-                  onDataChange={handleDataChange}
-                  model={model}
-                  setModel={setModel}
-                  duration={duration}
-                  setDuration={setDuration}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  ratio={ratio}
-                  setRatio={setRatio}
-                  imageCreationSettings={imageCreationSettings}
-                  setImageCreationSettings={setImageCreationSettings}
-                  resizeImageSettings={resizeImageSettings}
-                  setResizeImageSettings={setResizeImageSettings}
-                  imageToVideoSettings={imageToVideoSettings}
-                  setImageToVideoSettings={setImageToVideoSettings}
-                  captionData={captionData}
-                  setCaptionData={setCaptionData}
-                   MergeData={MergeData}
-                  setMergeData={setMergeData}
-                />
-              </Box>
-
-              {/* Preview Area */}
-              <Box
-                flex="1"
-                h="calc(100vh - 70px)"
-                p={6}
-                overflow="hidden"
-                display="flex"
-                flexDirection="column"
-              >
-<MergeVideo     MergeData={MergeData}
-                  setMergeData={setMergeData}/>
-              </Box>
-            </Flex>
-
-          </>):activeTab ==="Add Music"?(<>
-            <AddMusic/>
-          </>) : (
-            <Flex flex="1" overflow="hidden">
-              {/* Panel */}
-              <Box
-                w={{ base: "100%", md: "350px" }}
-                h="calc(100vh - 70px)"
-                overflowY="auto"
-                p={4}
-               sx={{
-  "&::-webkit-scrollbar": {
-    display: "none",
-  },
-  msOverflowStyle: "none", // ✅ correct camelCase for IE/Edge
-  scrollbarWidth: "none", // ✅ correct camelCase for Firefox
-}}
-
-              >
-                <Panel
-                  activeTab={activeTab}
-                  onDataChange={handleDataChange}
-                  model={model}
-                  setModel={setModel}
-                  duration={duration}
-                  setDuration={setDuration}
-                  resolution={resolution}
-                  setResolution={setResolution}
-                  ratio={ratio}
-                  setRatio={setRatio}
-                  imageCreationSettings={imageCreationSettings}
-                  setImageCreationSettings={setImageCreationSettings}
-                  resizeImageSettings={resizeImageSettings}
-                  setResizeImageSettings={setResizeImageSettings}
-                  imageToVideoSettings={imageToVideoSettings}
-                  setImageToVideoSettings={setImageToVideoSettings}
-                  captionData={captionData}
-                  setCaptionData={setCaptionData}
-                   MergeData={MergeData}
-                  setMergeData={setMergeData}
-                />
-              </Box>
-
-              {/* Preview Area */}
-              <Box
-                flex="1"
-                h="calc(100vh - 70px)"
-                p={6}
-                overflow="hidden"
-                display="flex"
-                flexDirection="column"
-              >
-                <PreviewArea
-                  activeTab={activeTab}
-                  text={text}
-                  setText={setText}
-                  images={images}
-                  setImages={setImages}
-                  loadingImages={loadingImages}
-                  setLoadingImages={setLoadingImages}
-                  sending={sending}
-                  setSending={setSending}
-                  model={model}
-                  duration={duration}
-                  resolution={resolution}
-                  ratio={ratio}
-                  imageCreationSettings={imageCreationSettings}
-                  resizeImageSettings={resizeImageSettings}
-                  imageToVideoSettings={imageToVideoSettings}
-                  selectedUser={selectedUser}
-                />
-              </Box>
-            </Flex>
-          )}
-        </Flex>
-      )}
-    </Flex>
-  );
+    );
 }

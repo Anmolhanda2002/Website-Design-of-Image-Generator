@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useParams } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
-
+import Swal from "sweetalert2";
 export default function EditImageGuideline() {
   const { guideline_id } = useParams();
   const toast = useToast();
@@ -127,65 +127,92 @@ export default function EditImageGuideline() {
   };
 
   // ✅ Update API Call
-  const handleUpdate = async () => {
-    try {
-      setSubmitting(true);
-      const api_key = localStorage.getItem("api_key");
+const handleUpdate = async () => {
+  try {
+    setSubmitting(true);
 
-      if (!api_key) {
-        toast({
-          title: "Missing API Key",
-          description: "Please login or add your API key first.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
+    const loggedUser = JSON.parse(localStorage.getItem("user"));
+    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
 
-      const payload = {
-        api_key,
-        guideline_id,
-        ...form, // All fields directly from form
-      };
-
-      console.log("📝 Update Payload:", payload);
-
-      const { data } = await axiosInstance.post(
-        "/factory_development_update_image_guideline/",
-        payload
-      );
-
-      if (data.status === "success") {
-        toast({
-          title: "✅ Guideline Updated Successfully",
-          description: "Your changes have been saved.",
-          status: "success",
-          duration: 4000,
-          isClosable: true,
-        });
-      } else {
-        toast({
-          title: "Update Failed ❌",
-          description: data.message || "Something went wrong.",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating guideline:", error);
-      toast({
-        title: "Update Failed ❌",
-        description: "Please try again later.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
+    // 🔹 Require user selection for Manager
+    if (loggedUser?.role === "Manager" && !selectedUser) {
+      Swal.fire({
+        icon: "warning",
+        title: "Select User Required",
+        text: "Please select a user before updating the guideline.",
+        confirmButtonColor: "#3085d6",
       });
-    } finally {
-      setSubmitting(false);
+      return;
     }
-  };
+
+    // 🔹 Require API key
+    const api_key = localStorage.getItem("api_key");
+    if (!api_key) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing API Key",
+        text: "Please login or add your API key first.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+
+    // 🔹 Build payload (always include user_id)
+    const payload = {
+      api_key,
+      guideline_id,
+      user_id:
+        loggedUser?.role === "Manager"
+          ? selectedUser?.user_id || null
+          : loggedUser?.user_id || null,
+      ...form,
+    };
+
+    console.log("📝 Update Payload:", payload);
+
+    const { data } = await axiosInstance.post(
+      "/factory_development_update_image_guideline/",
+      payload
+    );
+
+    // 🔹 Success case
+    if (data.status === "success") {
+      Swal.fire({
+        icon: "success",
+        title: "Guideline Updated",
+        text: "Your image guideline has been updated successfully!",
+        timer: 3000,
+        showConfirmButton: false,
+      });
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Update Failed",
+        text: data.message || "Something went wrong. Please try again.",
+        confirmButtonColor: "#d33",
+      });
+    }
+  } catch (error) {
+    console.error("Error updating guideline:", error);
+
+    // 🔹 Extract backend error message if available
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      error.response?.data?.error ||
+      "Something went wrong. Please try again later.";
+
+    Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text: backendMessage,
+      confirmButtonColor: "#d33",
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   // ✅ Loading spinner
   if (loading)

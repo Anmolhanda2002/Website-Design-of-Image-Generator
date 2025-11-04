@@ -78,6 +78,7 @@ const routes = [
     icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
     component: <Profile />,
     showInSidebar: true,
+    roles: ['Standard User'],
   },
   // {
   //   name: 'Next Generate Video',
@@ -110,6 +111,7 @@ const routes = [
     icon: <Icon as={MdImage} w="20px" h="20px" color="inherit" />,
     component: <AssetsPage />,
     showInSidebar: true,
+    roles: ['Administrator','Manager'],
   },
   {
     name: 'Video Assets',
@@ -118,6 +120,7 @@ const routes = [
     icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
     component: <VideosPage />,
     showInSidebar: true,
+    roles: ['Administrator','Manager'],
   },
   // Auth Routes
   {
@@ -217,14 +220,6 @@ const routes = [
     icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
     component: <AssignUsersPage />,
     showInSidebar: false,
-  },
-    {
-    name: 'temp',
-    layout: '/admin',
-    path: '/editpreview',
-    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
-    component: <EditPreviewBox />,
-    showInSidebar: true,
   },
 ];
 

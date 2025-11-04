@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// ✅ Create a centralized Axios instance
+// ✅ Base axios instance
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
   headers: {
@@ -8,31 +8,50 @@ const axiosInstance = axios.create({
   },
 });
 
-// ✅ Helper to safely save tokens
+// ✅ Helpers
 const saveTokens = (access, refresh) => {
   if (access) localStorage.setItem("access_token", access);
   if (refresh) localStorage.setItem("refresh_token", refresh);
 };
 
-// ✅ Helper to clean logout
 const handleLogout = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("user");
+  localStorage.removeItem("selected_user");
   window.location.href = "/auth/sign-in";
 };
 
-// ✅ Request interceptor — attach token if available
+// ✅ Request Interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
+    const user = JSON.parse(localStorage.getItem("user"));
+    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
 
-    // Only attach if token exists and is non-empty
+    // ✅ Pick user_id (from selected_user > user)
+    const userIdToSend = selectedUser?.user_id || user?.user_id || null;
+
+    // ✅ Attach Bearer token
     if (token && token !== "undefined" && token !== "null") {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      // Remove bad tokens
+    } else if (config.url !== "/auth/refresh/") {
       localStorage.removeItem("access_token");
+    }
+
+    // ✅ Ensure user_id always sent in the body — even for GET
+    if (userIdToSend) {
+      if (config.method === "get") {
+        // Some backends expect GET with body (non-standard but allowed)
+        config.data = { user_id: userIdToSend };
+        config.headers["Content-Type"] = "application/json";
+      } else if (config.data instanceof FormData) {
+        config.data.append("user_id", userIdToSend);
+      } else if (config.data && typeof config.data === "object") {
+        config.data = { ...config.data, user_id: userIdToSend };
+      } else {
+        config.data = { user_id: userIdToSend };
+      }
     }
 
     return config;
@@ -40,30 +59,27 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Response interceptor — handle 401 & refresh token
+// ✅ Response Interceptor
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
+    const userIdToSend = JSON.parse(localStorage.getItem("user"))?.user_id || null;
 
-    // Only handle 401 once
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refresh_token = localStorage.getItem("refresh_token");
-
-        if (!refresh_token || refresh_token === "undefined" || refresh_token === "null") {
-          console.warn("⚠️ No valid refresh token found, logging out...");
+        if (!refresh_token) {
           handleLogout();
           return Promise.reject(error);
         }
 
-        // Request new tokens using refresh token
         const res = await axios.post(
           `${process.env.REACT_APP_API_URL}auth/refresh/`,
-          { refresh_token },
+          { refresh_token, user_id: userIdToSend },
           { headers: { "Content-Type": "application/json" } }
         );
 
@@ -73,19 +89,18 @@ axiosInstance.interceptors.response.use(
           res.data?.refresh_token || res.data?.refresh || refresh_token;
 
         if (!newAccessToken) {
-          console.error("❌ Refresh API did not return a valid access token");
           handleLogout();
           return Promise.reject(error);
         }
 
-        // Save and retry
         saveTokens(newAccessToken, newRefreshToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+        // Retry with new token
         return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        console.error("❌ Token refresh failed:", refreshError);
+      } catch {
         handleLogout();
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       }
     }
 

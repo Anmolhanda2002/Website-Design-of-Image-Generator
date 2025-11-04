@@ -16,7 +16,7 @@ import {
   Heading,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-
+import Swal from "sweetalert2";
 export default function ImageGuidelineForm() {
   const [choices, setChoices] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,82 +91,114 @@ export default function ImageGuidelineForm() {
   };
 
   // Handle form submission
-  const handleSubmit = async () => {
-    try {
-      const api_key = localStorage.getItem("api_key");
-      if (!api_key) {
-        toast({
-          title: "Missing API Key",
-          description: "Please login or add your API key first.",
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
+const handleSubmit = async () => {
+  try {
+    const loggedUser = JSON.parse(localStorage.getItem("user"));
+    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
 
-      const payload = { api_key, ...form };
-      const { data } = await axiosInstance.post(
-        "/factory_development_create_image_guideline/",
-        payload
-      );
+    // 🔹 Require user selection for Manager
+    if (loggedUser?.role === "Manager" && !selectedUser) {
+      Swal.fire({
+        icon: "warning",
+        title: "Select User Required",
+        text: "Please select a user before submitting.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
 
-      if (data.status === "success") {
-        toast({
-          title: "Guideline Created Successfully",
-          description: "Your image guideline has been saved.",
-          status: "success",
-          duration: 4000,
-          isClosable: true,
-        });
+    // 🔹 Require API key
+    const api_key = localStorage.getItem("api_key");
+    if (!api_key) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing API Key",
+        text: "Please login or add your API key first.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
 
-        // Reset form
-        setForm({
-          name: "",
-          description: "",
-          sector: "",
-          use_case: "",
-          product_name: "",
-          product_info: "",
-          goal: "",
-          goal_description: "",
-          goal_of_image: "",
-          main_focus_of_image: "",
-          model_ethnicity: "",
-          model_gender: "",
-          model_built: "",
-          model_age_range: "",
-          model_personality_features: "",
-          model_other_features: "",
-          environment_category: "",
-          environment_interior: "",
-          environment_exterior: "",
-          environment_lifestyle_editorial: "",
-          environment_other: "",
-          pose_category: "",
-          pose_general: "",
-          pose_yoga: "",
-          pose_activity: "",
-          pose_other: "",
-          mood: "",
-          lighting_preference: "",
-          color_palette: "",
-          style_preference: "",
-          human_instruction: "",
-          additional_instructions: "",
-        });
-      }
-    } catch (error) {
-      console.error("Error submitting:", error);
-      toast({
-        title: "Submission Failed",
-        description: "Please try again later.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
+    // 🔹 Build payload
+    const payload = {
+      api_key,
+      user_id:
+        loggedUser?.role === "Manager"
+          ? selectedUser?.user_id || null
+          : loggedUser?.user_id || null,
+      ...form,
+    };
+
+    const { data } = await axiosInstance.post(
+      "/factory_development_create_image_guideline/",
+      payload
+    );
+
+    // 🔹 Success Response
+    if (data.status === "success") {
+      Swal.fire({
+        icon: "success",
+        title: "Guideline Created",
+        text: "Your image guideline has been saved successfully!",
+        timer: 3000,
+        showConfirmButton: false,
+      });
+
+      // Reset form
+      setForm({
+        name: "",
+        description: "",
+        sector: "",
+        use_case: "",
+        product_name: "",
+        product_info: "",
+        goal: "",
+        goal_description: "",
+        goal_of_image: "",
+        main_focus_of_image: "",
+        model_ethnicity: "",
+        model_gender: "",
+        model_built: "",
+        model_age_range: "",
+        model_personality_features: "",
+        model_other_features: "",
+        environment_category: "",
+        environment_interior: "",
+        environment_exterior: "",
+        environment_lifestyle_editorial: "",
+        environment_other: "",
+        pose_category: "",
+        pose_general: "",
+        pose_yoga: "",
+        pose_activity: "",
+        pose_other: "",
+        mood: "",
+        lighting_preference: "",
+        color_palette: "",
+        style_preference: "",
+        human_instruction: "",
+        additional_instructions: "",
       });
     }
-  };
+  } catch (error) {
+    console.error("Error submitting:", error);
+
+    // 🔹 Extract backend error message safely
+    const backendMessage =
+      error.response?.data?.message ||
+      error.response?.data?.detail ||
+      error.response?.data?.error ||
+      "Something went wrong. Please try again later.";
+
+    Swal.fire({
+      icon: "error",
+      title: "Submission Failed",
+      text: backendMessage,
+      confirmButtonColor: "#d33",
+    });
+  }
+};
+
 
   if (loading)
     return (

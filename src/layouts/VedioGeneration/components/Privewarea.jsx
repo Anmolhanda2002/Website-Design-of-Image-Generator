@@ -54,114 +54,138 @@ const [videoStatus, setVideoStatus] = useState("");
 
 
   // Upload single image
-  const handleImageUpload = async (file) => {
+// Assuming Swal, axiosInstance, setProgressMap, setImages, setUploading, and toast are in scope.
+
+/**
+ * Handles the async upload of a single file.
+ * Returns an array of uploaded image objects: [{ id: number, url: string }, ...]
+ */
+const handleImageUpload = async (file) => {
     const id = Date.now() + Math.random();
-    setProgressMap((prev) => ({ ...prev, [id]: 0 }));
+    // It's crucial to use startTransition if setProgressMap uses it, but here, we stick to standard React state.
+    setProgressMap((prev) => ({ ...prev, [id]: 0 })); 
 
     const formData = new FormData();
-    formData.append("image_urls", file);
+    // Note: The backend API expects the field name "image_urls". 
+    // If the file is a single object, this is correct for direct file upload.
+    formData.append("image_urls", file); 
 
     try {
-      const res = await axiosInstance.post("/upload_direct_image/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (event) => {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgressMap((prev) => ({ ...prev, [id]: percent }));
-        },
-      });
+        const res = await axiosInstance.post("/upload_direct_image/", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+            onUploadProgress: (event) => {
+                const percent = Math.round((event.loaded * 100) / event.total);
+                setProgressMap((prev) => ({ ...prev, [id]: percent }));
+            },
+        });
 
-      const urls = res.data.image_url || [];
-      const uploadedImages = urls.map((url) => ({ id, url }));
+        // The API returns { image_url: ["url1", "url2", ...] }
+        const urls = res.data.image_url || [];
+        const uploadedImages = urls.map((url) => ({ id, url }));
 
-      setImages((prev) => [...prev, ...uploadedImages]);
-      setProgressMap((prev) => {
-        const copy = { ...prev };
-        delete copy[id]; // Remove progress after upload
-        return copy;
-      });
+        // Update the main image list state
+        setImages((prev) => [...prev, ...uploadedImages]);
+        
+        // Cleanup progress map
+        setProgressMap((prev) => {
+            const copy = { ...prev };
+            delete copy[id]; // Remove progress after upload
+            return copy;
+        });
 
-      toast({
-        title: "Image Uploaded",
-        description: file.name,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+        toast({
+            title: "Image Uploaded",
+            description: file.name,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+        });
 
-      return uploadedImages;
+        return uploadedImages; // Returns an ARRAY of uploaded image objects
     } catch (err) {
-      console.error("Upload failed:", err);
-      setProgressMap((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-      toast({
-        title: "Upload failed",
-        description: file.name,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
-      return [];
+        console.error("Upload failed:", err);
+        setProgressMap((prev) => {
+            const copy = { ...prev };
+            delete copy[id];
+            return copy;
+        });
+        toast({
+            title: "Upload failed",
+            description: file.name,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+        });
+        throw err; // Re-throw the error so handleImageChangeSingle can catch it
     }
-  };
+};
 
-  // Handle multiple image selection
-  const handleImageChange = async (e) => {
+// Handle multiple image selection
+const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
     setUploading(true);
     for (let file of files) {
-      await handleImageUpload(file);
+        await handleImageUpload(file);
     }
     setUploading(false);
-  };
+};
 
-  //Handle Single Image Selection 
-  const handleImageChangeSingle = async (e) => {
-  const file = e.target.files[0]; // ✅ only single file
-  if (!file) return;
 
-  setUploading(true);
+// Handle Single Image Selection (FIXED LOGIC)
+const handleImageChangeSingle = async (e) => {
+    const file = e.target.files[0]; // ✅ get single file
+    if (!file) return;
 
-  try {
-    // 🧩 upload logic — adjust `handleImageUpload` to return uploaded image data (URL, etc.)
-    const uploadedImage = await handleImageUpload(file);
+    setUploading(true);
 
-    // ✅ Show SweetAlert2 popup after upload
-    Swal.fire({
-      title: "Image Uploaded Successfully 🎉",
-      html: `
-        <div style="text-align:left; font-size:14px;">
-          <p><b>File Name:</b> ${file.name}</p>
-          <p><b>File Size:</b> ${(file.size / 1024).toFixed(2)} KB</p>
-          <p><b>Type:</b> ${file.type}</p>
-          ${uploadedImage?.url ? `<img src="${uploadedImage.url}" alt="preview" style="width:100%;max-width:300px;border-radius:8px;margin-top:10px;" />` : ""}
-        </div>
-      `,
-      icon: "success",
-      confirmButtonText: "Great!",
-      confirmButtonColor: "#2563eb",
-      width: "400px",
-    });
+    try {
+        // 1. Call handleImageUpload which returns an ARRAY of uploaded image objects: [{ id, url }]
+        const uploadedImagesArray = await handleImageUpload(file);
 
-  } catch (error) {
-    console.error("Upload failed:", error);
+        // 2. Extract the FIRST (and only expected) uploaded image object
+        const uploadedImage = uploadedImagesArray[0]; 
 
-    Swal.fire({
-      title: "Upload Failed ❌",
-      text: error?.message || "Something went wrong during image upload.",
-      icon: "error",
-      confirmButtonColor: "#e53e3e",
-    });
+        if (!uploadedImage || !uploadedImage.url) {
+            throw new Error("Upload succeeded, but no URL was returned by the server.");
+        }
 
-  } finally {
-    setUploading(false);
-  }
+        // ✅ Show SweetAlert2 popup after upload
+        Swal.fire({
+            title: "Image Uploaded Successfully 🎉",
+            html: `
+              <div style="text-align:left; font-size:14px;">
+                <p><b>File Name:</b> ${file.name}</p>
+                <p><b>File Size:</b> ${(file.size / 1024).toFixed(2)} KB</p>
+                <p><b>Type:</b> ${file.type}</p>
+                <img src="${uploadedImage.url}" alt="preview" style="width:100%;max-width:300px;border-radius:8px;margin-top:10px;" />
+              </div>
+            `,
+            icon: "success",
+            confirmButtonText: "Great!",
+            confirmButtonColor: "#2563eb",
+            width: "400px",
+        });
+
+    } catch (error) {
+        console.error("Single Upload failed:", error);
+
+        // Use the error message from the caught error object
+        const errorMessage = error.response?.data?.message || error.message || "Something went wrong during image upload.";
+        
+        Swal.fire({
+            title: "Upload Failed ❌",
+            text: errorMessage,
+            icon: "error",
+            confirmButtonColor: "#e53e3e",
+        });
+
+    } finally {
+        setUploading(false);
+    }
 };
 
   // Handle form submit
@@ -174,8 +198,10 @@ setIsPreviewLoading(true);
     setVideoStatus("processing");
     try {
       if (activeTab === "Image Creation") {
-        const apiKey = localStorage.getItem("api_key") || "HYG-DD245233179797E6-870C";
+        const apiKey = localStorage.getItem("api_key");
 
+
+        
         // 1️⃣ Call Image Creation API
         const res1 = await axiosInstance.post(
           "/factory_development_gemini_virtual_tryon_generate/",
@@ -396,6 +422,7 @@ else if (activeTab === "Image to Video") {
     }
   } catch (error) {
     console.error("Error generating or resizing video:", error);
+
     toast({
       title: "Error generating video",
       description: error?.response?.data?.message || error.message,
@@ -438,6 +465,12 @@ setIsPreviewLoading(false);
       });
     } finally {
       setSubmitting(false);
+              setSubmitting(false);
+setIsPreviewLoading(false); 
+   setGeneratedVideo(null);
+    setGeneratedImage(null);
+    setResizedImage(null);
+    setVideoStatus(null);
     }
   };
 
