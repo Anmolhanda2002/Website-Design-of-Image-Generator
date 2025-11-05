@@ -189,290 +189,232 @@ const handleImageChangeSingle = async (e) => {
 };
 
   // Handle form submit
- const handleSubmit = async () => {
-    setSubmitting(true);
-setIsPreviewLoading(true); 
-   setGeneratedVideo(null);
-    setGeneratedImage(null);
-    setResizedImage(null);
-    setVideoStatus("processing");
-    try {
-      if (activeTab === "Image Creation") {
-        const apiKey = localStorage.getItem("api_key");
+const handleSubmit = async () => {
+  setSubmitting(true);
+  setIsPreviewLoading(true);
 
+  // Reset all visuals initially
+  setGeneratedVideo(null);
+  setGeneratedImage(null);
+  setResizedImage(null);
+  setVideoStatus(null);
 
-        
-        // 1️⃣ Call Image Creation API
-        const res1 = await axiosInstance.post(
-          "/factory_development_gemini_virtual_tryon_generate/",
+  try {
+
+    if (activeTab === "Image Creation") {
+      const res1 = await axiosInstance.post(
+        "/factory_development_gemini_virtual_tryon_generate/",
+        {
+  
+          image_urls: images.map((img) => img.url),
+          prompt: text,
+          img_guideline_id: imageCreationSettings?.guidelineId,
+          user_id: selectedUser,
+        }
+      );
+
+      const compositionId = res1?.data?.data?.composition_id;
+      const generatedUrl = res1?.data?.data?.generated_image_url;
+
+      if (!generatedUrl) throw new Error("Failed to generate image.");
+
+      setGeneratedImage(generatedUrl);
+      setVideoStatus("completed");
+
+      const { targetWidth, targetHeight, resizeMethod, quality } = imageCreationSettings || {};
+      const hasResizeSettings = targetWidth || targetHeight || resizeMethod;
+
+      if (hasResizeSettings) {
+        const res2 = await axiosInstance.post(
+          "/factory_development_resize_composition_image/",
           {
-            api_key: apiKey,
-            image_urls: images.map((img) => img.url),
-            prompt: text,
-            img_guideline_id: imageCreationSettings.guidelineId,
-            user_id:selectedUser
+      
+            composition_id: compositionId,
+            target_width: targetWidth,
+            target_height: targetHeight,
+            resize_method: resizeMethod,
+            quality,
+            user_id: selectedUser,
           }
         );
 
-        const compositionId = res1?.data?.data?.composition_id;
-        const generatedUrl = res1?.data?.data?.generated_image_url;
-        setGeneratedImage(generatedUrl);
+        setResizedImage(res2?.data?.data?.resized_image_url || null);
+        setResizeDetails(res2?.data?.data || {});
+      }
 
-        const { targetWidth, targetHeight, resizeMethod, quality } = imageCreationSettings || {};
-        const hasResizeSettings = targetWidth || targetHeight || resizeMethod;
+      toast({
+        title: "Image generated successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
 
-        // 2️⃣ Call Resize API if fields are provided
-        if (hasResizeSettings) {
-          const resizeApiKey = localStorage.getItem("api_key");
+    else if (activeTab === "Resize Image") {
+      const { targetWidth, targetHeight, resizeMethod, quality } = resizeImageSettings || {};
+      const hasResizeSettings = targetWidth || targetHeight || resizeMethod || quality;
 
-          const res2 = await axiosInstance.post(
-            "/factory_development_resize_composition_image/",
-            {
-              api_key: resizeApiKey,
-              composition_id: compositionId,
-              target_width: targetWidth,
-              target_height: targetHeight,
-              resize_method: resizeMethod,
-              quality: quality,
-              user_id:selectedUser
-            }
-          );
-
-          setResizedImage(res2?.data?.data?.resized_image_url);
-          setResizeDetails(res2?.data?.data);
+      const res2 = await axiosInstance.post(
+        "/factory_development_resize_direct_image/",
+        {
+         
+          image_url: images[0]?.url,
+          target_width: targetWidth,
+          target_height: targetHeight,
+          resize_method: resizeMethod,
+          quality,
+          user_id: selectedUser,
         }
+      );
 
+      const resizedUrl = res2?.data?.data?.resized_image_url;
+      if (!resizedUrl) throw new Error("Failed to resize image.");
+
+      setResizedImage(resizedUrl);
+      setResizeDetails(res2?.data?.data || {});
+
+      toast({
+        title: "Image resized successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
+
+else if (activeTab === "Image to Video") {
+  const {
+    video_type,
+    customSize,
+    customWidth,
+    customHeight,
+    layover_text,
+    project_name,
+    tags,
+    sector,
+    goal,
+    key_instructions,
+    consumer_message,
+    M_key,
+    resize,
+    resize_width,
+    resize_height,
+  } = imageToVideoSettings || {};
+
+  // 🧩 Generate unique IDs
+  const generateUniqueId = () =>
+    "PROD-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+  const product_ID = generateUniqueId().slice(0, 50); // ensure < 50 chars
+  const customer_ID = `CRM-${selectedUser}`;
+
+  setVideoStatus("processing");
+
+  const res1 = await axiosInstance.post("/factory_development_gen_video/", {
+    image_urls: images.map((img) => img.url),
+    customer_ID,
+    product_ID,
+    layover_text,
+    project_name,
+    tags,
+    sector,
+    goal,
+    key_instructions: text,
+    consumer_message,
+    M_key,
+    resize,
+    resize_width,
+    resize_height,
+    user_id: selectedUser,
+  });
+
+  const creationId = res1?.data?.creation_id;
+  if (!creationId) throw new Error("Failed to start video generation.");
+
+  toast({
+    title: "Video generation started",
+    description: "Your video is being processed...",
+    status: "info",
+    duration: 3000,
+    isClosable: true,
+    position: "top-right",
+  });
+
+  // Poll for status
+  let retryCount = 0;
+  const interval = setInterval(async () => {
+    try {
+      retryCount++;
+      const statusRes = await axiosInstance.get(`/get_video_status/?creation_id=${creationId}`);
+      const videoStatus = statusRes?.data?.video_status;
+      const videoUrls = statusRes?.data?.video_urls;
+
+      if (videoUrls?.raw && !generatedVideo) setGeneratedVideo(videoUrls.raw);
+
+      if (videoStatus === "completed" && videoUrls?.raw) {
+        clearInterval(interval);
+        setGeneratedVideo(videoUrls.raw);
+        setVideoStatus("completed");
         toast({
-          title: "Image generated successfully",
+          title: "Video ready!",
+          description: "Video generation completed successfully.",
           status: "success",
-          duration: 3000,
+          duration: 4000,
           isClosable: true,
           position: "top-right",
         });
-      }
-
-      else if (activeTab === "Resize Image"){
-           const { targetWidth, targetHeight, resizeMethod, quality } = resizeImageSettings || {};
-             const hasResizeSettings = targetWidth || targetHeight || resizeMethod || quality;
-             const resizeApiKey = localStorage.getItem("api_key");
-
-          const res2 = await axiosInstance.post(
-            "/factory_development_resize_direct_image/",
-            {
-              api_key: resizeApiKey,
-              // composition_id: compositionId,
-              image_url: images[0]?.url,
-              target_width: targetWidth,
-              target_height: targetHeight,
-              resize_method: resizeMethod,
-              quality: quality,
-              user_id:selectedUser
-            }
-          );
-
-          setResizedImage(res2?.data?.data?.resized_image_url);
-          setResizeDetails(res2?.data?.data);
-        }
-
-else if (activeTab === "Image to Video") {
-  const apiKey = localStorage.getItem("api_key");
-
-  try {
-    const {
-      video_type,
-      customSize,
-      customWidth,
-      customHeight,
-      customer_ID,
-      product_ID,
-      layover_text,
-      project_name,
-      tags,
-      sector,
-      goal,
-      key_instructions,
-      consumer_message,
-      M_key,
-      resize,
-      resize_width,
-      resize_height,
-    } = imageToVideoSettings || {};
-
-    // 1️⃣ Generate Video API
-    const res1 = await axiosInstance.post("/factory_development_gen_video/", {
-      key: apiKey,
-      image_urls: images.map((img) => img.url),
-      customer_ID,
-      product_ID,
-      layover_text,
-      project_name,
-      tags,
-      sector,
-      goal,
-      key_instructions: text,
-      consumer_message,
-      M_key,
-      resize,
-      resize_width,
-      resize_height,
-      user_id:selectedUser
-    });
-
-    const creationId = res1?.data?.creation_id;
-    let videoUrl = res1?.data?.data?.generated_video_url;
-
-    setGeneratedVideo(videoUrl || null);
-    setVideoStatus("processing");
-
-    toast({
-      title: "Video generation started",
-      description: "Your video is being processed...",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-
-    // 🕒 POLLING using setInterval (every 5 sec)
-    let retryCount = 0;
-    const interval = setInterval(async () => {
-      try {
-        retryCount++;
-        const statusRes = await axiosInstance.get(`/get_video_status/?creation_id=${creationId}`);
-        const videoStatus = statusRes?.data?.video_status;
-        const videoUrls = statusRes?.data?.video_urls;
-
-        console.log("🎬 Polling Video Status:", videoStatus, "| Try:", retryCount);
-
-        // ✅ If raw exists, show preview
-        if (videoUrls?.raw && !generatedVideo) {
-          setGeneratedVideo(videoUrls.raw);
-        }
-
-        if (videoStatus === "completed" && videoUrls?.raw) {
-          setGeneratedVideo(videoUrls.raw);
-          setVideoStatus("completed");
-
-          toast({
-            title: "Video ready!",
-            description: "Video generation completed successfully.",
-            status: "success",
-            duration: 4000,
-            isClosable: true,
-            position: "top-right",
-          });
-
-          clearInterval(interval); // 🛑 stop polling
-        } else if (videoStatus === "failed") {
-          setVideoStatus("failed");
-          toast({
-            title: "Video generation failed",
-            status: "error",
-            duration: 4000,
-            isClosable: true,
-            position: "top-right",
-          });
-          clearInterval(interval); // 🛑 stop polling
-        } else if (retryCount >= 30) {
-          // Stop after ~2.5 minutes
-          clearInterval(interval);
-          toast({
-            title: "Video not ready yet",
-            description: "Please try again later.",
-            status: "warning",
-            duration: 4000,
-            isClosable: true,
-            position: "top-right",
-          });
-        }
-      } catch (err) {
-        console.error("Error while checking video status:", err);
+      } else if (videoStatus === "failed" || retryCount >= 30) {
         clearInterval(interval);
+        setVideoStatus("failed");
         toast({
-          title: "Error checking video status",
-          description: err?.message,
-          status: "error",
+          title: videoStatus === "failed" ? "Video generation failed" : "Video not ready yet",
+          status: videoStatus === "failed" ? "error" : "warning",
           duration: 4000,
           isClosable: true,
           position: "top-right",
         });
       }
-    }, 5000); // 🔁 every 5 seconds
-
-    // 2️⃣ Optionally trigger resize
-    const shouldTriggerResize =
-      video_type &&
-      (customSize === "enable" || customSize === true) &&
-      customWidth &&
-      customHeight;
-
-    if (shouldTriggerResize) {
-      const res2 = await axiosInstance.post(
-        "/factory_development_trigger_resize_video/",
-        {
-          creation_id: creationId,
-          video_type,
-          custom_dimensions: {
-            width: Number(customWidth),
-            height: Number(customHeight),
-          },
-        }
-      );
-      console.log("Resize video triggered:", res2.data);
-    }
-  } catch (error) {
-    console.error("Error generating or resizing video:", error);
-
-    toast({
-      title: "Error generating video",
-      description: error?.response?.data?.message || error.message,
-      status: "error",
-      duration: 4000,
-      isClosable: true,
-      position: "top-right",
-    });
-  }
-}
-
-
-
-console.log(generatedVideo)
-
-
-        // toast({
-        //   title: "Image generated successfully",
-        //   status: "success",
-        //   duration: 3000,
-        //   isClosable: true,
-        //   position: "top-right",
-        // });
-        
-
-        
-
-  
-setIsPreviewLoading(false);
     } catch (err) {
-      console.error("Submit failed:", err);
-      setIsPreviewLoading(false);
+      clearInterval(interval);
+      setVideoStatus("failed");
       toast({
-        title: "Submission failed",
-        description: err?.response?.data?.message || err.message,
+        title: "Error checking video status",
+        description: err?.message,
         status: "error",
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
         position: "top-right",
       });
-    } finally {
-      setSubmitting(false);
-              setSubmitting(false);
-setIsPreviewLoading(false); 
-   setGeneratedVideo(null);
+    }
+  }, 5000);
+}
+
+
+    setIsPreviewLoading(false);
+  } catch (err) {
+    console.error("Submit failed:", err);
+
+    // Reset everything if error
+    setGeneratedVideo(null);
     setGeneratedImage(null);
     setResizedImage(null);
     setVideoStatus(null);
-    }
-  };
+
+    toast({
+      title: "Submission failed",
+      description: err?.response?.data?.message || err.message,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+  } finally {
+    setSubmitting(false);
+    setIsPreviewLoading(false);
+  }
+};
+
 
   const handleViewDetails = () => {
     if (!resizeDetails) return;

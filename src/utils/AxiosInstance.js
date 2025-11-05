@@ -15,11 +15,12 @@ const saveTokens = (access, refresh) => {
 };
 
 const handleLogout = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("selected_user");
-  window.location.href = "/auth/sign-in";
+  // Uncomment if you want auto-logout on token failure
+  // localStorage.removeItem("access_token");
+  // localStorage.removeItem("refresh_token");
+  // localStorage.removeItem("user");
+  // localStorage.removeItem("selected_user");
+  // window.location.href = "/auth/sign-in";
 };
 
 // ✅ Request Interceptor
@@ -29,22 +30,26 @@ axiosInstance.interceptors.request.use(
     const user = JSON.parse(localStorage.getItem("user"));
     const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
 
-    // ✅ Pick user_id (from selected_user > user)
-    const userIdToSend = selectedUser?.user_id || user?.user_id || null;
+    // ✅ Determine role and user_id
+    const userRoles = user?.roles || [];
+    const isManager = userRoles.some(
+      (role) => role.toLowerCase() === "manager"
+    );
+    const userIdToSend =
+      isManager && (selectedUser?.user_id || user?.user_id) ? (selectedUser?.user_id || user?.user_id) : null;
 
-    // ✅ Attach Bearer token
+    // ✅ Attach Bearer token if available
     if (token && token !== "undefined" && token !== "null") {
       config.headers.Authorization = `Bearer ${token}`;
     } else if (config.url !== "/auth/refresh/") {
       localStorage.removeItem("access_token");
     }
 
-    // ✅ Ensure user_id always sent in the body — even for GET
+    // ✅ Only send user_id if Manager
     if (userIdToSend) {
       if (config.method === "get") {
-        // Some backends expect GET with body (non-standard but allowed)
+        // Some APIs allow GET with data; use query param if not
         config.data = { user_id: userIdToSend };
-        config.headers["Content-Type"] = "application/json";
       } else if (config.data instanceof FormData) {
         config.data.append("user_id", userIdToSend);
       } else if (config.data && typeof config.data === "object") {
@@ -59,13 +64,14 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ Response Interceptor
+// ✅ Response Interceptor (Auto Refresh Token)
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
-    const userIdToSend = JSON.parse(localStorage.getItem("user"))?.user_id || null;
+    const user = JSON.parse(localStorage.getItem("user"));
+    const userIdToSend = user?.user_id || null;
 
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -78,29 +84,26 @@ axiosInstance.interceptors.response.use(
         }
 
         const res = await axios.post(
-          `${process.env.REACT_APP_API_URL}auth/refresh/`,
+          `${process.env.REACT_APP_API_URL}auth/access/`, // ✅ Updated endpoint
           { refresh_token, user_id: userIdToSend },
           { headers: { "Content-Type": "application/json" } }
         );
 
-        const newAccessToken =
-          res.data?.access_token || res.data?.access || res.data?.token;
-        const newRefreshToken =
-          res.data?.refresh_token || res.data?.refresh || refresh_token;
-
+        const newAccessToken = res.data?.data?.access_token;
         if (!newAccessToken) {
           handleLogout();
           return Promise.reject(error);
         }
 
-        saveTokens(newAccessToken, newRefreshToken);
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        // ✅ Save new tokens
+        saveTokens(newAccessToken, refresh_token);
 
-        // Retry with new token
+        // ✅ Retry failed request with new token
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
-      } catch {
+      } catch (err) {
         handleLogout();
-        return Promise.reject(error);
+        return Promise.reject(err);
       }
     }
 

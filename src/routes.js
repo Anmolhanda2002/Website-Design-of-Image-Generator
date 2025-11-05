@@ -35,6 +35,8 @@ import AddVideoGuideLine from "views/admin/VideoGuideLine/Pages/AddImageGuideLin
 import EditVideoGuideLine from "views/admin/VideoGuideLine/Pages/EditImageGuideLine"
 import AssignUsersPage from 'views/admin/EditUser/pages/AssignUser';
 import EditPreviewBox from 'layouts/VedioGeneration/components/EditPreviewBox/EditPreviewBox';
+import ImageGuideUser from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
+import VideoGuideline from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 const routes = [
   {
     name: 'Main Dashboard',
@@ -78,7 +80,7 @@ const routes = [
     icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
     component: <Profile />,
     showInSidebar: true,
-    roles: ['Standard User'],
+    roles: ['Standard User','Manager'],
   },
   // {
   //   name: 'Next Generate Video',
@@ -111,7 +113,7 @@ const routes = [
     icon: <Icon as={MdImage} w="20px" h="20px" color="inherit" />,
     component: <AssetsPage />,
     showInSidebar: true,
-    roles: ['Administrator','Manager'],
+    roles: ['Administrator','Manager','Standard User'],
   },
   {
     name: 'Video Assets',
@@ -120,7 +122,7 @@ const routes = [
     icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
     component: <VideosPage />,
     showInSidebar: true,
-    roles: ['Administrator','Manager'],
+    roles: ['Administrator','Manager','Standard User'],
   },
   // Auth Routes
   {
@@ -156,23 +158,25 @@ const routes = [
     showInSidebar: false,
   },
     {
-    name: 'Image Guidelines',
+    name: 'Image Guidelines Admin',
     layout: '/admin',
     path: '/guidelines',
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <Guideline />,
-    showInSidebar: true,
+    showInSidebar: false,
+   
   },
 
 // Sidebar True
 // video Guideline 
       {
-    name: 'Video Guidelines',
+    name: 'Video Guidelines Admin',
     layout: '/admin',
     path: '/videoguidelines',
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <VideoGuideLine />,
-    showInSidebar: true,
+    showInSidebar: false,
+  
   },
 
 
@@ -221,6 +225,24 @@ const routes = [
     component: <AssignUsersPage />,
     showInSidebar: false,
   },
+  {
+     name: 'Image Guideline',
+    layout: '/admin',
+    path: '/imageguideline',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <ImageGuideUser />,
+    showInSidebar: true,
+    roles: ['Standard User']
+  },
+    {
+     name: 'Video Guideline',
+    layout: '/admin',
+    path: '/videoguideline',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <VideoGuideline />,
+    showInSidebar: true,
+    roles: ['Standard User']
+  }
 ];
 
 export default routes;

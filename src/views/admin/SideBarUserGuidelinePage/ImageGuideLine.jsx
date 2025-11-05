@@ -46,22 +46,38 @@ export default function GuidelineTable() {
   const { id: userIdParam } = useParams();
 
   // Fetch Guidelines
-  const fetchGuidelines = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get(
-        `/list_image_guidelines?user_id=${userIdParam}`
-      );
-      if (response.data.status === 'success') {
-        setGuidelines(response.data.results || []);
-        setTotalPages(1);
-      }
-    } catch (error) {
-      console.error('Error fetching guidelines:', error);
-    } finally {
+const fetchGuidelines = async () => {
+  try {
+    setLoading(true);
+
+    // 🟢 Fetch user info from localStorage
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    // 🧩 Extract user_id safely
+    const userId = storedUser?.user_id;
+
+    if (!userId) {
+      console.error("No user_id found in localStorage");
       setLoading(false);
+      return;
     }
-  };
+
+    // 🔹 API call
+    const response = await axiosInstance.get(`/list_image_guidelines?user_id=${userId}`);
+
+    if (response.data.status === "success") {
+      setGuidelines(response.data.results || []);
+      setTotalPages(1);
+    } else {
+      console.warn("Unexpected response:", response.data);
+    }
+  } catch (error) {
+    console.error("Error fetching guidelines:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchGuidelines();
@@ -121,7 +137,7 @@ export default function GuidelineTable() {
     }
   };
 
-  const handleAddGuideline = () => navigate('/admin/add/guidelines');
+
 
   // Table Columns
   const columns = useMemo(
@@ -160,34 +176,34 @@ export default function GuidelineTable() {
             </Button>
           ),
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <Flex gap={2}>
-              <IconButton
-                aria-label="Edit"
-                icon={<EditIcon />}
-                size="xs"
-                variant="outline"
-                onClick={() =>
-                  navigate(`/admin/edit_guideline/${row.guideline_id}`)
-                }
-              />
-              <IconButton
-                aria-label="Delete"
-                icon={<DeleteIcon />}
-                size="xs"
-                colorScheme="red"
-                variant="outline"
-                onClick={() => handleDelete(row.guideline_id)}
-              />
-            </Flex>
-          );
-        },
-      }),
+    //   columnHelper.display({
+    //     id: 'actions',
+    //     header: 'Actions',
+    //     cell: (info) => {
+    //       const row = info.row.original;
+    //       return (
+    //         <Flex gap={2}>
+    //           <IconButton
+    //             aria-label="Edit"
+    //             icon={<EditIcon />}
+    //             size="xs"
+    //             variant="outline"
+    //             onClick={() =>
+    //               navigate(`/admin/edit_guideline/${row.guideline_id}`)
+    //             }
+    //           />
+    //           <IconButton
+    //             aria-label="Delete"
+    //             icon={<DeleteIcon />}
+    //             size="xs"
+    //             colorScheme="red"
+    //             variant="outline"
+    //             onClick={() => handleDelete(row.guideline_id)}
+    //           />
+    //         </Flex>
+    //       );
+    //     },
+    //   }),
     ],
     [textColor, navigate]
   );
@@ -217,7 +233,7 @@ export default function GuidelineTable() {
 
   // --- Render ---
   return (
-    <Card w="100%" bg={cardBg} mt={"-100px"} shadow="md" borderRadius="lg">
+    <Card w="100%" bg={cardBg} mt={"100px"} shadow="md" borderRadius="lg">
       <Flex
         justify="space-between"
         align={{ base: 'start', md: 'center' }}
@@ -228,14 +244,7 @@ export default function GuidelineTable() {
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Guidelines
         </Text>
-        <Button
-          size="sm"
-          colorScheme="blue"
-          onClick={handleAddGuideline}
-          w={{ base: '100%', md: 'auto' }}
-        >
-          + Add Guideline
-        </Button>
+
       </Flex>
 
       <Input

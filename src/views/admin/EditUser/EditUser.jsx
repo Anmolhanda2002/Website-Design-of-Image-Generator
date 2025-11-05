@@ -8,34 +8,34 @@ import {
   useToast,
   Spinner,
   useColorModeValue,
-  Circle,
   Badge,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
+  Stack,
+  Heading,
+  Divider,
 } from "@chakra-ui/react";
-import { CheckCircleIcon } from "@chakra-ui/icons";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
 
-// Import child components
+// Child components
 import PersonalInfo from "./pages/PersonalInfo";
-import ImageGuideline from "./pages/ImageGuideLine";
-import BrandGuideline from "./pages/BrandGuideLine";
+import ImageGuideline from "../GuideLine/Index";
+import VideoGuideline from "../VideoGuideLine/Index";
 
 const EditUser = () => {
   const { id } = useParams();
   const toast = useToast();
+  const navigate = useNavigate();
 
-  // Theme
-  const cardBg = useColorModeValue("white", "navy.700");
-  const textColor = useColorModeValue("gray.700", "white");
-  const textSecondary = useColorModeValue("gray.500", "gray.400");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const subTextColor = useColorModeValue("gray.500", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
 
-  // State
-  const [profilePic] = useState("https://i.pravatar.cc/150?img=5");
   const [loading, setLoading] = useState(true);
   const [isApproved, setIsApproved] = useState(false);
   const [formData, setFormData] = useState({
@@ -45,42 +45,37 @@ const EditUser = () => {
     email: "",
   });
 
-  // Guidelines
-  const [imageGuideline, setImageGuideline] = useState("");
-  const [brandGuideline, setBrandGuideline] = useState("");
+  const [profilePic] = useState("https://i.pravatar.cc/150?img=11");
 
-  // Fetch Profile
+  // ✅ Fetch profile data
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/view_user_accounts/?user_id=${id}`);
-        const { status, user } = response.data;
+        const res = await axiosInstance.get(`/view_user_accounts/?user_id=${id}`);
+        const { status, user } = res.data;
 
         if (status === "success" && user) {
-          const { username, first_name, last_name, email, is_approved } = user;
-
           setFormData({
-            username: username || "",
-            first_name: first_name || "",
-            last_name: last_name || "",
-            email: email || "",
+            username: user.username || "",
+            first_name: user.first_name || "",
+            last_name: user.last_name || "",
+            email: user.email || "",
           });
-
-          setIsApproved(is_approved || false);
+          setIsApproved(user.is_approved || false);
         } else {
           toast({
-            title: "Error loading profile",
-            description: "Failed to load user data.",
+            title: "Error loading user",
+            description: "No user data found.",
             status: "error",
             duration: 3000,
             isClosable: true,
           });
         }
-      } catch (error) {
+      } catch (err) {
         toast({
-          title: "Error loading profile",
-          description: error?.response?.data?.message || "Please try again later.",
+          title: "Failed to fetch user",
+          description: err.response?.data?.message || "Please try again later.",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -89,37 +84,36 @@ const EditUser = () => {
         setLoading(false);
       }
     };
-
     if (id) fetchProfile();
   }, [id, toast]);
 
-  // Save Profile
+  // ✅ Update profile
   const handleSave = async () => {
     try {
       const payload = { user_id: id, ...formData };
-      const response = await axiosInstance.patch("/user_profile_update/", payload);
+      const res = await axiosInstance.patch("/user_profile_update/", payload);
 
-      if (response.data.status === "success") {
+      if (res.data.status === "success") {
         toast({
-          title: "Profile updated",
-          description: response.data.message,
+          title: "Profile updated successfully",
+          description: res.data.message,
           status: "success",
-          duration: 3000,
+          duration: 2500,
           isClosable: true,
         });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Update failed",
-        description: error?.response?.data?.message || "Something went wrong",
+        description: err.response?.data?.message || "Something went wrong",
         status: "error",
-        duration: 3000,
+        duration: 2500,
         isClosable: true,
       });
     }
   };
 
-  // Approve User
+  // ✅ Approve user
   const handleApprove = async () => {
     try {
       const res = await axiosInstance.post("/factory_development/approve/", {
@@ -129,103 +123,181 @@ const EditUser = () => {
         setIsApproved(true);
         toast({
           title: "User approved",
-          description: "The user has been successfully approved.",
+          description: "This user has been approved successfully.",
           status: "success",
-          duration: 3000,
+          duration: 2500,
           isClosable: true,
         });
       }
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Approval failed",
-        description: error?.response?.data?.message || "Unable to approve user.",
+        description: err.response?.data?.message || "Something went wrong.",
         status: "error",
-        duration: 3000,
+        duration: 2500,
         isClosable: true,
       });
     }
   };
 
+  // ✅ Login as this user (Admin Impersonation)
+// ✅ Login as user (Only visible for Super Admin)
+const handleLoginAsUser = async () => {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+    if (!currentUser || !currentUser.roles?.includes("SuperAdmin")) {
+      toast({
+        title: "Access Denied",
+        description: "Only Super Admins can log in as another user.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const res = await axiosInstance.post("/auth/super_admin/admin/login/", {
+      email: formData.email,
+      user_id: id,
+    });
+
+    if (res.data.status === "success" && res.data.data) {
+      const { access_token, refresh_token, user } = res.data.data;
+
+      // ✅ Save tokens and user info
+      localStorage.setItem("access_token", access_token);
+      if (refresh_token) localStorage.setItem("refresh_token", refresh_token);
+      if (user) localStorage.setItem("user", JSON.stringify(user));
+
+      toast({
+        title: "Login successful",
+        description: `You are now logged in as ${user?.username || "User"}`,
+        status: "success",
+        duration: 2500,
+        isClosable: true,
+      });
+
+      // ✅ Redirect and reload to apply new tokens
+      setTimeout(() => {
+        navigate("/admin/default");
+        window.location.reload();
+      }, 1000);
+    } else {
+      toast({
+        title: "Login failed",
+        description: "Unexpected response from server.",
+        status: "error",
+        duration: 2500,
+        isClosable: true,
+      });
+    }
+  } catch (err) {
+    toast({
+      title: "Login failed",
+      description: err.response?.data?.message || "Something went wrong.",
+      status: "error",
+      duration: 2500,
+      isClosable: true,
+    });
+  }
+};
+
+
   if (loading) {
     return (
-      <Flex w="100%" h="100%" justify="center" align="center">
+      <Flex w="100%" h="80vh" justify="center" align="center">
         <Spinner size="xl" />
       </Flex>
     );
   }
 
   return (
-    <Flex w="100%" h="100%" p={6} justify="center" mt="20">
-      <Box w="100%" maxW="100%" bg={cardBg} p={8} borderRadius="30px" boxShadow="xl">
-        {/* Header */}
-        <Flex align="center" justify="space-between" mb={8}>
-          <Flex align="center" gap={4}>
-            <Box position="relative">
-              <Avatar size="xl" src={profilePic} />
-              <Box position="absolute" bottom="4px" right="-2%">
-                {isApproved ? (
-                  <CheckCircleIcon color="green.400" boxSize={6} />
-                ) : (
-                  <Circle size="22px" bg="red.400" />
-                )}
-              </Box>
-            </Box>
-            <Box>
-              <Text fontWeight="bold" fontSize="lg" color={textColor}>
-                {formData.username}
-              </Text>
-              <Text fontSize="sm" color={textSecondary}>
+    <Flex direction="column" align="center" mt={{ base: 20, md: 20 }} minH="100vh">
+      {/* Profile Card */}
+      <Box
+        w="100%"
+        maxW="1000px"
+        bg={cardBg}
+        borderRadius="lg"
+        boxShadow="md"
+        p={{ base: 5, md: 8 }}
+        mb={8}
+      >
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          justify="space-between"
+          align={{ base: "center", md: "center" }}
+          gap={6}
+        >
+          <Flex align="center" gap={5} direction={{ base: "column", sm: "row" }}>
+            <Avatar size="xl" src={profilePic} name={formData.username} />
+            <Box textAlign={{ base: "center", sm: "left" }}>
+              <Heading size="md" color={textColor}>
+                {formData.username || "User"}
+              </Heading>
+              <Text fontSize="sm" color={subTextColor}>
                 {formData.email}
               </Text>
+              <Badge
+                colorScheme={isApproved ? "green" : "red"}
+                mt={2}
+                px={2}
+                borderRadius="md"
+              >
+                {isApproved ? "Approved" : "Not Approved"}
+              </Badge>
             </Box>
           </Flex>
-          <Button colorScheme="blue" borderRadius="md" onClick={handleSave}>
-            Save
-          </Button>
-        </Flex>
 
-        {/* Approval Section */}
-        {!isApproved && (
-          <Box mb={6}>
-            <Badge colorScheme="red" fontSize="sm" borderRadius="md" px={3} py={1}>
-              This user is not approved
-            </Badge>
-            <Flex mt={3} gap={3}>
-              <Button colorScheme="green" size="sm" onClick={handleApprove}>
+          <Stack
+            direction={{ base: "column", sm: "row" }}
+            spacing={3}
+            w={{ base: "100%", md: "auto" }}
+          >
+            {!isApproved && (
+              <Button colorScheme="green" onClick={handleApprove}>
                 Approve
               </Button>
-              <Button colorScheme="gray" size="sm" variant="outline">
-                Cancel
-              </Button>
-            </Flex>
-          </Box>
-        )}
+            )}
+            <Button colorScheme="blue" onClick={handleSave}>
+              Save
+            </Button>
+{JSON.parse(localStorage.getItem("user"))?.roles?.includes("SuperAdmin") && (
+  <Button colorScheme="purple" onClick={handleLoginAsUser}>
+    Login as User
+  </Button>
+)}
+          </Stack>
+        </Flex>
+      </Box>
 
-        {/* Tabs */}
-        <Tabs variant="enclosed-colored" colorScheme="blue" mt={6}>
-          <TabList>
-            <Tab>Personal Info</Tab>
-            <Tab>Image Guideline</Tab>
-            <Tab>Brand Guideline</Tab>
+      {/* Tabs Section */}
+      <Box
+        w="100%"
+        maxW="1000px"
+        bg={cardBg}
+        borderRadius="lg"
+        boxShadow="md"
+        p={{ base: 4, md: 6 }}
+      >
+        <Tabs isFitted variant="enclosed" colorScheme="blue">
+          <TabList mb="1em" borderColor={borderColor}>
+            <Tab fontWeight="500">Personal Info</Tab>
+            <Tab fontWeight="500">Image Guideline</Tab>
+            <Tab fontWeight="500">Video Guideline</Tab>
           </TabList>
 
+          <Divider mb={4} />
+
           <TabPanels>
-            <TabPanel>
+            <TabPanel p={0}>
               <PersonalInfo formData={formData} setFormData={setFormData} />
             </TabPanel>
-
-            <TabPanel>
-              <ImageGuideline
-                imageGuideline={imageGuideline}
-                setImageGuideline={setImageGuideline}
-              />
+            <TabPanel p={0}>
+              <ImageGuideline userId={id} />
             </TabPanel>
-
-            <TabPanel>
-              <BrandGuideline
-                brandGuideline={brandGuideline}
-                setBrandGuideline={setBrandGuideline}
-              />
+            <TabPanel p={0}>
+              <VideoGuideline userId={id} />
             </TabPanel>
           </TabPanels>
         </Tabs>

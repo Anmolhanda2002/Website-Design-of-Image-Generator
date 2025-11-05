@@ -98,6 +98,7 @@ export default function AssignUsersPage() {
 
   // ✅ Assign / Unassign user
   const handleCheckboxChange = async (userId, isChecked) => {
+    console.log(userId)
     try {
       setUpdating(true);
       const endpoint = isChecked

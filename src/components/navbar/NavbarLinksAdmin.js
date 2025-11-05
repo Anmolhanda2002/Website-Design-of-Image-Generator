@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, startTransition } from "react";
 import {
   Avatar,
   Button,
@@ -16,62 +16,52 @@ import {
   InputGroup,
   InputLeftElement,
   Spinner,
+  Box,
 } from "@chakra-ui/react";
 import { FaEthereum } from "react-icons/fa";
 import { IoMdMoon, IoMdSunny } from "react-icons/io";
 import { SearchIcon } from "@chakra-ui/icons";
-import React, { useState, useEffect, startTransition } from "react";
-import routes from "routes";
-import { SidebarResponsive } from "components/sidebar/Sidebar";
-import NavbarClock from "./NavbarClock";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
+import routes from "routes";
+import NavbarClock from "./NavbarClock";
+import { SidebarResponsive } from "components/sidebar/Sidebar";
 
-export default function HeaderLinks(props) {
-  const { secondary } = props;
-  const { ...rest } = props;
-
+export default function HeaderLinks({ secondary }) {
   const navigate = useNavigate();
   const toast = useToast();
-
-  // === Theme variables ===
   const { colorMode, toggleColorMode } = useColorMode();
-  const navbarIcon = useColorModeValue("gray.400", "white");
+
+  // === Colors & Styles ===
   const menuBg = useColorModeValue("white", "navy.800");
-  const textColor = useColorModeValue("secondaryGray.900", "white");
-  const borderColor = useColorModeValue("#E6ECFA", "rgba(135, 140, 189, 0.3)");
-  const ethColor = useColorModeValue("gray.700", "white");
-  const ethBg = useColorModeValue("secondaryGray.300", "navy.900");
-  const ethBox = useColorModeValue("white", "navy.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const navbarIcon = useColorModeValue("gray.600", "gray.300");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const hoverBg = useColorModeValue("gray.100", "gray.700");
   const shadow = useColorModeValue(
-    "14px 17px 40px 4px rgba(112, 144, 176, 0.18)",
-    "14px 17px 40px 4px rgba(112, 144, 176, 0.06)"
+    "0 2px 8px rgba(0,0,0,0.05)",
+    "0 2px 8px rgba(255,255,255,0.08)"
   );
 
   // === State ===
   const [user, setUser] = useState(null);
   const [allowedRoutes, setAllowedRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // For dropdown user list
   const [allUsers, setAllUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState(null);
   const [dropdownLoading, setDropdownLoading] = useState(false);
 
-  // === Access Check ===
-  const checkAccess = (route, user) => {
-    if (!route.roles) return true;
-    return route.roles.includes(user.role);
-  };
+  // === Selected user ===
+  const [selectedUser, setSelectedUser] = useState(() => {
+    const storedUser = JSON.parse(localStorage.getItem("selected_user"));
+    return storedUser || null;
+  });
 
-  // === Load Logged-in User + Filter Routes ===
+  // === Load user + routes ===
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) {
-      setLoading(false);
-      return;
-    }
+    if (!storedUser) return setLoading(false);
 
     const normalizedUser = {
       ...storedUser,
@@ -82,18 +72,17 @@ export default function HeaderLinks(props) {
     };
 
     setUser(normalizedUser);
-
-    const filteredRoutes = routes.filter(
-      (r) => r.layout === "/admin" && checkAccess(r, normalizedUser)
+    setAllowedRoutes(
+      routes.filter(
+        (r) => r.layout === "/admin" && (!r.roles || r.roles.includes(normalizedUser.role))
+      )
     );
-    setAllowedRoutes(filteredRoutes);
     setLoading(false);
   }, []);
 
-  // === Fetch All Users (only for Admin/SuperAdmin) ===
+  // === Fetch user list (Manager only) ===
   useEffect(() => {
-    if (!user || !["Manager"].includes(user.role)) return;
-
+    if (!user || user.role !== "Manager") return;
     const fetchUsers = async () => {
       try {
         setDropdownLoading(true);
@@ -104,10 +93,9 @@ export default function HeaderLinks(props) {
         } else {
           toast({
             title: "Failed to load users",
-            description: res.data?.message || "Unexpected API response",
+            description: res.data?.message || "Unexpected response",
             status: "warning",
-            duration: 3000,
-            isClosable: true,
+            duration: 2500,
           });
         }
       } catch (err) {
@@ -115,18 +103,16 @@ export default function HeaderLinks(props) {
           title: "Error fetching users",
           description: err.response?.data?.message || err.message,
           status: "error",
-          duration: 3000,
-          isClosable: true,
+          duration: 2500,
         });
       } finally {
         setDropdownLoading(false);
       }
     };
-
     fetchUsers();
   }, [user]);
 
-  // === Handle Search in Dropdown ===
+  // === Search handler ===
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
@@ -135,192 +121,208 @@ export default function HeaderLinks(props) {
     );
   };
 
-  // === Handle Select User ===
-const handleSelectUser = async (u) => {
-  setSelectedUser(u);
-  localStorage.setItem("selected_user", JSON.stringify(u)); // 🟢 Save for axiosInstance
+  // === Select user ===
+  const handleSelectUser = (u) => {
+    if (u && Object.keys(u).length > 0) {
+      setSelectedUser(u);
+      localStorage.setItem("selected_user", JSON.stringify(u));
+    } else {
+      setSelectedUser(null);
+      localStorage.removeItem("selected_user");
+    }
+  };
 
-
-};
-
+  // ✅ Sync localStorage every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = JSON.parse(localStorage.getItem("selected_user"));
+      if (!stored && selectedUser) setSelectedUser(null);
+      if (stored && (!selectedUser || stored.user_id !== selectedUser.user_id))
+        setSelectedUser(stored);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [selectedUser]);
 
   // === Logout ===
   const handleLogout = async () => {
     try {
       const refresh_token = localStorage.getItem("refresh_token");
-      if (!refresh_token) throw new Error("No refresh token found");
-
       await axiosInstance.post("/auth/logout/", { refresh_token });
-      localStorage.removeItem("user");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("selected_user");
-
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-
-      startTransition(() => navigate("/auth/sign-in", { replace: true }));
-    } catch (error) {
-      localStorage.clear();
-      startTransition(() => navigate("/auth/sign-in", { replace: true }));
-    }
+    } catch {}
+    ["user", "access_token", "refresh_token"].forEach((k) =>
+      localStorage.removeItem(k)
+    );
+    startTransition(() => navigate("/auth/sign-in", { replace: true }));
   };
 
-  const handleProfilePage = () => navigate("/admin/profile-setting", { replace: true });
+  if (loading) return null;
 
+  // === UI ===
   return (
     <Flex
-      w={{ sm: "100%", md: "auto" }}
-      alignItems="center"
-      flexDirection="row"
+      align="center"
+      justify="space-between"
+      w="100%"
       bg={menuBg}
-      flexWrap={secondary ? { base: "wrap", md: "nowrap" } : "unset"}
-      p="10px"
-      borderRadius="30px"
+      borderRadius="20px"
+      px={{ base: 3, md: 5 }}
+      py={{ base: 2, md: 3 }}
       boxShadow={shadow}
+      flexWrap="wrap"
       gap={3}
     >
-      <NavbarClock />
-
-      {/* ETH Box */}
-      <Flex
-        bg={ethBg}
-        display={secondary ? "flex" : "none"}
-        borderRadius="30px"
-        ml="5"
-        p="6px"
-        align="center"
-        me="6px"
-      >
-        <Flex
-          align="center"
-          justify="center"
-          bg={ethBox}
-          h="29px"
-          w="29px"
-          borderRadius="30px"
-          me="7px"
-        >
-          <Icon color={ethColor} w="9px" h="14px" as={FaEthereum} />
-        </Flex>
-        <Text w="max-content" color={ethColor} fontSize="sm" fontWeight="700" me="6px">
-          1,924 ETH
-        </Text>
+      {/* LEFT SECTION */}
+      <Flex align="center" gap={3}>
+        <NavbarClock />
+        <SidebarResponsive routes={allowedRoutes} />
       </Flex>
 
-      <SidebarResponsive routes={allowedRoutes} {...rest} />
-
-      {/* 🌟 USER DROPDOWN (only for Admins) */}
-      {user && ["Manager"].includes(user.role) && (
-        <Menu>
-          <MenuButton
-            as={Button}
-            variant="outline"
-            size="sm"
-            borderRadius="md"
-            borderColor={borderColor}
-            _hover={{ bg: "gray.100" }}
-          >
-            {selectedUser ? selectedUser.username : "Select User"}
-          </MenuButton>
-          <MenuList p={3} borderRadius="12px" bg={menuBg} boxShadow={shadow}>
-            <InputGroup mb={2}>
-              <InputLeftElement pointerEvents="none" children={<SearchIcon color="gray.400" />} />
-              <Input
-                placeholder="Search users..."
-                size="sm"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </InputGroup>
-
-            {dropdownLoading ? (
-              <Flex justify="center" align="center" py={3}>
-                <Spinner size="sm" />
-              </Flex>
-            ) : filteredUsers.length > 0 ? (
-              filteredUsers.map((u) => (
-                <MenuItem
-                  key={u.user_id}
-                  onClick={() => handleSelectUser(u)}
-                  borderRadius="8px"
-                  _hover={{ bg: "gray.100" }}
-                >
-                  {u.username}
-                </MenuItem>
-              ))
-            ) : (
-              <Text fontSize="sm" color="gray.500" textAlign="center" py={2}>
-                No users found
-              </Text>
-            )}
-          </MenuList>
-        </Menu>
+      {/* CENTER SECTION */}
+      {secondary && (
+        <Flex
+          align="center"
+          bg={hoverBg}
+          borderRadius="full"
+          px={3}
+          py={1}
+          gap={2}
+          display={{ base: "none", md: "flex" }}
+        >
+          <Icon as={FaEthereum} color={navbarIcon} />
+          <Text fontSize="sm" fontWeight="600">
+            1,924 ETH
+          </Text>
+        </Flex>
       )}
 
-      {/* Color Mode Button */}
-      <Button
-        variant="no-hover"
-        ml="4"
-        bg="transparent"
-        p="0px"
-        h="18px"
-        w="max-content"
-        onClick={toggleColorMode}
-      >
-        <Icon
-          me="10px"
-          h="18px"
-          w="18px"
-          color={navbarIcon}
-          as={colorMode === "light" ? IoMdMoon : IoMdSunny}
-        />
-      </Button>
+      {/* RIGHT SECTION */}
+      <Flex align="center" gap={{ base: 2, md: 4 }}>
+        {/* Manager Dropdown */}
+        {user?.role === "Manager" && (
+          <Menu>
+            <MenuButton
+              as={Button}
+              size="sm"
+              variant="outline"
+              borderColor={borderColor}
+              _hover={{ bg: hoverBg }}
+            >
+              {selectedUser ? selectedUser.username : "Own"}
+            </MenuButton>
+            <MenuList
+              p={3}
+              borderRadius="md"
+              bg={menuBg}
+              boxShadow={shadow}
+              minW="200px"
+              maxH="260px"
+              overflowY="auto"
+            >
+              <InputGroup mb={2}>
+                <InputLeftElement pointerEvents="none">
+                  <SearchIcon color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Search users..."
+                  size="sm"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </InputGroup>
 
-      {/* Avatar Menu */}
-      <Menu>
-        <MenuButton p="0px">
-          <Avatar
-            _hover={{ cursor: "pointer" }}
-            color="white"
-            name={user?.username || "User"}
-            bg="#11047A"
-            size="sm"
-            w="40px"
-            h="40px"
+              <MenuItem
+                onClick={() => handleSelectUser(null)}
+                borderRadius="md"
+                _hover={{ bg: hoverBg }}
+                fontWeight={!selectedUser ? "600" : "normal"}
+              >
+                Own
+              </MenuItem>
+
+              {dropdownLoading ? (
+                <Flex justify="center" align="center" py={2}>
+                  <Spinner size="sm" />
+                </Flex>
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((u) => (
+                  <MenuItem
+                    key={u.user_id}
+                    onClick={() => handleSelectUser(u)}
+                    borderRadius="md"
+                    _hover={{ bg: hoverBg }}
+                    fontWeight={
+                      selectedUser?.user_id === u.user_id ? "600" : "normal"
+                    }
+                  >
+                    {u.username}
+                  </MenuItem>
+                ))
+              ) : (
+                <Text
+                  fontSize="sm"
+                  color="gray.500"
+                  textAlign="center"
+                  py={2}
+                >
+                  No users found
+                </Text>
+              )}
+            </MenuList>
+          </Menu>
+        )}
+
+        {/* Theme Toggle */}
+        <Button
+          onClick={toggleColorMode}
+          bg="transparent"
+          p={0}
+          _hover={{ bg: "transparent" }}
+        >
+          <Icon
+            as={colorMode === "light" ? IoMdMoon : IoMdSunny}
+            color={navbarIcon}
+            w={5}
+            h={5}
           />
-        </MenuButton>
-        <MenuList boxShadow={shadow} p="0px" mt="10px" borderRadius="20px" bg={menuBg} border="none">
-          <Flex w="100%">
-            <Text
-              ps="20px"
-              pt="16px"
-              pb="10px"
-              w="100%"
+        </Button>
+
+        {/* User Avatar */}
+        <Menu>
+          <MenuButton>
+            <Avatar
+              name={user?.username || "User"}
+              size="sm"
+              bg="blue.600"
+              color="white"
+              cursor="pointer"
+            />
+          </MenuButton>
+          <MenuList
+            border="none"
+            borderRadius="lg"
+            boxShadow={shadow}
+            bg={menuBg}
+            p={2}
+          >
+            <Box
+              px={3}
+              py={2}
               borderBottom="1px solid"
               borderColor={borderColor}
-              fontSize="sm"
-              fontWeight="700"
-              color={textColor}
             >
-              👋 Hey, {user?.username || "User"}
-            </Text>
-          </Flex>
-          <Flex flexDirection="column" p="10px">
-            <MenuItem onClick={handleProfilePage}>
-              <Text fontSize="sm">Profile Settings</Text>
+              <Text fontWeight="600" color={textColor}>
+                👋 {user?.username || "User"}
+              </Text>
+            </Box>
+            <MenuItem onClick={() => navigate("/admin/profile-setting")}>
+              Profile Settings
             </MenuItem>
             <MenuItem color="red.400" onClick={handleLogout}>
-              <Text fontSize="sm">Log out</Text>
+              Log out
             </MenuItem>
-          </Flex>
-        </MenuList>
-      </Menu>
+          </MenuList>
+        </Menu>
+      </Flex>
     </Flex>
   );
 }

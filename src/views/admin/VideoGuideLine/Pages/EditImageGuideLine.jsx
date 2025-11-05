@@ -122,7 +122,7 @@ export default function EditVideoGuideline() {
 
       if (data.status === "success") {
         showAlert("success", "Updated", "Video guideline updated successfully.", colorMode);
-        setTimeout(() => navigate("/admin/videoguidelines"), 1500);
+     
       } else {
         showAlert("error", "Failed", data.message || "Something went wrong.", colorMode);
       }

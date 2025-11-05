@@ -20,7 +20,7 @@ import {
 import axiosInstance from "utils/AxiosInstance";
 import { useNavigate } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
-
+import Swal from "sweetalert2";
 export default function VideoGuidelineForm() {
   const [loading, setLoading] = useState(true);
   const [choices, setChoices] = useState(null);
@@ -82,69 +82,83 @@ export default function VideoGuidelineForm() {
   };
 
   // Submit Form
-  const handleSubmit = async () => {
-    try {
-      const api_key = localStorage.getItem("api_key");
-      if (!api_key) {
-        showAlert(
-          "warning",
-          "Missing API Key",
-          "Please login or add your API key first.",
-          colorMode
-        );
-        return;
-      }
+const handleSubmit = async () => {
+  try {
+    // ✅ Get user_id from localStorage (adjust key names as per your app)
+    const userId =
+      JSON.parse(localStorage.getItem("user"))?.user_id ||
+      localStorage.getItem("user_id");
 
-      const payload = { api_key, ...form };
-      const { data } = await axiosInstance.post(
-        "/factory_development_create_video_guideline/",
-        payload
-      );
-
-      if (data.status === "success") {
-        showAlert(
-          "success",
-          "Guideline Created",
-          data.message || "Your video guideline has been saved successfully.",
-          colorMode
-        );
-
-        setForm({
-          guideline_name: "",
-          pace: "",
-          aspect_ratio: "",
-          video_style: "",
-          special_effects_or_transition: "",
-          camera_motion: "",
-          location_of_overlay: "",
-          video_provider: "",
-          video_provider_key: "",
-          prompt_llm: "",
-          prompt_llm_key: "",
-          vision_llm: "",
-          vision_llm_key: "",
-          is_default: false,
-        });
-
-        setTimeout(() => navigate("/admin/videoguidelines"), 1500);
-      } else {
-        showAlert(
-          "error",
-          "Failed to Create Guideline",
-          data.message || "Unexpected server response.",
-          colorMode
-        );
-      }
-    } catch (error) {
-      console.error("Error submitting guideline:", error);
-      showAlert(
-        "error",
-        "Server Error",
-        error.response?.data?.message || "Something went wrong. Please try again later.",
-        colorMode
-      );
+    // 🛑 Check if user_id exists
+    if (!userId) {
+      Swal.fire({
+        icon: "warning",
+        title: "User Not Found",
+        text: "Please select or log in with a user before submitting the guideline.",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
     }
-  };
+
+    // ✅ Create payload with user_id (no api_key)
+    const payload = { user_id: userId, ...form };
+
+    // ✅ Call backend
+    const { data } = await axiosInstance.post(
+      "/factory_development_create_video_guideline/",
+      payload
+    );
+
+    // ✅ Handle success
+    if (data.status === "success") {
+      Swal.fire({
+        icon: "success",
+        title: "Guideline Created",
+        text: data.message || "Your video guideline has been saved successfully.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      // Reset form after success
+      setForm({
+        guideline_name: "",
+        pace: "",
+        aspect_ratio: "",
+        video_style: "",
+        special_effects_or_transition: "",
+        camera_motion: "",
+        location_of_overlay: "",
+        video_provider: "",
+        video_provider_key: "",
+        prompt_llm: "",
+        prompt_llm_key: "",
+        vision_llm: "",
+        vision_llm_key: "",
+        is_default: false,
+      });
+
+      // Redirect after short delay
+      
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Failed to Create Guideline",
+        text: data.message || "Unexpected server response.",
+        confirmButtonColor: "#d33",
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error submitting guideline:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Server Error",
+      text:
+        error.response?.data?.message ||
+        "Something went wrong. Please try again later.",
+      confirmButtonColor: "#d33",
+    });
+  }
+};
 
   if (loading) {
     return (

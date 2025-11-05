@@ -26,25 +26,43 @@ const AssetsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [displayEmail, setDisplayEmail] = useState("");
 
-  // Card color remains same in dark mode
   const cardBg = useColorModeValue("white", "gray.700");
   const textColor = useColorModeValue("gray.800", "white");
 
+  // ✅ Detect the current active user (either selected_user or main user)
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = user.user_id;
+  const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+  const activeUserId = selectedUser?.user_id || user?.user_id;
 
+  // ✅ Keep displayEmail updated always
+  useEffect(() => {
+    const updateDisplayEmail = () => {
+      const storedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+      const mainUser = JSON.parse(localStorage.getItem("user") || "{}");
+      setDisplayEmail(storedUser?.username || mainUser?.username || "Unknown");
+    };
+
+    updateDisplayEmail();
+    const interval = setInterval(updateDisplayEmail, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ✅ Fetch Assets API call
   const fetchAssets = useCallback(
-    async (pageNumber = 1) => {
-      if (!userId || pageNumber > totalPages) return;
+    async (pageNumber = 1, customUserId = activeUserId) => {
+      if (!customUserId || pageNumber > totalPages) return;
       setLoading(true);
       try {
         const response = await axiosInstance.get(
-          `/assets_page?user_id=${userId}&page=${pageNumber}&search=${activeSearch}`
+          `/assets_page?user_id=${customUserId}&page=${pageNumber}&search=${activeSearch}`
         );
 
         if (response.data.status === "success") {
-          setAssets((prev) => [...prev, ...response.data.data]);
+          setAssets((prev) =>
+            pageNumber === 1 ? response.data.data : [...prev, ...response.data.data]
+          );
           setTotalPages(response.data.pagination.pages);
         } else {
           toast({
@@ -67,14 +85,43 @@ const AssetsPage = () => {
         setLoading(false);
       }
     },
-    [userId, activeSearch, totalPages, toast]
+    [activeUserId, activeSearch, totalPages, toast]
   );
 
+  // ✅ Re-fetch when active user changes
   useEffect(() => {
-    fetchAssets(page);
-  }, [fetchAssets, page]);
+    const updateActiveUser = () => {
+      const storedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+      const mainUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const newUserId = storedUser?.user_id || mainUser?.user_id;
+      const newEmail = storedUser?.username || mainUser?.username || "Unknown";
 
-  // Infinite scroll
+      setDisplayEmail(newEmail);
+      if (newUserId !== activeUserId) {
+        setAssets([]);
+        setPage(1);
+        fetchAssets(1, newUserId);
+      }
+    };
+
+    updateActiveUser();
+    window.addEventListener("storage", updateActiveUser);
+    const interval = setInterval(updateActiveUser, 2000);
+
+    return () => {
+      window.removeEventListener("storage", updateActiveUser);
+      clearInterval(interval);
+    };
+  }, [activeUserId, fetchAssets]);
+
+  // ✅ Initial fetch
+  useEffect(() => {
+    setAssets([]);
+    setPage(1);
+    if (activeUserId) fetchAssets(1);
+  }, [activeUserId, activeSearch, fetchAssets]);
+
+  // ✅ Infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
@@ -90,15 +137,20 @@ const AssetsPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading, page, totalPages]);
 
+  useEffect(() => {
+    if (page > 1) fetchAssets(page);
+  }, [page, fetchAssets]);
+
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
     setActiveSearch(value);
     setPage(1);
-    setAssets([]); // reset assets for new search
+    setAssets([]);
   };
 
   const handleDownload = (url) => {
+    if (!url) return;
     const link = document.createElement("a");
     link.href = url;
     link.download = url.split("/").pop();
@@ -107,30 +159,33 @@ const AssetsPage = () => {
 
   return (
     <Box p={5} mt={20} minH="100vh" bg="transparent">
-      {/* Header */}
-      <Flex justify="flex-end" align="center" mb={5} flexWrap="wrap">
+      {/* ✅ Header with Active Email */}
+      <Flex justify="space-between" align="center" mb={5} flexWrap="wrap" gap={3}>
+        <Text fontSize="lg" fontWeight="bold" color={textColor}>
+          Viewing assets for: <Text as="span" color="blue.500">{displayEmail}</Text>
+        </Text>
+
         <InputGroup maxW={{ base: "100%", md: "300px" }}>
           <Input
-  placeholder="Search by Project Name..."
-  value={searchTerm}
-  onChange={handleSearch}
-  bg={useColorModeValue("gray.100", "navy.900")}
-  color={useColorModeValue("gray.800", "white")}
-  borderRadius="full"
-  _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
-/>
-
+            placeholder="Search by Project Name..."
+            value={searchTerm}
+            onChange={handleSearch}
+            bg={useColorModeValue("gray.100", "navy.900")}
+            color={useColorModeValue("gray.800", "white")}
+            borderRadius="full"
+            _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
+          />
           <InputRightElement pointerEvents="none">
             <SearchIcon color="gray.400" />
           </InputRightElement>
         </InputGroup>
       </Flex>
 
-      {/* Assets Grid */}
+      {/* ✅ Assets Grid */}
       {assets.length === 0 && !loading ? (
         <Flex direction="column" align="center" justify="center" mt={10}>
           <Image
-            src="https://cdni.iconscout.com/illustration/premium/thumb/employee-is-unable-to-find-sensitive-data-illustration-svg-download-png-8062127.png" // Replace with your illustration
+            src="https://cdni.iconscout.com/illustration/premium/thumb/employee-is-unable-to-find-sensitive-data-illustration-svg-download-png-8062127.png"
             alt="No assets found"
             maxW="300px"
             mb={5}
@@ -144,7 +199,12 @@ const AssetsPage = () => {
         </Flex>
       ) : (
         <Grid
-          templateColumns={{ base: "repeat(1, 1fr)", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" }}
+          templateColumns={{
+            base: "repeat(1, 1fr)",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(3, 1fr)",
+            lg: "repeat(4, 1fr)",
+          }}
           gap={6}
         >
           {assets.map((asset, index) => (
@@ -161,16 +221,13 @@ const AssetsPage = () => {
             >
               <Box position="relative" mb={3}>
                 <Image
-                  src={asset.image_url}
+                  src={asset.image_url || "https://via.placeholder.com/300x200?text=No+Image"}
                   alt={asset.product_name}
                   borderRadius="md"
                   objectFit="cover"
                   height="200px"
                   width="100%"
                   fallback={<Skeleton height="200px" width="100%" />}
-                  filter="brightness(0.8)"
-                  transition="filter 0.3s"
-                  onLoad={(e) => (e.target.style.filter = "brightness(1)")}
                 />
               </Box>
 
@@ -178,8 +235,10 @@ const AssetsPage = () => {
                 {asset.product_name}
               </Text>
               <Text fontSize="sm" color="gray.400">
-                Video Dimensions: {asset.video_dimensions} |{" "}
-                <Badge colorScheme={asset.status === "completed" ? "green" : "yellow"}>
+                Dimensions: {asset.video_dimensions} |{" "}
+                <Badge
+                  colorScheme={asset.status === "completed" ? "green" : asset.status === "failed" ? "red" : "yellow"}
+                >
                   {asset.status}
                 </Badge>
               </Text>
@@ -192,6 +251,7 @@ const AssetsPage = () => {
                   size="sm"
                   leftIcon={<DownloadIcon />}
                   colorScheme="blue"
+                  isDisabled={!asset.image_url}
                   onClick={() => handleDownload(asset.image_url)}
                 >
                   Download

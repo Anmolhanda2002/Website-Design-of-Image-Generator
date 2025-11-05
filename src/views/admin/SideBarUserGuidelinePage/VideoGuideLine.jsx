@@ -36,14 +36,27 @@ export default function GuidelineTable() {
   const [pageIndex, setPageIndex] = useState(0);
   const [guidelines, setGuidelines] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
   const textColor = useColorModeValue('gray.800', 'whiteAlpha.900');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
   const navigate = useNavigate();
   const { id: userIdParam } = useParams();
 
   const fetchGuidelines = async () => {
+    setLoading(true);
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+
+    // 🧩 Extract user_id safely
+    const userId = storedUser?.user_id;
+
+    if (!userId) {
+      console.error("No user_id found in localStorage");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userIdParam}`);
+      const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userId}`);
       if (response.data.status === 'success') {
         setGuidelines(response.data.results || []);
         setTotalPages(1);
@@ -132,31 +145,7 @@ export default function GuidelineTable() {
           );
         },
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <Flex gap={2}>
-              <IconButton
-                aria-label="Edit"
-                icon={<EditIcon />}
-                size="xs"
-                variant="outline"
-                onClick={() => navigate(`/admin/edit/videoguidelines/${row.guideline_id}`)}
-              />
-              <IconButton
-                aria-label="Delete"
-                icon={<DeleteIcon />}
-                size="xs"
-                colorScheme="red"
-                onClick={() => handleDelete(row.guideline_id)}
-              />
-            </Flex>
-          );
-        },
-      }),
+    
     ],
     [navigate]
   );
@@ -180,7 +169,7 @@ export default function GuidelineTable() {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
-    <Card w="100%" p={5}  mt={"-100px"} boxShadow="md" borderRadius="xl">
+    <Card w="100%" p={5}  mt={"100px"} boxShadow="md" borderRadius="xl">
       <Flex
         justify="space-between"
         align={{ base: 'stretch', md: 'center' }}
@@ -191,9 +180,7 @@ export default function GuidelineTable() {
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Video Guidelines
         </Text>
-        <Button colorScheme="blue" onClick={handleAddGuideline} w={{ base: '100%', md: 'auto' }}>
-          + Add Guideline
-        </Button>
+
       </Flex>
 
       <Input

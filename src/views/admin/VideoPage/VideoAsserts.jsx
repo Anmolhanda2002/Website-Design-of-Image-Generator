@@ -14,12 +14,6 @@ import {
   Input,
   InputGroup,
   InputRightElement,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
   Icon,
 } from "@chakra-ui/react";
 import { DownloadIcon, SearchIcon } from "@chakra-ui/icons";
@@ -35,54 +29,112 @@ const VideosPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [displayEmail, setDisplayEmail] = useState("");
 
   const cardBg = useColorModeValue("white", "gray.700");
   const textColor = useColorModeValue("gray.800", "white");
 
+  // ✅ Determine which user is active
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = user.user_id;
+  const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+
+  const activeUserId = selectedUser?.user_id || user?.user_id;
+
+  // ✅ Update displayed email whenever localStorage changes
+  // useEffect(() => {
+  //   const updateDisplayEmail = () => {
+  //     const storedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+  //     const mainUser = JSON.parse(localStorage.getItem("user") || "{}");
+  //     setDisplayEmail(storedUser?.username || mainUser?.username || "Unknown");
+  //   };
+
+  //   updateDisplayEmail();
+
+  //   const interval = setInterval(updateDisplayEmail, 2000);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   const fetchVideos = useCallback(
-    async (pageNumber = 1) => {
-      if (!userId || pageNumber > totalPages) return;
-      setLoading(true);
-      try {
-        const response = await axiosInstance.get(
-          `/videos_page?user_id=${userId}&page=${pageNumber}&search=${activeSearch}`
-        );
+  async (pageNumber = 1, customUserId = activeUserId) => {
+    if (!customUserId || pageNumber > totalPages) return;
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `/videos_page?user_id=${customUserId}&page=${pageNumber}&search=${activeSearch}`
+      );
 
-        if (response.data.status === "success") {
-          setVideos((prev) => [...prev, ...response.data.data]);
-          setTotalPages(response.data.pagination.pages);
-        } else {
-          toast({
-            title: "No Videos Found",
-            status: "info",
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-      } catch (error) {
-        console.error(error);
+      if (response.data.status === "success") {
+        setVideos((prev) =>
+          pageNumber === 1 ? response.data.data : [...prev, ...response.data.data]
+        );
+        setTotalPages(response.data.pagination.pages);
+      } else {
         toast({
-          title: "Error",
-          description: "Something went wrong while fetching videos",
-          status: "error",
+          title: "No Videos Found",
+          status: "info",
           duration: 3000,
           isClosable: true,
         });
-      } finally {
-        setLoading(false);
       }
-    },
-    [userId, activeSearch, totalPages, toast]
-  );
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Something went wrong while fetching videos",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  },
+  [activeUserId, activeSearch, totalPages, toast]
+);
+
 
   useEffect(() => {
-    fetchVideos(page);
-  }, [fetchVideos, page]);
+  const updateActiveUser = () => {
+    const storedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+    const mainUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const newUserId = storedUser?.user_id || mainUser?.user_id;
+    const newEmail = storedUser?.username || mainUser?.username || "Unknown";
 
-  // Infinite scroll
+    setDisplayEmail(newEmail);
+    if (newUserId !== activeUserId) {
+      setVideos([]); // reset videos
+      setPage(1);
+      fetchVideos(1, newUserId); // reload with new user
+    }
+  };
+
+  // Trigger immediately
+  updateActiveUser();
+
+  // Listen for localStorage changes from anywhere
+  window.addEventListener("storage", updateActiveUser);
+
+  // Also run every 2s just in case (optional)
+  const interval = setInterval(updateActiveUser, 2000);
+
+  return () => {
+    window.removeEventListener("storage", updateActiveUser);
+    clearInterval(interval);
+  };
+}, [activeUserId, fetchVideos]);
+
+
+  // ✅ Fetch videos
+
+
+
+  useEffect(() => {
+    setVideos([]);
+    setPage(1);
+    if (activeUserId) fetchVideos(1);
+  }, [activeUserId, activeSearch, fetchVideos]);
+
+  // ✅ Infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
@@ -98,12 +150,16 @@ const VideosPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [loading, page, totalPages]);
 
+  useEffect(() => {
+    if (page > 1) fetchVideos(page);
+  }, [page, fetchVideos]);
+
   const handleSearch = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
     setActiveSearch(value);
     setPage(1);
-    setVideos([]); // reset videos for new search
+    setVideos([]);
   };
 
   const handleDownload = (url) => {
@@ -116,36 +172,43 @@ const VideosPage = () => {
 
   return (
     <Box p={5} mt={20} minH="100vh" bg="transparent">
-      {/* Header */}
-      <Flex justify="flex-end" align="center" mb={5} flexWrap="wrap">
+      {/* ✅ Top Bar with Email */}
+      <Flex
+        justify="space-between"
+        align="center"
+        mb={5}
+        flexWrap="wrap"
+        gap={3}
+      >
+        <Text fontSize="lg" fontWeight="bold" color={textColor}>
+          Viewing videos for: <Text as="span" color="blue.500">{displayEmail}</Text>
+        </Text>
+
         <InputGroup maxW={{ base: "100%", md: "300px" }}>
           <Input
-  placeholder="Search by Project Name..."
-  value={searchTerm}
-  onChange={handleSearch}
-  bg={useColorModeValue("gray.100", "navy.900")}
-  color={useColorModeValue("gray.800", "white")}
-  borderRadius="full"
-  _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
-/>
-
+            placeholder="Search by Project Name..."
+            value={searchTerm}
+            onChange={handleSearch}
+            bg={useColorModeValue("gray.100", "navy.900")}
+            color={useColorModeValue("gray.800", "white")}
+            borderRadius="full"
+            _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
+          />
           <InputRightElement pointerEvents="none">
             <SearchIcon color="gray.400" />
           </InputRightElement>
         </InputGroup>
       </Flex>
 
-      {/* Videos Grid */}
+      {/* ✅ Video Grid */}
       {videos.length === 0 && !loading ? (
         <Flex direction="column" align="center" justify="center" mt={10}>
-<Image
-  src="https://cdni.iconscout.com/illustration/premium/thumb/employee-is-unable-to-find-sensitive-data-illustration-svg-download-png-8062127.png"
-  alt="No videos found"
-  maxW="300px"
-  mb={5}
-/>
-
-
+          <Image
+            src="https://cdni.iconscout.com/illustration/premium/thumb/employee-is-unable-to-find-sensitive-data-illustration-svg-download-png-8062127.png"
+            alt="No videos found"
+            maxW="300px"
+            mb={5}
+          />
           <Text fontSize="xl" fontWeight="bold" color={textColor}>
             No Videos Found
           </Text>
@@ -192,7 +255,6 @@ const VideosPage = () => {
                   cursor={video.status === "completed" ? "pointer" : "not-allowed"}
                   onClick={() => video.status === "completed" && setSelectedVideo(video)}
                 >
-                  {/* Thumbnail */}
                   <Image
                     src={thumbnail}
                     alt={video.product_name}
@@ -272,61 +334,38 @@ const VideosPage = () => {
         </Grid>
       )}
 
-      {/* Fullscreen Video Modal */}
-      <Modal
-        isOpen={!!selectedVideo}
-        onClose={() => setSelectedVideo(null)}
-        size="6xl"
-        isCentered
-      >
-        <ModalOverlay />
-        <ModalContent bg="black" color="white" borderRadius="lg">
-          <ModalHeader>{selectedVideo?.product_name}</ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            {selectedVideo && (
-              <video
-                key={selectedVideo.cloudinary_video_url}
-                src={
-                  selectedVideo.cloudinary_video_url ||
-                  selectedVideo.processed_video_url ||
-                  selectedVideo.manual_video_url
-                }
-                controls
-                autoPlay
-                style={{
-                  width: "100%",
-                  height: "70vh",
-                  borderRadius: "10px",
-                  background: "black",
-                }}
-              />
-            )}
-            {/* <Flex justify="flex-end" mt={4}>
-              <Button
-                leftIcon={<DownloadIcon />}
-                colorScheme="blue"
-                isDisabled={
-                  !(
-                    selectedVideo?.cloudinary_video_url ||
-                    selectedVideo?.processed_video_url ||
-                    selectedVideo?.manual_video_url
-                  )
-                }
-                onClick={() =>
-                  handleDownload(
-                    selectedVideo?.cloudinary_video_url ||
-                      selectedVideo?.processed_video_url ||
-                      selectedVideo?.manual_video_url
-                  )
-                }
-              >
-                Download Video
-              </Button>
-            </Flex> */}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {/* ✅ Video Modal */}
+      {selectedVideo && (
+        <Box
+          position="fixed"
+          top="0"
+          left="0"
+          right="0"
+          bottom="0"
+          bg="rgba(0,0,0,0.8)"
+          zIndex="9999"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box maxW="80%" maxH="80%" bg="black" borderRadius="md" p={3}>
+            <video
+              key={selectedVideo.cloudinary_video_url}
+              src={
+                selectedVideo.cloudinary_video_url ||
+                selectedVideo.processed_video_url ||
+                selectedVideo.manual_video_url
+              }
+              controls
+              autoPlay
+              style={{ width: "100%", height: "70vh", borderRadius: "10px" }}
+            />
+            <Flex justify="flex-end" mt={3}>
+              <Button onClick={() => setSelectedVideo(null)}>Close</Button>
+            </Flex>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };
