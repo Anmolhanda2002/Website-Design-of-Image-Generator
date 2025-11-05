@@ -15,7 +15,7 @@ const NotFound = lazy(() => import('views/404Page'));
 
 export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
-console.log(initialTheme)
+console.log("asdfasfd",initialTheme)
   return (
     <UserProvider>
       <ChakraProvider theme={currentTheme}>
