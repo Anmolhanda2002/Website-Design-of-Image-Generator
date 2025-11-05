@@ -1,4 +1,4 @@
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect, startTransition ,useRef} from "react";
 import {
   Avatar,
   Box,
@@ -82,6 +82,14 @@ export default function PixVerseLayout() {
   const [dropdownLoading, setDropdownLoading] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [userss, setUser] = useState(null);
+
+    const firstLoad = useRef(true);
+  useEffect(() => {
+    if (firstLoad.current) {
+      firstLoad.current = false;
+      window.location.reload();
+    }
+  }, []);
     useEffect(() => {
       if (isManager) return;
       const fetchUsers = async () => {
