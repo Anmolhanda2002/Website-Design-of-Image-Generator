@@ -1,4 +1,4 @@
-import React from "react";
+import React  from "react";
 import {
     Box,
     VStack,
@@ -170,155 +170,154 @@ useEffect(() => {
 
     const renderPanelContent = () => {
         switch (activeTab) {
-            case "Image Creation":
-                return (
-                    <VStack align="stretch" spacing={4}>
-                        {/* 🔍 Search Image Guidelines */}
-                        <Box>
-                            <Text fontWeight="bold">Search Image Guidelines</Text>
-                            <Input
-                                placeholder="Enter guideline name..."
-                                value={searchTerm}
-                                onChange={(e) =>
-                                    startTransition(() => {
-                                        setSearchTerm(e.target.value);
-                                    })
-                                }
-                                mt={2}
-                            />
-                        </Box>
+           case "Image Creation":
+  return (
+    <VStack align="stretch" spacing={4}>
+      {/* 🔍 Search Image Guidelines */}
+      <Box>
+        <Text fontWeight="bold">Search Image Guidelines</Text>
+   <Input
+  placeholder="Enter guideline name..."
+  value={searchTerm}
+  onChange={(e) => {
+    const value = e.target.value;
+    startTransition(() => setSearchTerm(value));
+  }}
+  mt={2}
+/>
+      </Box>
 
-                        {/* 🧩 Select Guideline */}
-                        <Box>
-                            <Text fontWeight="bold">Select Guideline</Text>
-                            {loading ? (
-                                <Spinner mt={3} />
-                            ) : (
-                                <Select
-                                    placeholder="Select a guideline"
-                                    value={imageCreationSettings.guidelineId}
-                                    onChange={(e) =>
-                                        startTransition(() => { // ✅ Wrapped in startTransition
-                                            setImageCreationSettings((prev) => ({
-                                                ...prev,
-                                                guidelineId: e.target.value,
-                                            }))
-                                        })
-                                    }
-                                    mt={2}
-                                >
-                                    {Array.isArray(guidelines) && guidelines.length > 0 ? (
-                                        guidelines.map((g) => (
-                                            <option key={g.guideline_id} value={g.guideline_id}>
-                                                {g.name}
-                                            </option>
-                                        ))
-                                    ) : (
-                                        <option disabled>No guidelines found</option>
-                                    )}
+      {/* 🧩 Select Guideline */}
+      <Box>
+        <Text fontWeight="bold">Select Guideline</Text>
+        {loading ? (
+          <Spinner mt={3} />
+        ) : (
+          <Select
+            placeholder="Select a guideline"
+            value={imageCreationSettings.guidelineId}
+            onChange={(e) =>
+              setImageCreationSettings((prev) => ({
+                ...prev,
+                guidelineId: e.target.value,
+              }))
+            }
+            mt={2}
+          >
+            {Array.isArray(guidelines) && guidelines.length > 0 ? (
+              guidelines.map((g) => (
+                <option key={g.guideline_id} value={g.guideline_id}>
+                  {g.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>No guidelines found</option>
+            )}
+          </Select>
+        )}
+      </Box>
 
-                                </Select>
-                            )}
-                        </Box>
+      {/* 🎯 Target Method */}
+      <Box>
+        <Text fontWeight="bold">Target Method</Text>
+        <Select
+          placeholder="Select option"
+          value={imageCreationSettings.targetMethod}
+          onChange={(e) => {
+            const value = e.target.value;
+            setImageCreationSettings((prev) => ({
+              ...prev,
+              targetMethod: value,
+              ...(value === "disable" && {
+                targetWidth: "",
+                targetHeight: "",
+              }),
+            }));
+          }}
+          mt={2}
+        >
+          <option value="enable">Enable</option>
+          <option value="disable">Disable</option>
+        </Select>
+      </Box>
 
-                        {/* 🎯 Target Method */}
-                        <Box>
-                            <Text fontWeight="bold">Target Method</Text>
-                            <Select
-                                placeholder="Select option"
-                                value={imageCreationSettings.targetMethod}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    startTransition(() => { // ✅ Wrapped in startTransition
-                                        setImageCreationSettings((prev) => ({
-                                            ...prev,
-                                            targetMethod: value,
-                                            ...(value === "disable" && { targetWidth: "", targetHeight: "" }),
-                                        }));
-                                    });
-                                }}
-                                mt={2}
-                            >
-                                <option value="enable">Enable</option>
-                                <option value="disable">Disable</option>
-                            </Select>
-                        </Box>
+      {/* 📏 Width / Height if Enabled */}
+      {imageCreationSettings.targetMethod === "enable" && (
+        <>
+          <Box>
+            <Text fontWeight="bold">Target Width (px)</Text>
+            <Input
+              type="number"
+              placeholder="Width in px"
+              value={imageCreationSettings.targetWidth}
+              onChange={(e) =>
+                setImageCreationSettings((prev) => ({
+                  ...prev,
+                  targetWidth: e.target.value,
+                }))
+              }
+              mt={2}
+            />
+          </Box>
 
-                        {/* 📏 Width / Height if Enabled */}
-                        {imageCreationSettings.targetMethod === "enable" && (
-                            <>
-                                <Box>
-                                    <Text fontWeight="bold">Target Width (px)</Text>
-                                    <Input
-                                        type="number" placeholder="Width in px" value={imageCreationSettings.targetWidth}
-                                        onChange={(e) =>
-                                            startTransition(() => { // ✅ Wrapped in startTransition
-                                                setImageCreationSettings((prev) => ({
-                                                    ...prev, targetWidth: e.target.value,
-                                                }))
-                                            })
-                                        }
-                                        mt={2}
-                                    />
-                                </Box>
+          <Box>
+            <Text fontWeight="bold">Target Height (px)</Text>
+            <Input
+              type="number"
+              placeholder="Height in px"
+              value={imageCreationSettings.targetHeight}
+              onChange={(e) =>
+                setImageCreationSettings((prev) => ({
+                  ...prev,
+                  targetHeight: e.target.value,
+                }))
+              }
+              mt={2}
+            />
+          </Box>
+        </>
+      )}
 
-                                <Box>
-                                    <Text fontWeight="bold">Target Height (px)</Text>
-                                    <Input
-                                        type="number" placeholder="Height in px" value={imageCreationSettings.targetHeight}
-                                        onChange={(e) =>
-                                            startTransition(() => { // ✅ Wrapped in startTransition
-                                                setImageCreationSettings((prev) => ({
-                                                    ...prev, targetHeight: e.target.value,
-                                                }))
-                                            })
-                                        }
-                                        mt={2}
-                                    />
-                                </Box>
-                            </>
-                        )}
+      {/* 🔄 Resize Method */}
+      <Box>
+        <Text fontWeight="bold">Resize Method</Text>
+        <Select
+          placeholder="Select resize method"
+          value={imageCreationSettings.resizeMethod}
+          onChange={(e) =>
+            setImageCreationSettings((prev) => ({
+              ...prev,
+              resizeMethod: e.target.value,
+            }))
+          }
+          mt={2}
+        >
+          <option value="maintain_aspect">Maintain Aspect</option>
+          <option value="crop">Crop</option>
+          <option value="stretch">Stretch</option>
+        </Select>
+      </Box>
 
-                        {/* 🔄 Resize Method */}
-                        <Box>
-                            <Text fontWeight="bold">Resize Method</Text>
-                            <Select
-                                placeholder="Select resize method"
-                                value={imageCreationSettings.resizeMethod}
-                                onChange={(e) =>
-                                    startTransition(() => { // ✅ Wrapped in startTransition
-                                        setImageCreationSettings((prev) => ({
-                                            ...prev, resizeMethod: e.target.value,
-                                        }))
-                                    })
-                                }
-                                mt={2}
-                            >
-                                <option value="maintain_aspect">Maintain Aspect</option>
-                                <option value="crop">Crop</option>
-                                <option value="stretch">Stretch</option>
-                            </Select>
-                        </Box>
-
-                        {/* 💎 Quality */}
-                        <Box>
-                            <Text fontWeight="bold">Quality (1–100)</Text>
-                            <Input
-                                type="number" min="1" max="100" placeholder="85"
-                                value={imageCreationSettings.quality}
-                                onChange={(e) =>
-                                    startTransition(() => { // ✅ Wrapped in startTransition
-                                        setImageCreationSettings((prev) => ({
-                                            ...prev, quality: e.target.value,
-                                        }))
-                                    })
-                                }
-                                mt={2}
-                            />
-                        </Box>
-                    </VStack>
-                );
-
+      {/* 💎 Quality */}
+      <Box>
+        <Text fontWeight="bold">Quality (1–100)</Text>
+        <Input
+          type="number"
+          min="1"
+          max="100"
+          placeholder="85"
+          value={imageCreationSettings.quality}
+          onChange={(e) =>
+            setImageCreationSettings((prev) => ({
+              ...prev,
+              quality: e.target.value,
+            }))
+          }
+          mt={2}
+        />
+      </Box>
+    </VStack>
+  );
 
           case "Resize Image":
   return (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {
   Box,
   Flex,
@@ -27,8 +27,13 @@ export default function PreviewArea({
   activeTab,
   imageCreationSettings,
   resizeImageSettings,
-  imageToVideoSettings,selectedUser
-}) {
+  imageToVideoSettings,
+  selectedUser,
+  generatedImage,
+  setGeneratedImage,
+  resizedImage,
+  setResizedImage,generatedVideo,setGeneratedVideo
+}){
   const previewBg = useColorModeValue("gray.50", "gray.900");
   const panelBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -45,10 +50,10 @@ export default function PreviewArea({
 const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
 // in which make the variable  step 1
-  const [generatedImage, setGeneratedImage] = useState("");
-  const [resizedImage, setResizedImage] = useState("");
+  // const [generatedImage, setGeneratedImage] = useState("");
+  // const [resizedImage, setResizedImage] = useState("");
   const [resizeDetails, setResizeDetails] = useState(null);
-const [generatedVideo, setGeneratedVideo] = useState(null);
+// const [generatedVideo, setGeneratedVideo] = useState(null);
 const [videoStatus, setVideoStatus] = useState("");
 //step 2 resize image
 
@@ -60,6 +65,10 @@ const [videoStatus, setVideoStatus] = useState("");
  * Handles the async upload of a single file.
  * Returns an array of uploaded image objects: [{ id: number, url: string }, ...]
  */
+
+
+
+
 const handleImageUpload = async (file) => {
     const id = Date.now() + Math.random();
     // It's crucial to use startTransition if setProgressMap uses it, but here, we stick to standard React state.
@@ -154,21 +163,7 @@ const handleImageChangeSingle = async (e) => {
         }
 
         // ✅ Show SweetAlert2 popup after upload
-        Swal.fire({
-            title: "Image Uploaded Successfully 🎉",
-            html: `
-              <div style="text-align:left; font-size:14px;">
-                <p><b>File Name:</b> ${file.name}</p>
-                <p><b>File Size:</b> ${(file.size / 1024).toFixed(2)} KB</p>
-                <p><b>Type:</b> ${file.type}</p>
-                <img src="${uploadedImage.url}" alt="preview" style="width:100%;max-width:300px;border-radius:8px;margin-top:10px;" />
-              </div>
-            `,
-            icon: "success",
-            confirmButtonText: "Great!",
-            confirmButtonColor: "#2563eb",
-            width: "400px",
-        });
+       
 
     } catch (error) {
         console.error("Single Upload failed:", error);
@@ -346,7 +341,12 @@ else if (activeTab === "Image to Video") {
   const interval = setInterval(async () => {
     try {
       retryCount++;
-      const statusRes = await axiosInstance.get(`/get_video_status/?creation_id=${creationId}`);
+const statusRes = await axiosInstance.get("/get_video_status/", {
+  params: {
+    creation_id: creationId,
+    user_id: selectedUser?.user_id, // assuming selectedUser is an object
+  },
+});
       const videoStatus = statusRes?.data?.video_status;
       const videoUrls = statusRes?.data?.video_urls;
 
@@ -528,7 +528,7 @@ else if (activeTab === "Image to Video") {
             borderRadius="md"
             fontSize="sm"
           >
-            Processing… preview may be low quality
+           
           </Text>
         )}
       </Box>

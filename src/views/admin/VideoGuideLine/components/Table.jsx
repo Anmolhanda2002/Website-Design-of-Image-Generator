@@ -84,7 +84,7 @@ export default function GuidelineTable() {
 
   const handleSetDefault = async (id) => {
     try {
-      await axiosInstance.post(`/factory_development_activate_video_guideline/`, { guideline_id: id });
+      await axiosInstance.post(`/factory_development_activate_video_guideline/`, { guideline_id: id,user_id:userIdParam });
       Swal.fire('Success!', 'This guideline is now set as default.', 'success');
       fetchGuidelines();
     } catch (err) {

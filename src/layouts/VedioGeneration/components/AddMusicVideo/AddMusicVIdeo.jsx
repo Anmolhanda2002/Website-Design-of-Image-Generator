@@ -8,7 +8,7 @@ import {
   useToast,
   useColorModeValue,
   SimpleGrid,
-  VStack, 
+  VStack,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
 
@@ -23,85 +23,76 @@ export default function AddMusic({ selectedUser }) {
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const pageBg = useColorModeValue("#F8FAFC", "#1A202C");
   const activeBorderColor = "blue.400";
-  const activeShadow = useColorModeValue("0 0 10px rgba(66,153,225,0.7)", "0 0 10px rgba(66,153,225,0.9)");
-
+  const activeShadow = useColorModeValue(
+    "0 0 10px rgba(66,153,225,0.7)",
+    "0 0 10px rgba(66,153,225,0.9)"
+  );
 
   // 🎞 Fetch all merge jobs for selected user
 useEffect(() => {
-  // ✅ Get or define user ID
-  const userIdToFetch = localStorage.getItem("user_id") || "SAU-B0BEAB-D21";
-
-  if (!userIdToFetch) {
+  if (!selectedUser?.user_id) {
     setJobs([]);
-    toast({
-      title: "User ID missing",
-      description: "No user ID found. Please log in or set one.",
-      status: "warning",
-      duration: 2500,
-      isClosable: true,
-    });
     return;
   }
 
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
+  startTransition(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
 
-      // ✅ Use params object to avoid duplicate query keys
-      const res = await axiosInstance.get("/get_user_all_jobs/", {
-        params: { user_id: userIdToFetch },
-      });
+        const res = await axiosInstance.get("/get_user_all_jobs/", {
+          params: { user_id: selectedUser.user_id },
+        });
 
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        const availableJobs = res.data.data.filter(
-          (job) => !job.final_video_with_music_url
-        );
-        setJobs(availableJobs);
-
-        if (availableJobs.length === 0) {
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          const availableJobs = res.data.data.filter(
+            (job) => !job.final_video_with_music_url
+          );
+          setJobs(availableJobs);
+          if (availableJobs.length === 0) {
+            toast({
+              title: "No merge jobs available for music.",
+              status: "info",
+              duration: 2500,
+              isClosable: true,
+            });
+          }
+        } else {
+          setJobs([]);
           toast({
-            title: "No merge jobs available for music.",
-            status: "info",
-            duration: 2500,
+            title: "No videos found for this user.",
+            status: "warning",
+            duration: 2000,
             isClosable: true,
           });
         }
-      } else {
-        setJobs([]);
+      } catch (err) {
+        console.error("❌ Error fetching jobs:", err);
         toast({
-          title: "No videos found for this user.",
-          status: "warning",
-          duration: 2000,
+          title: "Failed to load videos",
+          description:
+            err.response?.data?.message ||
+            "Please check your connection and try again.",
+          status: "error",
+          duration: 3000,
           isClosable: true,
         });
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("❌ Error fetching jobs:", err);
-      toast({
-        title: "Failed to load videos",
-        description:
-          err.response?.data?.message ||
-          "Please check your connection and try again.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchJobs();
-}, [toast]);
- // ✅ no selectedUser dependency
-
+    fetchJobs();
+  });
+}, [selectedUser, toast]);
+ // ✅ runs again when user changes
 
   // 🎬 Select a job
-  const handleSelect = (job) => {
-    startTransition(() => {
-      setSelectedJob(job);
-    });
-  };
+const handleSelect = (job) => {
+  startTransition(() => {
+    setSelectedJob(job);
+  });
+};
 
   // 🎵 Submit Add Music Request
   const handleAddMusicSubmit = async () => {
@@ -118,7 +109,6 @@ useEffect(() => {
 
     try {
       const hygaarKey = localStorage.getItem("api_key");
-
       if (!hygaarKey) {
         throw new Error("API key missing. Please log in again.");
       }
@@ -126,8 +116,9 @@ useEffect(() => {
       setSubmitting(true);
 
       const body = {
-        merge_id: selectedJob.job_id, 
-        hygaar_key: hygaarKey, 
+        merge_id: selectedJob.job_id,
+        hygaar_key: hygaarKey,
+        user_id: selectedUser?.user_id,
       };
 
       const res = await axiosInstance.post("/music_to_merge_video/", body);
@@ -140,12 +131,16 @@ useEffect(() => {
           duration: 4000,
           isClosable: true,
         });
-        
+
         // Update job status locally
-        setJobs(prevJobs => prevJobs.map(job => 
-            job.job_id === selectedJob.job_id ? { ...job, status: "Music Added (Processing)" } : job
-        ));
-        setSelectedJob(null); // Deselect after submitting
+        setJobs((prevJobs) =>
+          prevJobs.map((job) =>
+            job.job_id === selectedJob.job_id
+              ? { ...job, status: "Music Added (Processing)" }
+              : job
+          )
+        );
+        setSelectedJob(null);
       } else {
         throw new Error(res.data?.message || "Failed to add music. Check API response.");
       }
@@ -162,7 +157,6 @@ useEffect(() => {
       setSubmitting(false);
     }
   };
-
 
   // 🎥 Job Card Component
   const JobCard = ({ job, isSelected }) => {
@@ -186,19 +180,18 @@ useEffect(() => {
               src={videoUrl}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               controls
-              muted 
+              muted
             />
           ) : (
             <Text color="gray.500">Video URL Missing</Text>
           )}
         </Flex>
-        
+
         <VStack p={3} spacing={1} align="stretch">
           <Text fontWeight="bold" noOfLines={1} fontSize="md">
             Job ID: {job.job_id}
           </Text>
-          
-          {/* Display Brand Message */}
+
           <Box bg={useColorModeValue("blue.50", "gray.700")} p={2} borderRadius="md">
             <Text fontSize="xs" fontWeight="semibold" color="blue.500">
               Brand Message:
@@ -207,12 +200,11 @@ useEffect(() => {
               {brandMessage}
             </Text>
           </Box>
-          
+
           <Text fontSize="sm" color="gray.500">
-            Status: **{job.status}**
+            Status: {job.status}
           </Text>
-          
-          {/* Selection button */}
+
           <Button
             size="sm"
             mt={2}
@@ -228,22 +220,16 @@ useEffect(() => {
   };
 
   return (
-    <Flex 
-      direction="column" 
-      p={{ base: 4, md: 8 }} 
-      gap={6} 
-      bg={pageBg} 
-      w="100%" // ✅ Ensures full width of parent container
-      minH="100%" // ✅ Use 100% height relative to parent, if parent is Flex.
+    <Flex
+      direction="column"
+      p={{ base: 4, md: 8 }}
+      gap={6}
+      bg={pageBg}
+      w="100%"
+      minH="100%"
     >
       {/* Header and Action Button */}
-      <Flex 
-        justify="space-between" 
-        align="center" 
-        flexWrap="wrap" 
-        gap={4}
-        w="100%" // ✅ Ensures header uses full width
-      >
+      <Flex justify="space-between" align="center" flexWrap="wrap" gap={4} w="100%">
         <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold">
           Add Music to Video
         </Text>
@@ -264,12 +250,7 @@ useEffect(() => {
           <Spinner size="xl" color="blue.500" />
         </Flex>
       ) : jobs.length > 0 ? (
-        <SimpleGrid
-          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-          spacing={6}
-          pb={10} 
-          w="100%" // ✅ Ensures the grid component itself uses full width
-        >
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6} pb={10} w="100%">
           {jobs.map((job) => (
             <JobCard
               key={job.job_id}

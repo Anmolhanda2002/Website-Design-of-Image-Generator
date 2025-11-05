@@ -35,6 +35,8 @@ axiosInstance.interceptors.request.use(
     const isManager = userRoles.some(
       (role) => role.toLowerCase() === "manager"
     );
+
+    
     const userIdToSend =
       isManager && (selectedUser?.user_id || user?.user_id) ? (selectedUser?.user_id || user?.user_id) : null;
 

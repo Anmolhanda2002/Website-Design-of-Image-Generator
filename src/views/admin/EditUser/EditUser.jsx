@@ -23,7 +23,7 @@ import axiosInstance from "utils/AxiosInstance";
 
 // Child components
 import PersonalInfo from "./pages/PersonalInfo";
-import ImageGuideline from "../GuideLine/Index";
+import GuidelineTable from "../GuideLine/Index";
 import VideoGuideline from "../VideoGuideLine/Index";
 
 const EditUser = () => {
@@ -211,6 +211,7 @@ const handleLoginAsUser = async () => {
     );
   }
 
+
   return (
     <Flex direction="column" align="center" mt={{ base: 20, md: 20 }} minH="100vh">
       {/* Profile Card */}
@@ -294,7 +295,7 @@ const handleLoginAsUser = async () => {
               <PersonalInfo formData={formData} setFormData={setFormData} />
             </TabPanel>
             <TabPanel p={0}>
-              <ImageGuideline userId={id} />
+              <GuidelineTable userId={id} />
             </TabPanel>
             <TabPanel p={0}>
               <VideoGuideline userId={id} />

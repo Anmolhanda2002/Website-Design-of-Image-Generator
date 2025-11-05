@@ -113,16 +113,19 @@ export default function HeaderLinks({ secondary }) {
   }, [user]);
 
   // === Search handler ===
-  const handleSearch = (e) => {
-    const term = e.target.value.toLowerCase();
+const handleSearch = (e) => {
+  const term = e.target.value.toLowerCase();
+  startTransition(() => {
     setSearchTerm(term);
     setFilteredUsers(
       allUsers.filter((u) => u.username.toLowerCase().includes(term))
     );
-  };
+  });
+};
 
   // === Select user ===
-  const handleSelectUser = (u) => {
+const handleSelectUser = (u) => {
+  startTransition(() => {
     if (u && Object.keys(u).length > 0) {
       setSelectedUser(u);
       localStorage.setItem("selected_user", JSON.stringify(u));
@@ -130,7 +133,8 @@ export default function HeaderLinks({ secondary }) {
       setSelectedUser(null);
       localStorage.removeItem("selected_user");
     }
-  };
+  });
+};
 
   // ✅ Sync localStorage every 2 seconds
   useEffect(() => {
@@ -144,17 +148,16 @@ export default function HeaderLinks({ secondary }) {
   }, [selectedUser]);
 
   // === Logout ===
-  const handleLogout = async () => {
-    try {
-      const refresh_token = localStorage.getItem("refresh_token");
-      await axiosInstance.post("/auth/logout/", { refresh_token });
-    } catch {}
-    ["user", "access_token", "refresh_token"].forEach((k) =>
-      localStorage.removeItem(k)
-    );
-    startTransition(() => navigate("/auth/sign-in", { replace: true }));
-  };
-
+const handleLogout = async () => {
+  try {
+    const refresh_token = localStorage.getItem("refresh_token");
+    await axiosInstance.post("/auth/logout/", { refresh_token });
+  } catch {}
+  ["user", "access_token", "refresh_token"].forEach((k) =>
+    localStorage.removeItem(k)
+  );
+  startTransition(() => navigate("/auth/sign-in", { replace: true }));
+};
   if (loading) return null;
 
   // === UI ===

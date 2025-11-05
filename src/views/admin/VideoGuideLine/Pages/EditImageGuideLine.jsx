@@ -111,13 +111,9 @@ export default function EditVideoGuideline() {
   const handleUpdate = async () => {
     try {
       setSubmitting(true);
-      const api_key = localStorage.getItem("api_key");
-      if (!api_key) {
-        showAlert("warning", "Missing API Key", "Please login first.", colorMode);
-        return;
-      }
+      
 
-      const payload = { api_key, guideline_id, ...form };
+      const payload = {  guideline_id, ...form };
       const { data } = await axiosInstance.post("/factory_development_update_video_guideline/", payload);
 
       if (data.status === "success") {

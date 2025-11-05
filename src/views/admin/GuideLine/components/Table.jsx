@@ -28,7 +28,8 @@ import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate, useParams } from 'react-router-dom';
 
-export default function GuidelineTable() {
+export default function GuidelineTable({userId}) {
+
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
@@ -82,13 +83,9 @@ export default function GuidelineTable() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const api_key = localStorage.getItem('api_key');
-          if (!api_key) {
-            Swal.fire('Error!', 'API key not found.', 'error');
-            return;
-          }
+       
           await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
-            api_key,
+         
             guideline_id: id,
           });
           Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
@@ -104,13 +101,9 @@ export default function GuidelineTable() {
   // Activate Guideline
   const handleActivate = async (id) => {
     try {
-      const api_key = localStorage.getItem('api_key');
-      if (!api_key) {
-        Swal.fire('Error!', 'API key not found.', 'error');
-        return;
-      }
+   
       await axiosInstance.post(`/factory_development_activate_image_guideline/`, {
-        api_key,
+       user_id:userId,
         guideline_id: id,
       });
       Swal.fire('Activated!', 'The guideline is now active.', 'success');
@@ -120,8 +113,8 @@ export default function GuidelineTable() {
       Swal.fire('Error!', 'Failed to activate guideline.', 'error');
     }
   };
-
-  const handleAddGuideline = () => navigate('/admin/add/guidelines');
+console.log("user",userId)
+  const handleAddGuideline = () => navigate(`/admin/add/guidelines/${userId}`);
 
   // Table Columns
   const columns = useMemo(

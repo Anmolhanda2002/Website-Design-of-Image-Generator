@@ -1,4 +1,3 @@
-// Sidebar.jsx
 import React from "react";
 import {
   VStack,
@@ -22,7 +21,7 @@ import {
   MdMenu,
 } from "react-icons/md";
 
-// ✅ Sidebar Items (used by both desktop & mobile)
+// ✅ Sidebar Items
 export const sidebarItems = [
   { name: "Image Creation", icon: MdBrush },
   { name: "Resize Image", icon: MdCrop },
@@ -34,13 +33,18 @@ export const sidebarItems = [
   { name: "Add Music", icon: MdVolumeUp },
 ];
 
-// ✅ 1. DESKTOP SIDEBAR
+// ✅ DESKTOP SIDEBAR
 export default function Sidebar({ activeTab, setActiveTab }) {
   const sidebarBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const hoverBg = useColorModeValue("gray.100", "gray.700");
   const activeBg = useColorModeValue("blue.500", "blue.400");
   const inactiveColor = useColorModeValue("gray.600", "gray.300");
+
+  const handleTabChange = (tabName) => {
+    setActiveTab(tabName);
+    localStorage.setItem("activeTab", tabName);
+  };
 
   return (
     <Box
@@ -62,7 +66,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           <Button
             key={item.name}
             variant="ghost"
-            onClick={() => setActiveTab(item.name)}
+            onClick={() => handleTabChange(item.name)}
             bg={activeTab === item.name ? activeBg : "transparent"}
             color={activeTab === item.name ? "white" : inactiveColor}
             w="100%"
@@ -96,7 +100,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   );
 }
 
-// ✅ 2. MOBILE MENU BUTTON (Top Navbar)
+// ✅ MOBILE MENU BUTTON (Top Navbar)
 export function MobileMenuButton({ onOpen }) {
   const iconColor = useColorModeValue("blue.500", "blue.400");
   const hoverColor = useColorModeValue("blue.600", "blue.300");
@@ -115,7 +119,7 @@ export function MobileMenuButton({ onOpen }) {
   );
 }
 
-// ✅ 3. MOBILE SIDEBAR ITEMS (Used inside Drawer)
+// ✅ MOBILE SIDEBAR ITEMS (Used inside Drawer)
 export function MobileSidebarItems({ activeTab, setActiveTab, onClose }) {
   const activeBg = useColorModeValue("blue.500", "blue.400");
   const hoverBg = useColorModeValue("gray.100", "gray.700");
@@ -123,6 +127,7 @@ export function MobileSidebarItems({ activeTab, setActiveTab, onClose }) {
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
+    localStorage.setItem("activeTab", tabName);
     if (onClose) onClose();
   };
 

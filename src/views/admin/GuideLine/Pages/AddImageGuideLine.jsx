@@ -16,10 +16,13 @@ import {
   Heading,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
+import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 export default function ImageGuidelineForm() {
   const [choices, setChoices] = useState(null);
   const [loading, setLoading] = useState(true);
+  const {id} = useParams()
+  
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -108,24 +111,13 @@ const handleSubmit = async () => {
     }
 
     // 🔹 Require API key
-    const api_key = localStorage.getItem("api_key");
-    if (!api_key) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing API Key",
-        text: "Please login or add your API key first.",
-        confirmButtonColor: "#3085d6",
-      });
-      return;
-    }
+ 
 
     // 🔹 Build payload
     const payload = {
-      api_key,
+
       user_id:
-        loggedUser?.role === "Manager"
-          ? selectedUser?.user_id || null
-          : loggedUser?.user_id || null,
+        id,
       ...form,
     };
 

@@ -31,9 +31,19 @@ import axiosInstance from "utils/AxiosInstance";
 
 const POLL_INTERVAL = 10000;
 
-const VideoSelectorPage = ({setActiveTab,setclone,setclonecreationid}) => {
+const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selectedUser }) => {
+  const toast = useToast();
+
+  // ✅ Chakra color values computed once
+  const cardBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const selectBg = useColorModeValue("gray.100", "navy.800");
+  const inputBg = useColorModeValue("gray.100", "gray.700");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+
+  // ✅ State
   const [videos, setVideos] = useState([]);
-const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [selected, setSelected] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [transitionEffect, setTransitionEffect] = useState("sequential");
@@ -46,84 +56,63 @@ const [isPlaying, setIsPlaying] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const toast = useToast();
-  const cardBg = useColorModeValue("white", "gray.800");
-  const textColor = useColorModeValue("gray.800", "white");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = user.user_id;
-
-  const selectBg = useColorModeValue("gray.100", "navy.800");
-;
-const inputBg = useColorModeValue("gray.100", "gray.700");
-const borderColor = useColorModeValue("gray.200", "gray.600");
-  // ✅ Full transition effect list
-  const transitionEffects = [
-    "none",
-    "fade",
-    "dissolve",
-    "slide",
-    "slideright",
-    "slideleft",
-    "slideup",
-    "slidedown",
-    "zoomin",
-    "zoomout",
-    "wiperight",
-    "wipeleft",
-    "wipeup",
-    "wipedown",
-    "fadeblack",
-    "fadewhite",
-    "radial",
-    "circlecrop",
-    "rectcrop",
-    "smoothleft",
-    "smoothright",
-    "distance",
-    "dis_rot",
-    "sequence",
-    "sequential",
-  ];
+  // ✅ Transition effects (memoized constant)
+  const transitionEffects = React.useMemo(
+    () => [
+      "none", "fade", "dissolve", "slide", "slideright", "slideleft", "slideup",
+      "slidedown", "zoomin", "zoomout", "wiperight", "wipeleft", "wipeup",
+      "wipedown", "fadeblack", "fadewhite", "radial", "circlecrop", "rectcrop",
+      "smoothleft", "smoothright", "distance", "dis_rot", "sequence", "sequential"
+    ],
+    []
+  );
 
   // ✅ Fetch videos with pagination
   const fetchVideos = useCallback(
     async (pageNum = 1, search = "") => {
-      if (!userId) return;
+      if (!selectedUser?.user_id) return;
+
+      setLoading(true);
       try {
-        setLoading(true);
         const res = await axiosInstance.get(
-          `/videos_page/?user_id=${userId}&page=${pageNum}&search=${search}`
+          `/videos_page/?user_id=${selectedUser.user_id}&page=${pageNum}&search=${encodeURIComponent(search)}`
         );
 
         if (res.data.status === "success") {
           const newVideos = res.data.data || [];
           const pages = res.data.pagination?.pages || 1;
+
           setVideos((prev) => (pageNum === 1 ? newVideos : [...prev, ...newVideos]));
           setTotalPages(pages);
         } else {
           toast({ title: "No videos found", status: "info" });
         }
       } catch (err) {
+        console.error("Error fetching videos:", err);
         toast({ title: "Error fetching videos", status: "error" });
       } finally {
         setLoading(false);
       }
     },
-    [userId, toast]
+    [selectedUser, toast]
   );
 
-  // ✅ Initial & search-triggered load
+  // ✅ Refetch when user or search changes
   useEffect(() => {
-    setVideos([]);
-    setPage(1);
-    fetchVideos(1, searchTerm);
-  }, [searchTerm, fetchVideos]);
+    if (selectedUser?.user_id) {
+      setVideos([]);
+      setPage(1);
+      fetchVideos(1, searchTerm);
+    }
+  }, [selectedUser, searchTerm, fetchVideos]);
 
-  // ✅ Fetch when page changes
+  // ✅ Load more when page changes
   useEffect(() => {
-    fetchVideos(page, searchTerm);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page, fetchVideos, searchTerm]);
+    if (page > 1 && selectedUser?.user_id) {
+      fetchVideos(page, searchTerm);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [page, fetchVideos, searchTerm, selectedUser]);
 
   // ✅ Toggle selection
   const toggleSelect = (id) => {
@@ -199,28 +188,26 @@ const borderColor = useColorModeValue("gray.200", "gray.600");
       const payload = {
         creation_id: generatedVideo.creation_id,
         manual_qc: action,
+        user_id: selectedUser?.user_id,
       };
-      const res = await axiosInstance.post(`/manual_qc_video/`, payload);
-
-      if (res.data) {
-        toast({
-          title: `Video ${action === "accept" ? "accepted" : "sent for recreate"}`,
-          status: "success",
-        });
-        setGeneratedVideo(null);
-        setSelected([]);
-      }
-
+      await axiosInstance.post(`/manual_qc_video/`, payload);
+      toast({
+        title: `Video ${action === "accept" ? "accepted" : "sent for recreate"}`,
+        status: "success",
+      });
+      setGeneratedVideo(null);
+      setSelected([]);
     } catch (err) {
       toast({ title: "Error submitting QC", status: "error" });
     }
   };
 
-  const openPreview = (e, url) => {
+  // ✅ Video Preview Handler
+  const openPreview = useCallback((e, url) => {
     e.stopPropagation();
     setPreviewVideo(url);
     setIsPreviewOpen(true);
-  };
+  }, []);
 
   return (
     <Box p={6} mt={20} minH="100vh" bg="transparent">
@@ -546,6 +533,7 @@ const borderColor = useColorModeValue("gray.200", "gray.600");
                     const payload = {
                       creation_id: currentVideo.creation_id,
                       manual_qc: "accept",
+                      user_id:selectedUser?.user_id
                     };
                     await axiosInstance.post(`/manual_qc_video/`, payload);
 
@@ -577,6 +565,8 @@ const borderColor = useColorModeValue("gray.200", "gray.600");
                     const payload = {
                       creation_id: currentVideo.creation_id,
                       manual_qc: "recreate",
+                      user_id:selectedUser?.user_id
+      
                     };
                     await axiosInstance.post(`/manual_qc_video/`, payload);
 

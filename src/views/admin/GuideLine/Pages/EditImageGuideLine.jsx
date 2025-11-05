@@ -38,22 +38,12 @@ export default function EditImageGuideline() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const api_key = localStorage.getItem("api_key");
-        if (!api_key) {
-          toast({
-            title: "Missing API Key",
-            description: "Please login first.",
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
-          return;
-        }
+
 
         const [choicesRes, guidelineRes] = await Promise.all([
           axiosInstance.get("/get_image_guideline_choices"),
           axiosInstance.post("/factory_development_get_image_guideline/", {
-            api_key,
+
             guideline_id,
           }),
         ]);
@@ -146,20 +136,11 @@ const handleUpdate = async () => {
     }
 
     // 🔹 Require API key
-    const api_key = localStorage.getItem("api_key");
-    if (!api_key) {
-      Swal.fire({
-        icon: "warning",
-        title: "Missing API Key",
-        text: "Please login or add your API key first.",
-        confirmButtonColor: "#3085d6",
-      });
-      return;
-    }
+  
 
     // 🔹 Build payload (always include user_id)
     const payload = {
-      api_key,
+     
       guideline_id,
       user_id:
         loggedUser?.role === "Manager"

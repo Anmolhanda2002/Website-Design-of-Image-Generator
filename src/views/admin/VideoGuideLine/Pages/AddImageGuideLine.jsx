@@ -21,7 +21,7 @@ import axiosInstance from "utils/AxiosInstance";
 import { useNavigate } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
 import Swal from "sweetalert2";
-export default function VideoGuidelineForm() {
+export default function VideoGuidelineForm({userId}) {
   const [loading, setLoading] = useState(true);
   const [choices, setChoices] = useState(null);
   const { colorMode } = useColorMode();

@@ -1,25 +1,35 @@
 import React, { useState, useEffect, startTransition } from "react";
 import {
-    Flex,
-    Box,
-    Button,
-    Text,
-    useColorMode,
-    useColorModeValue,
-    useBreakpointValue,
-    Select,
-    Spinner,
-    useToast,
-    Drawer,
-    DrawerOverlay,
-    DrawerContent,
-    DrawerCloseButton,
-    DrawerHeader,
-    DrawerBody,
-    useDisclosure,
-    HStack,
+  Avatar,
+  Box,
+  Button,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
+  Flex,
+  HStack,
+  Icon,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Select,
+  Spinner,
+  Text,
+  useBreakpointValue,
+  useColorMode,
+  useColorModeValue,
+  useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
 import { MdArrowBack } from "react-icons/md";
+import { SearchIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import Sidebar, { MobileSidebarItems, MobileMenuButton } from "./components/Sidebar"; 
 import Panel from "./components/Panel";
@@ -67,10 +77,70 @@ export default function PixVerseLayout() {
     const [clone, setclone] = useState(false);
     const isMobile = useBreakpointValue({ base: true, md: false });
     const { isOpen, onOpen, onClose } = useDisclosure(); 
-
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [userss, setUser] = useState(null);
+    useEffect(() => {
+      if (isManager) return;
+      const fetchUsers = async () => {
+        try {
+          setDropdownLoading(true);
+          const res = await axiosInstance.get("/my_user_dropdown/");
+          if (res.data?.status === "success") {
+            setAllUsers(res.data.users || []);
+            setFilteredUsers(res.data.users || []);
+          } else {
+            toast({
+              title: "Failed to load users",
+              description: res.data?.message || "Unexpected response",
+              status: "warning",
+              duration: 2500,
+            });
+          }
+        } catch (err) {
+          toast({
+            title: "Error fetching users",
+            description: err.response?.data?.message || err.message,
+            status: "error",
+            duration: 2500,
+          });
+        } finally {
+          setDropdownLoading(false);
+        }
+      };
+      fetchUsers();
+    }, [userss]);
     // User context
-    const user = JSON.parse(localStorage.getItem("user")) || {};
-    const isManager = user.roles && user.roles.includes("Manager");
+const user = JSON.parse(localStorage.getItem("user")) || {};
+const isManager = user.roles && user.roles.includes("Manager");
+
+// For select user
+const handleSelectUser = (u) => {
+  startTransition(() => {
+    if (!u) {
+      // 👇 Selecting "Own" → use the logged-in user
+      setSelectedUser(user);
+      localStorage.setItem("selected_user", JSON.stringify(user));
+    } else {
+      // 👇 Selecting another user
+      setSelectedUser(u);
+      localStorage.setItem("selected_user", JSON.stringify(u));
+    }
+  });
+};
+
+// ✅ First-time setup: if nothing is in localStorage, default to own user
+useEffect(() => {
+  const stored = JSON.parse(localStorage.getItem("selected_user"));
+  if (!stored) {
+    setSelectedUser(user);
+    localStorage.setItem("selected_user", JSON.stringify(user));
+  } else {
+    setSelectedUser(stored);
+  }
+}, []);
 
     // Core States
     const [activeTab, setActiveTab] = useState(
@@ -108,8 +178,25 @@ export default function PixVerseLayout() {
     const [imageToVideoSettings, setImageToVideoSettings] = useState(initialImageToVideoSettings);
     const [captionData, setCaptionData] = useState(initialCaptionData);
     const [MergeData, setMergeData] = useState(initialMergeData);
+const [resetTrigger, setResetTrigger] = useState(0);
+  const [generatedImage, setGeneratedImage] = useState("");
+  const [resizedImage, setResizedImage] = useState("");
+  const [generatedVideo, setGeneratedVideo] = useState(null);
+const handleTabChange = (tab) => {
+  setActiveTab(tab);
+  setResetTrigger((prev) => prev + 1); // 👈 change this to trigger reset
+};
 
 
+  const menuBg = useColorModeValue("white", "navy.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const navbarIcon = useColorModeValue("gray.600", "gray.300");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const hoverBg = useColorModeValue("gray.100", "gray.700");
+  const shadow = useColorModeValue(
+    "0 2px 8px rgba(0,0,0,0.05)",
+    "0 2px 8px rgba(255,255,255,0.08)"
+  );
     // ------------------------------------------------------------------
     // 1. Core Logic: Function to reset all relevant states
     // ------------------------------------------------------------------
@@ -133,54 +220,52 @@ export default function PixVerseLayout() {
         // Reset video selection data 
         setSelectedVideo(null);
         setCaptionedVideos([]);
+        setGeneratedImage("")
+        setResizedImage("")
+        setGeneratedVideo("")
     };
 
     // 2. New Handler: Used by Sidebar components to set the tab
-    const handleSetActiveTab = (tabName) => {
-        // The reset happens in the useEffect hook, ensuring it fires reliably
-        setActiveTab(tabName);
-    };
+const handleSetActiveTab = (tabName) => {
+  startTransition(() => {
+    setActiveTab(tabName);
+  });
+};
 
     // 3. useEffect: Triggers reset when activeTab changes
-    useEffect(() => {
-        // 💾 Save the active tab to local storage
-        localStorage.setItem("activeTab", activeTab);
-
-        // 🔄 Reset all data on tab change
-        startTransition(() => {
-            resetAllData();
-        });
-
-    }, [activeTab]);
+useEffect(() => {
+  resetAllData();
+}, [activeTab]);
     // ------------------------------------------------------------------
 
 
     // Existing useEffect for Captioned Videos 
-    useEffect(() => {
-        if (activeTab !== "Captioned Edit" || !selectedUser) return;
+useEffect(() => {
+  if (activeTab !== "Captioned Edit" || !selectedUser) return;
 
-        const fetchCaptionedVideos = async () => {
-            try {
-                setLoadingCaptioned(true);
-                const res = await axiosInstance.get(
-                    `/get_edited_videos_by_user/?user_id=${selectedUser}`
-                );
-                if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-                    setCaptionedVideos(res.data.data);
-                } else {
-                    setCaptionedVideos([]);
-                    toast({ title: "No videos found for this user", status: "warning", duration: 2000, });
-                }
-            } catch (err) {
-                console.error("Error fetching captioned videos:", err);
-                toast({ title: "Failed to load videos", status: "error", duration: 2000, });
-            } finally {
-                setLoadingCaptioned(false);
-            }
-        };
+  const fetchCaptionedVideos = async () => {
+    setLoadingCaptioned(true);
+    try {
+      const res = await axiosInstance.get(`/get_edited_videos_by_user/?user_id=${selectedUser}`);
+      if (res.data?.status === "success" && Array.isArray(res.data.data)) {
+        setCaptionedVideos(res.data.data);
+      } else {
+        setCaptionedVideos([]);
+        toast({ title: "No videos found for this user", status: "warning", duration: 2000 });
+      }
+    } catch (err) {
+      console.error("Error fetching captioned videos:", err);
+      toast({ title: "Failed to load videos", status: "error", duration: 2000 });
+    } finally {
+      setLoadingCaptioned(false);
+    }
+  };
 
-        fetchCaptionedVideos();
-    }, [activeTab, selectedUser]);
+  // small async defer (prevents React from thinking it’s synchronous)
+  const timer = setTimeout(fetchCaptionedVideos, 0);
+  return () => clearTimeout(timer);
+}, [activeTab, selectedUser]);
+
 
 
     const handleDataChange = (newData) => {
@@ -190,31 +275,42 @@ export default function PixVerseLayout() {
     };
 
     // fetch user dropdown api
-    useEffect(() => {
-        if (!isManager) return; 
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      setDropdownLoading(true);
+      const res = await axiosInstance.get("/my_user_dropdown/");
+      const usersData =
+        res.data?.users ||
+        res.data?.data ||
+        res.data?.results ||
+        res.data ||
+        [];
 
-        const fetchUsers = async () => {
-            try {
-                setLoadingUsers(true);
-                const res = await axiosInstance.get("/my_user_dropdown/");
-                if (res.data?.status === "success" && Array.isArray(res.data.users)) {
-                    setUsers(res.data.users);
-                    if (res.data.users.length > 0) {
-                        setSelectedUser(res.data.users[0].user_id);
-                    }
-                } else {
-                    toast({ title: "No users found", status: "warning", duration: 2000, });
-                }
-            } catch (error) {
-                console.error("User fetch error:", error);
-                toast({ title: "Failed to load users", status: "error", duration: 2000, });
-            } finally {
-                setLoadingUsers(false);
-            }
-        };
+      if (usersData.length > 0) {
+        setAllUsers(usersData);
+        setFilteredUsers(usersData);
+      } else {
+        toast({
+          title: "No users found",
+          status: "info",
+          duration: 2500,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Error fetching users",
+        description: err.response?.data?.message || err.message,
+        status: "error",
+        duration: 2500,
+      });
+    } finally {
+      setDropdownLoading(false);
+    }
+  };
 
-        fetchUsers();
-    }, [isManager]); 
+  fetchUsers();
+}, []); 
 
     useEffect(() => {
         if (!clone) return; 
@@ -260,64 +356,153 @@ export default function PixVerseLayout() {
     }, [clone]);
 
 
+//for select user
+
+
+  // ✅ Sync localStorage every 2 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = JSON.parse(localStorage.getItem("selected_user"));
+      if (!stored && selectedUser) setSelectedUser(null);
+      if (stored && (!selectedUser || stored.user_id !== selectedUser.user_id))
+        setSelectedUser(stored);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [selectedUser]);
+const handleSearch = (e) => {
+  const term = e.target.value.toLowerCase();
+
+  // update text immediately (so typing feels responsive)
+  setSearchTerm(term);
+
+  // heavy filter update in background
+  startTransition(() => {
+    setFilteredUsers(
+      allUsers.filter((u) => u.username.toLowerCase().includes(term))
+    );
+  });
+};
+
+
     // ---------- JSX ----------
     return (
         <Flex direction="column" h="100vh" overflow="hidden">
             {/* ---------- Navbar ---------- */}
-            <Flex
-                h="70px" px={6} py={3} bg={navbarBg} align="center" justify="space-between" borderBottom="1px solid"
-                borderColor={useColorModeValue("gray.200", "gray.700")} flexShrink={0}
-            >
-                {/* Left Section (Arrow + Logo) */}
-                <Flex align="center" gap={4}>
-                    <Button
-                        onClick={() => navigate(-1)} size="sm" bg={useColorModeValue("blue.500", "blue.400")} color="white"
-                        _hover={{ bg: useColorModeValue("blue.600", "blue.500") }} p={2} borderRadius="full"
-                    >
-                        <MdArrowBack size={18} />
-                    </Button>
+<Flex
+  h="70px"
+  px={6}
+  py={3}
+  bg={navbarBg}
+  align="center"
+  justify="space-between"
+  borderBottom="1px solid"
+  borderColor={useColorModeValue("gray.200", "gray.700")}
+  flexShrink={0}
+>
+  <Flex align="center" gap={4}>
+    <Button
+      onClick={() => navigate(-1)}
+      size="sm"
+      bg={useColorModeValue("blue.500", "blue.400")}
+      color="white"
+      _hover={{ bg: useColorModeValue("blue.600", "blue.500") }}
+      p={2}
+      borderRadius="full"
+    >
+      <MdArrowBack size={18} />
+    </Button>
 
-                    <Flex align="center" gap={2}>
-                        <Box as="img" src={Image} alt="Hygaar Logo" boxSize="30px" borderRadius="md" />
-                        <Text fontSize="lg" fontWeight="bold">Hygaar</Text>
-                    </Flex>
-                </Flex>
-                
-                {/* Right Section (User Dropdown + Toggle + Mobile Menu Button) */}
-                <HStack spacing={4}>
-                    {/* User Dropdown (Manager Role Only) */}
-                    {isManager && (
-                        <Flex align="center" gap={4}>
-                            {loadingUsers ? (<Spinner size="sm" />) : (
-                                <Select
-                                    placeholder="Select User" size="sm" w="200px" value={selectedUser}
-                                    onChange={(e) => {
-                                        const userId = e.target.value;
-                                        startTransition(() => { setSelectedUser(userId); });
-                                    }}
-                                    display={{ base: "none", sm: "block" }}
-                                >
-                                    {users.map((u) => (<option key={u.user_id} value={u.user_id}>{u.username}</option>))}
-                                </Select>
-                            )}
-                        </Flex>
-                    )}
-                    
-                    {/* Mode Toggle */}
-                    <Button onClick={toggleColorMode} size="sm" variant="ghost" p={2} borderRadius="full">
-                        {colorMode === "light" ? "🌙" : "☀️"}
-                    </Button>
-                    
-                    {/* Mobile Menu Button - Visible only on mobile (base) */}
-                    <MobileMenuButton onOpen={onOpen} />
-                </HStack>
+    <Flex align="center" gap={2}>
+      <Box as="img" src={Image} alt="Hygaar Logo" boxSize="30px" borderRadius="md" />
+      <Text fontSize="lg" fontWeight="bold">Hygaar</Text>
+    </Flex>
+  </Flex>
+
+  <HStack spacing={4}>
+    {isManager && (
+      <Menu>
+        <MenuButton
+          as={Button}
+          size="sm"
+          variant="outline"
+          borderColor={borderColor}
+          _hover={{ bg: hoverBg }}
+        >
+          {selectedUser ? selectedUser.username : "Own"}
+        </MenuButton>
+        <MenuList
+          p={3}
+          borderRadius="md"
+          bg={menuBg}
+          boxShadow={shadow}
+          minW="200px"
+          maxH="260px"
+          overflowY="auto"
+        >
+          <InputGroup mb={2}>
+            <InputLeftElement pointerEvents="none">
+              <SearchIcon color="gray.400" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search users..."
+              size="sm"
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </InputGroup>
+
+          <MenuItem
+            onClick={() => handleSelectUser(null)}
+            borderRadius="md"
+            _hover={{ bg: hoverBg }}
+            fontWeight={
+              !selectedUser || selectedUser?.user_id === user.user_id ? "600" : "normal"
+            }
+          >
+            Own
+          </MenuItem>
+
+          {dropdownLoading ? (
+            <Flex justify="center" align="center" py={2}>
+              <Spinner size="sm" />
             </Flex>
+          ) : filteredUsers.length > 0 ? (
+            filteredUsers.map((u) => (
+              <MenuItem
+                key={u.user_id}
+                onClick={() => handleSelectUser(u)}
+                borderRadius="md"
+                _hover={{ bg: hoverBg }}
+                fontWeight={
+                  selectedUser?.user_id === u.user_id ? "600" : "normal"
+                }
+              >
+                {u.username}
+              </MenuItem>
+            ))
+          ) : (
+            <Text fontSize="sm" color="gray.500" textAlign="center" py={2}>
+              No users found
+            </Text>
+          )}
+        </MenuList>
+      </Menu>
+    )}
+
+    <Button onClick={toggleColorMode} size="sm" variant="ghost" p={2} borderRadius="full">
+      {colorMode === "light" ? "🌙" : "☀️"}
+    </Button>
+
+    <MobileMenuButton onOpen={onOpen} />
+  </HStack>
+</Flex>
+
 
             {/* =========================================================
               Mobile Sidebar Drawer 
               =========================================================
             */}
-            <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
+            {/* <Drawer placement="left" onClose={onClose} isOpen={isOpen} size="xs">
                 <DrawerOverlay />
                 <DrawerContent>
                     <DrawerCloseButton />
@@ -330,96 +515,335 @@ export default function PixVerseLayout() {
                         />
                     </DrawerBody>
                 </DrawerContent>
-            </Drawer>
+            </Drawer> */}
 
             {/* ---------- BODY ---------- */}
-            {isMobile ? (
-                /* ===== Mobile Layout (Simplified) ===== */
-                <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
-                    {/* Conditional full-screen components for specific tabs */}
-                    {(activeTab === "Edit Video" || activeTab === "Caption Segment" || activeTab === "Captioned Edit" || activeTab === "Merge Video" || activeTab === "Add Music") ? (
-                        <Box
-                            overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
-                            sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
-                        >
-                            {activeTab === "Edit Video" && (<EditVedioComponent previewData={previewData} />)}
-                            {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
-                            {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
-                            {activeTab === "Merge Video" && (<MergeVideo MergeData={MergeData} setMergeData={setMergeData} />)}
-                            {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} />}
-                        </Box>
-                    ) : (
-                        // Default Panel/Preview Layout for other tabs
-                        <>
-                            <PreviewArea
-                                text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} resolution={resolution} ratio={ratio} activeTab={activeTab} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser}
-                            />
-                            {/* Panel Below Preview in Mobile */}
-                            <Panel
-                                activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData}
-                            />
-                        </>
-                    )}
-                </Flex>
-            ) : (
-                /* ===== Desktop Layout (Existing Logic) ===== */
-                <Flex flex="1" overflow="hidden">
-                    {/* Sidebar */}
-                    <Box
-                        w="100px" h="calc(100vh - 70px)" overflowY="auto" flexShrink={0}
-                        sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
-                    >
-                        <Sidebar activeTab={activeTab} setActiveTab={handleSetActiveTab} /> {/* ✅ Uses the reset handler */}
-                    </Box>
+          {isMobile ? (
+  <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
+    {(activeTab === "Edit Video" ||
+      activeTab === "Caption Segment" ||
+      activeTab === "Captioned Edit" ||
+      activeTab === "Merge Video" ||
+      activeTab === "Add Music") ? (
+      <Box
+        overflowY="auto"
+        flex="1"
+        p={4}
+        bg={color}
+        borderRadius="lg"
+        boxShadow="md"
+        sx={{
+          "::-webkit-scrollbar": { display: "none" },
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
+        }}
+      >
+        {activeTab === "Edit Video" && (
+          <EditVedioComponent selectedUser={selectedUser} previewData={previewData} />
+        )}
+        {activeTab === "Caption Segment" && (
+          <CaptionedSegment
+            selectedUser={selectedUser}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+          />
+        )}
+        {activeTab === "Captioned Edit" && (
+          <CaptionedEdit
+            selectedUser={selectedUser}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        )}
+        {activeTab === "Merge Video" && (
+          <MergeVideo
+            selectedUser={selectedUser}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        )}
+        {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} />}
+      </Box>
+    ) : (
+      <>
+        <PreviewArea
+          generatedVideo={generatedVideo}
+          setGeneratedVideo={setGeneratedVideo}
+          generatedImage={generatedImage}
+          setGeneratedImage={setGeneratedImage}
+          resizedImage={resizedImage}
+          setResizedImage={setResizedImage}
+          text={text}
+          resetTrigger={resetTrigger}
+          setText={setText}
+          images={images}
+          setImages={setImages}
+          loadingImages={loadingImages}
+          setLoadingImages={setLoadingImages}
+          sending={sending}
+          setSending={setSending}
+          model={model}
+          duration={duration}
+          resolution={resolution}
+          ratio={ratio}
+          activeTab={activeTab}
+          imageCreationSettings={imageCreationSettings}
+          resizeImageSettings={resizeImageSettings}
+          imageToVideoSettings={imageToVideoSettings}
+          selectedUser={selectedUser}
+        />
+        <Panel
+          activeTab={activeTab}
+          onDataChange={handleDataChange}
+          model={model}
+          setModel={setModel}
+          duration={duration}
+          setDuration={setDuration}
+          resolution={resolution}
+          setResolution={setResolution}
+          ratio={ratio}
+          setRatio={setRatio}
+          imageCreationSettings={imageCreationSettings}
+          setImageCreationSettings={setImageCreationSettings}
+          resizeImageSettings={resizeImageSettings}
+          setResizeImageSettings={setResizeImageSettings}
+          imageToVideoSettings={imageToVideoSettings}
+          setImageToVideoSettings={setImageToVideoSettings}
+          captionData={captionData}
+          setCaptionData={setCaptionData}
+          MergeData={MergeData}
+          setMergeData={setMergeData}
+        />
+      </>
+    )}
+  </Flex>
+) : (
+  <Flex flex="1" overflow="hidden">
+    <Box
+      w="100px"
+      h="calc(100vh - 70px)"
+      overflowY="auto"
+      flexShrink={0}
+      sx={{
+        "&::-webkit-scrollbar": { display: "none" },
+        msOverflowStyle: "none",
+        scrollbarWidth: "none",
+      }}
+    >
+      <Sidebar activeTab={activeTab} setActiveTab={handleSetActiveTab} />
+    </Box>
 
-                    {/* Conditional Rendering */}
-                    {activeTab === "Edit Video" ? (
-                        <Box
-                            flex="1" bg={bgColor} overflowY="auto" mt={"-50"}
-                            sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
-                        >
-                            <EditVedioComponent previewData={previewData} setActiveTab={handleSetActiveTab} setclone={setclone} setclonecreationid={setclonecreationid} /> {/* ✅ Uses the reset handler */}
-                        </Box>
-                    ) : activeTab === "Caption Segment" ? (
-                        <Flex flex="1" overflow="hidden">
-                            {/* Panel */}
-                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
-                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
-                            </Box>
-                            {/* Preview Area */}
-                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
-                                <CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
-                            </Box>
-                        </Flex>
-                    ) : activeTab === "Captioned Edit" ? (
-                        <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
-                    ) : activeTab === "Merge Video" ? (
-                        <Flex flex="1" overflow="hidden">
-                            {/* Panel */}
-                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
-                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
-                            </Box>
-                            {/* Preview Area */}
-                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
-                                <MergeVideo MergeData={MergeData} setMergeData={setMergeData} />
-                            </Box>
-                        </Flex>
-                    ) : activeTab === "Add Music" ? (
-                        <AddMusic selectedUser={selectedUser} />
-                    ) : (
-                        <Flex flex="1" overflow="hidden">
-                            {/* Panel */}
-                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
-                                <Panel activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
-                            </Box>
-                            {/* Preview Area */}
-                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
-                                <PreviewArea activeTab={activeTab} text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser} />
-                            </Box>
-                        </Flex>
-                    )}
-                </Flex>
-            )}
+    {activeTab === "Edit Video" ? (
+      <Box
+        flex="1"
+        bg={bgColor}
+        overflowY="auto"
+        mt="-50"
+        sx={{
+          "&::-webkit-scrollbar": { display: "none" },
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
+        }}
+      >
+        <EditVedioComponent
+          selectedUser={selectedUser}
+          previewData={previewData}
+          setActiveTab={handleSetActiveTab}
+          setclone={setclone}
+          setclonecreationid={setclonecreationid}
+        />
+      </Box>
+    ) : activeTab === "Caption Segment" ? (
+      <Flex flex="1" overflow="hidden">
+        <Box
+          w={{ base: "100%", md: "350px" }}
+          h="calc(100vh - 70px)"
+          overflowY="auto"
+          p={4}
+          flexShrink={0}
+          sx={{
+            "&::-webkit-scrollbar": { display: "none" },
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+          }}
+        >
+          <Panel
+            activeTab={activeTab}
+            onDataChange={handleDataChange}
+            model={model}
+            setModel={setModel}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            setRatio={setRatio}
+            imageCreationSettings={imageCreationSettings}
+            setImageCreationSettings={setImageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            setResizeImageSettings={setResizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            setImageToVideoSettings={setImageToVideoSettings}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        </Box>
+        <Box
+          flex="1"
+          h="calc(100vh - 70px)"
+          p={6}
+          overflow="hidden"
+          display="flex"
+          flexDirection="column"
+        >
+          <CaptionedSegment
+            selectedUser={selectedUser}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+          />
+        </Box>
+      </Flex>
+    ) : activeTab === "Captioned Edit" ? (
+      <CaptionedEdit
+        selectedUser={selectedUser}
+        MergeData={MergeData}
+        setMergeData={setMergeData}
+      />
+    ) : activeTab === "Merge Video" ? (
+      <Flex flex="1" overflow="hidden">
+        <Box
+          w={{ base: "100%", md: "350px" }}
+          h="calc(100vh - 70px)"
+          overflowY="auto"
+          p={4}
+          flexShrink={0}
+          sx={{
+            "&::-webkit-scrollbar": { display: "none" },
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+          }}
+        >
+          <Panel
+            activeTab={activeTab}
+            onDataChange={handleDataChange}
+            model={model}
+            setModel={setModel}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            setRatio={setRatio}
+            imageCreationSettings={imageCreationSettings}
+            setImageCreationSettings={setImageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            setResizeImageSettings={setResizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            setImageToVideoSettings={setImageToVideoSettings}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        </Box>
+        <Box
+          flex="1"
+          h="calc(100vh - 70px)"
+          p={6}
+          overflow="hidden"
+          display="flex"
+          flexDirection="column"
+        >
+          <MergeVideo
+            selectedUser={selectedUser}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        </Box>
+      </Flex>
+    ) : activeTab === "Add Music" ? (
+      <AddMusic selectedUser={selectedUser} />
+    ) : (
+      <Flex flex="1" overflow="hidden">
+        <Box
+          w={{ base: "100%", md: "350px" }}
+          h="calc(100vh - 70px)"
+          overflowY="auto"
+          p={4}
+          flexShrink={0}
+          sx={{
+            "&::-webkit-scrollbar": { display: "none" },
+            msOverflowStyle: "none",
+            scrollbarWidth: "none",
+          }}
+        >
+          <Panel
+            activeTab={activeTab}
+            onDataChange={handleDataChange}
+            model={model}
+            setModel={setModel}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            setRatio={setRatio}
+            imageCreationSettings={imageCreationSettings}
+            setImageCreationSettings={setImageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            setResizeImageSettings={setResizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            setImageToVideoSettings={setImageToVideoSettings}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        </Box>
+        <Box
+          flex="1"
+          h="calc(100vh - 70px)"
+          p={6}
+          overflow="hidden"
+          display="flex"
+          flexDirection="column"
+        >
+          <PreviewArea
+            generatedVideo={generatedVideo}
+            setGeneratedVideo={setGeneratedVideo}
+            generatedImage={generatedImage}
+            setGeneratedImage={setGeneratedImage}
+            resizedImage={resizedImage}
+            setResizedImage={setResizedImage}
+            resetTrigger={resetTrigger}
+            activeTab={activeTab}
+            text={text}
+            setText={setText}
+            images={images}
+            setImages={setImages}
+            loadingImages={loadingImages}
+            setLoadingImages={setLoadingImages}
+            sending={sending}
+            setSending={setSending}
+            model={model}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            imageCreationSettings={imageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            selectedUser={selectedUser}
+          />
+        </Box>
+      </Flex>
+    )}
+  </Flex>
+)}
+
         </Flex>
     );
 }

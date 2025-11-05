@@ -88,45 +88,7 @@ const handleLogin = async () => {
       localStorage.setItem("refresh_token", refresh_token);
 
       // ✅ Check for existing API key
-      const existingApiKey = localStorage.getItem("api_key");
 
-      if (!existingApiKey) {
-        try {
-          // Generate new API key only if not exists
-          const apiKeyResponse = await axios.post(
-            `${process.env.REACT_APP_API_URL}factory_development_generate_key/`,
-            {
-              user_id: user.user_id || user._id, // send userId
-              key_name: "first Key", // you can make this dynamic if needed
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${access_token}`,
-              },
-            }
-          );
-
-          const { status: keyStatus, data: keyData } = apiKeyResponse.data;
-
-          if (keyStatus === "success" && keyData?.api_key) {
-            localStorage.setItem("api_key", keyData.api_key);
-            console.log("✅ API Key generated and stored:", keyData.api_key);
-          } else {
-            console.warn("⚠️ API key missing in response:", apiKeyResponse.data);
-          }
-        } catch (apiErr) {
-          console.error("Error generating API key:", apiErr);
-          toast({
-            title: "API Key Generation Failed",
-            description: apiErr.response?.data?.message || "Unable to generate API key.",
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-      } else {
-        console.log("ℹ️ Existing API key found in localStorage, skipping generation.");
-      }
 
       // ✅ Success toast
       toast({
