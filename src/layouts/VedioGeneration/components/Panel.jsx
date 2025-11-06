@@ -119,39 +119,24 @@ export default function Panel({
 
 
     // 🔍 Fetch Guidelines from API (Debounced using useEffect)
-const searchTimeout = useRef(null);
+    const searchTimeout = useRef(null);
+useEffect(() => {
+  loadAllGuidelines();
+}, []);
 
-const fetchGuidelines = async () => {
-  if (!searchTerm.trim()) {
-    setGuidelines([]);
-    return;
-  }
-
-  setLoading(true);
-
+const loadAllGuidelines = async () => {
   try {
+    setLoading(true);
+
     const user = JSON.parse(localStorage.getItem("user"));
     const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
-    const userId = selectedUser?.user_id || user?.user_id || null;
+    const userId = selectedUser?.user_id || user?.user_id;
 
-    if (!userId) {
-      toast({
-        title: "User not found",
-        description: "Please log in again.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      setLoading(false);
-      return;
-    }
-
-    // ✅ Fetch ALL possible guidelines
     const res = await axiosInstance.get("/search_image_guidelines/", {
       params: {
-        name: searchTerm,
+        name: "",        // ✅ empty → backend returns all
         user_id: userId,
-        limit: 50,    // ✅ fetch more results
+        limit: 50,
         page: 1,
       },
     });
@@ -164,28 +149,25 @@ const fetchGuidelines = async () => {
         : [];
 
     setGuidelines(result);
-  } catch (error) {
-    console.error("Failed to fetch guidelines:", error);
-    toast({
-      title: "Failed to fetch guidelines",
-      description: error.message || "Something went wrong",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
+  } catch (err) {
+    console.log(err);
   } finally {
     setLoading(false);
   }
 };
-
-
 useEffect(() => {
+  if (!searchTerm.trim()) {
+    loadAllGuidelines();   // ✅ When search is empty → show all again
+    return;
+  }
+
   if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
   searchTimeout.current = setTimeout(() => {
-    fetchGuidelines();
-  }, 400); // ✅ 400ms debounce
+    loadAllGuidelines();    // ✅ Run search
+  }, 400);
 }, [searchTerm]);
+
 
     // Section for image to video (Dropdown fetches)
     const generateShortUUID = () => {
