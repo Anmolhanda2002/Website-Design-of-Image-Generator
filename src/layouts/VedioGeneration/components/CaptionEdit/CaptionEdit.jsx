@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef,startTransition } from "react";
+import React, { useEffect, useState, useRef, startTransition } from "react";
 import {
   Box,
   Flex,
@@ -38,96 +38,58 @@ export default function CaptionedCombine({ selectedUser }) {
   );
 
   const transitionOptions = [
-    "none",
-    "fade",
-    "dissolve",
-    "slide",
-    "slideright",
-    "slideleft",
-    "slideup",
-    "slidedown",
-    "zoomin",
-    "zoomout",
-    "wiperight",
-    "wipeleft",
-    "wipeup",
-    "wipedown",
-    "fadeblack",
-    "fadewhite",
-    "radial",
-    "circlecrop",
-    "rectcrop",
-    "smoothleft",
-    "smoothright",
-    "distance",
-    "dis_rot",
-    "sequence",
-    "sequential",
+    "none", "fade", "dissolve", "slide", "slideright", "slideleft",
+    "slideup", "slidedown", "zoomin", "zoomout", "wiperight", "wipeleft",
+    "wipeup", "wipedown", "fadeblack", "fadewhite", "radial", "circlecrop",
+    "rectcrop", "smoothleft", "smoothright", "distance", "dis_rot",
+    "sequence", "sequential",
   ];
 
-  // ✅ Sync `selectedUser` safely — only store string ID
+  // Sync selectedUser ID
   useEffect(() => {
     if (selectedUser?.user_id && typeof selectedUser.user_id === "string") {
       setSelectuser(selectedUser.user_id);
     }
   }, [selectedUser]);
 
-  // ✅ Fetch captioned videos when `selectuser` is ready
- 
+  // ✅ Fetch videos (supports final_video_url)
+  useEffect(() => {
+    if (!selectuser) return;
 
-useEffect(() => {
-  if (!selectuser) return;
-
-  
     const fetchVideos = async () => {
       console.log("🎯 Fetching videos for user:", selectuser);
       setLoading(true);
       try {
-
-console.log("")
-        
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
           params: { user_id: selectuser },
         });
 
-        const success = res.data?.success ?? true;
-        const message = res.data?.message || "Videos fetched successfully.";
         const allVideos = res.data?.data || [];
-        const captionedVideos =
-          allVideos.filter((v) => v.captioned_final_video_url) || [];
+
+        // ✅ FIX — accept ANY valid video URL
+        const captionedVideos = allVideos.filter((v) =>
+          v.captioned_final_video_url ||
+          v.final_video_url ||
+          v.final_resize_video_url ||
+          v.captioned_combined_video_url
+        );
 
         setVideos(captionedVideos);
 
         if (captionedVideos.length === 0) {
           toast({
-            title: "No captioned videos found",
-            description: "You don't have any captioned videos yet.",
+            title: "No videos found",
+            description: "This user has no processed videos.",
             status: "info",
             duration: 3000,
             isClosable: true,
           });
-        } else if (!success) {
-          toast({
-            title: "Warning",
-            description: message,
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
-        } else {
-          console.log("✅", message);
         }
       } catch (err) {
         console.error("❌ Failed to load videos:", err);
-        const backendMsg =
-          err.response?.data?.message ||
-          err.response?.data?.detail ||
-          err.response?.data?.error ||
-          err.message ||
-          "An unexpected error occurred while fetching videos.";
         toast({
           title: "Failed to load videos",
-          description: backendMsg,
+          description: err.response?.data?.message || err.message,
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -138,62 +100,65 @@ console.log("")
     };
 
     fetchVideos();
- 
-}, [selectuser, toast]);
+  }, [selectuser]);
 
-  // ✅ Cleanup polling interval on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // 🔹 Select one video
+  // Select a video
   const handleSelectVideo = (video) => {
     setSelectedVideo((prev) =>
       prev?.edit_id === video.edit_id ? null : video
     );
   };
 
-  // 🔹 Polling job status
+  // ✅ Polling job status
   const pollStatus = (url) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+
     setPollingStarted(true);
     setProcessing(true);
-    setPollingStatusText("Job submitted. Waiting for completion...");
+    setPollingStatusText("Job submitted...");
 
     intervalRef.current = setInterval(async () => {
       try {
         const res = await axiosInstance.get(url);
         const data = res.data?.data;
+
         const currentStatus = data?.status;
         setPollingStatusText(`Status: ${currentStatus?.toUpperCase()}`);
 
-        if (
-          currentStatus === "completed_captioned" ||
-          currentStatus === "completed"
-        ) {
+        if (currentStatus === "completed" || currentStatus === "completed_captioned") {
           clearInterval(intervalRef.current);
+
+          // ✅ FIX — support all final video keys
           const finalUrl =
             data?.final_video_url ||
-            data?.final_resize_video_url ||
-            data?.captioned_combined_video_url;
+            data?.captioned_combined_video_url ||
+            data?.final_resize_video_url;
+
           setFinalVideoUrl(finalUrl);
           setProcessing(false);
+
           toast({
-            title: "✅ Captioned video ready!",
+            title: "✅ Video Ready!",
             status: "success",
             duration: 3500,
             isClosable: true,
           });
-        } else if (currentStatus === "failed" || currentStatus === "error") {
+        }
+
+        if (currentStatus === "failed" || currentStatus === "error") {
           clearInterval(intervalRef.current);
           setProcessing(false);
           setFinalVideoUrl(null);
           toast({
             title: "❌ Processing Failed",
-            description:
-              data?.message || "The backend job failed to complete.",
+            description: data?.message,
             status: "error",
             duration: 4000,
             isClosable: true,
@@ -202,15 +167,15 @@ console.log("")
       } catch (err) {
         console.error("Polling error:", err);
       }
-    }, 10000);
+    }, 8000);
   };
 
-  // 🔹 Submit video for captioned processing
+  // Submit processing job
   const handleSubmit = async () => {
     if (!selectedVideo) {
       toast({
-        title: "Selection required",
-        description: "Please select one video to continue.",
+        title: "Select a video",
+        description: "Please select a video to continue.",
         status: "warning",
         duration: 2500,
         isClosable: true,
@@ -226,46 +191,30 @@ console.log("")
     const payload = {
       hygaar_key: selectedVideo.hygaar_key,
       edit_id: selectedVideo.edit_id,
+      user_id: selectuser,
       transition_effect: transitionEffect,
-      user_id: selectuser, // always string
     };
 
     try {
       const res = await axiosInstance.post(`/captioned_combined_video/`, payload);
-      const success = res.data?.success;
-      const message = res.data?.message || "Request processed.";
-      const data = res.data?.data;
-      const statusUrl = data?.status_check_url;
 
-      if (success && statusUrl) {
+      const statusUrl = res.data?.data?.status_check_url;
+
+      if (statusUrl) {
         pollStatus(statusUrl);
         toast({
           title: "Processing started",
-          description:
-            message ||
-            "Combining video with transition effect in progress.",
           status: "info",
           duration: 3000,
           isClosable: true,
         });
-      } else {
-        throw new Error(
-          message || "Invalid response from the backend. Please try again."
-        );
       }
     } catch (err) {
       console.error("❌ Submit error:", err);
       setProcessing(false);
-      setPollingStarted(false);
-      const backendMsg =
-        err.response?.data?.message ||
-        err.response?.data?.detail ||
-        err.response?.data?.error ||
-        err.message ||
-        "An unknown error occurred.";
       toast({
         title: "Failed to start processing",
-        description: backendMsg,
+        description: err.response?.data?.message || err.message,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -273,9 +222,16 @@ console.log("")
     }
   };
 
-  // 🔹 Video card
+  // ✅ Video Card with fixed preview logic
   const VideoCard = ({ video }) => {
     const selected = selectedVideo?.edit_id === video.edit_id;
+
+    const videoUrl =
+      video.captioned_final_video_url ||
+      video.final_video_url ||
+      video.final_resize_video_url ||
+      video.captioned_combined_video_url;
+
     return (
       <Box
         border="2px solid"
@@ -285,13 +241,11 @@ console.log("")
         bg={cardBg}
         overflow="hidden"
         cursor="pointer"
-        transition="0.25s ease"
-        _hover={{ transform: "scale(1.01)" }}
         onClick={() => handleSelectVideo(video)}
       >
-        {video.captioned_final_video_url ? (
+        {videoUrl ? (
           <video
-            src={video.captioned_final_video_url}
+            src={videoUrl}
             muted
             style={{ width: "100%", height: "200px", objectFit: "cover" }}
           />
@@ -303,9 +257,10 @@ console.log("")
             alignItems="center"
             justifyContent="center"
           >
-            <Text color="gray.500">No Captioned Video Preview</Text>
+            <Text color="gray.500">No Video Preview</Text>
           </Box>
         )}
+
         <Box p={3}>
           <Text fontWeight="bold" noOfLines={1}>
             {video.project_name || "Untitled"}
@@ -313,13 +268,9 @@ console.log("")
           <Text fontSize="sm" color="gray.500">
             Edit ID: {video.edit_id}
           </Text>
+
           {selected && (
-            <Text
-              fontSize="sm"
-              color="blue.500"
-              fontWeight="semibold"
-              mt={1}
-            >
+            <Text fontSize="sm" color="blue.500" fontWeight="semibold" mt={1}>
               Selected
             </Text>
           )}
@@ -328,34 +279,28 @@ console.log("")
     );
   };
 
-  // 🔹 Processing / Final video display
+  // Processing Screen
   const ProcessingView = () => (
     <Flex
       direction="column"
       align="center"
       justify="center"
-      p={{ base: 4, md: 8 }}
+      p={6}
       bg={cardBg}
       borderRadius="xl"
       minH="70vh"
       w="100%"
-      boxShadow="lg"
     >
       {finalVideoUrl ? (
-        <VStack spacing={6} w={{ base: "100%", md: "600px" }} maxW="100%">
+        <VStack spacing={6} w={{ base: "100%", md: "600px" }}>
           <Flex align="center" gap={3} color="green.500">
             <MdCheckCircle size={30} />
-            <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold">
+            <Text fontSize="2xl" fontWeight="bold">
               Combination Complete!
             </Text>
           </Flex>
-          <Box
-            borderRadius="xl"
-            overflow="hidden"
-            boxShadow="dark-lg"
-            bg="black"
-            w="100%"
-          >
+
+          <Box borderRadius="xl" overflow="hidden" bg="black" w="100%">
             <video
               src={finalVideoUrl}
               controls
@@ -369,6 +314,7 @@ console.log("")
               }}
             />
           </Box>
+
           <Button
             colorScheme="blue"
             onClick={() => {
@@ -383,15 +329,10 @@ console.log("")
       ) : (
         <VStack spacing={4}>
           <Text fontSize="xl" fontWeight="semibold">
-            Combining Captioned Segments...
+            Combining video segments...
           </Text>
           <Spinner size="xl" color="blue.400" thickness="5px" />
-          <Text color="gray.500" mt={3} fontWeight="medium" textAlign="center">
-            {pollingStatusText}
-          </Text>
-          <Text color="gray.500" fontSize="sm">
-            Estimated time: 1-5 minutes, depending on video length.
-          </Text>
+          <Text color="gray.500">{pollingStatusText}</Text>
           <Button
             size="sm"
             variant="outline"
@@ -411,15 +352,15 @@ console.log("")
   );
 
   return (
-    <Box bg={bg} minH="100%" w="100%" overflowY="auto" p={{ base: 4, md: 8 }}>
-      <Flex justify="space-between" align="center" flexWrap="wrap" gap={4} mb={6}>
-        <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold">
+    <Box bg={bg} minH="100%" p={6}>
+      <Flex justify="space-between" align="center" mb={6} flexWrap="wrap">
+        <Text fontSize="2xl" fontWeight="bold">
           Captioned Video Combination
         </Text>
-        {!(processing || pollingStarted) && (
-          <Flex gap={4} align="center" flexWrap="wrap">
+
+        {!processing && !pollingStarted && (
+          <Flex gap={4} align="center">
             <Select
-              size="md"
               value={transitionEffect}
               onChange={(e) => setTransitionEffect(e.target.value)}
               bg={cardBg}
@@ -432,12 +373,12 @@ console.log("")
                 </option>
               ))}
             </Select>
+
             <Button
               colorScheme="blue"
-              size="md"
+              leftIcon={<MdPlayCircle />}
               onClick={handleSubmit}
               isDisabled={!selectedVideo || processing}
-              leftIcon={<MdPlayCircle />}
             >
               Start Processing
             </Button>
@@ -452,19 +393,15 @@ console.log("")
           <Spinner size="xl" color="blue.500" />
         </Flex>
       ) : videos.length > 0 ? (
-        <SimpleGrid
-          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-          spacing={6}
-          pb={10}
-        >
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
           {videos.map((v) => (
             <VideoCard key={v.edit_id} video={v} />
           ))}
         </SimpleGrid>
       ) : (
         <Flex align="center" justify="center" h="50vh">
-          <Text color="gray.500" fontSize="lg" textAlign="center">
-            No captioned videos found for this user.
+          <Text color="gray.500" fontSize="lg">
+            No videos found for this user.
           </Text>
         </Flex>
       )}
