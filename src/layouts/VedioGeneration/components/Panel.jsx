@@ -953,15 +953,7 @@ case "Caption Segment":
                             />
                         </Box>
 
-                        {/* 🧩 Hygaar Key */}
-                        <Box>
-                            <Text fontWeight="bold">Hygaar Key</Text>
-                            <Input
-                                type="text" placeholder="Enter Hygaar Key" value={MergeData.hygaar_key || ""}
-                                onChange={(e) => startTransition(() => setMergeData({ ...MergeData, hygaar_key: e.target.value }))} // ✅ Wrapped in startTransition
-                                mt={2}
-                            />
-                        </Box>
+
 
                         {/* 🧩 Edit ID */}
                         <Box>

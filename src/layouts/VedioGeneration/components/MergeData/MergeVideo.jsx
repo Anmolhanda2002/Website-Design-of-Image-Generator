@@ -99,35 +99,61 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   };
 
   // ---------------- MERGE SUBMIT ----------------
-  const handleMergeSubmit = async () => {
-    if (!selectedVideo) {
-      toast({
-        title: "Select a video first",
-        status: "warning",
-      });
-      return;
-    }
+const handleMergeSubmit = async () => {
+  if (!selectedVideo) {
+    toast({
+      title: "Select a video first",
+      status: "warning",
+      duration: 2500,
+    });
+    return;
+  }
 
-    try {
-      setSubmitting(true);
-      const res = await axiosInstance.post("/merged_video/", {
-        user_id: selectedUser.user_id,
-        hygaar_key: selectedVideo.hygaar_key,
-        edit_id: selectedVideo.edit_id,
-        brand_outro_video_url: MergeData.brand_outro_video_url || "",
-        outro_video_url: MergeData.brand_outro_video_url || "",
-      });
+  try {
+    setSubmitting(true);
 
-      const jobId = res.data?.data?.job_id;
-      if (!jobId) throw new Error("Job failed");
+    const res = await axiosInstance.post("/merged_video/", {
+      user_id: selectedUser.user_id,
+      hygaar_key: selectedVideo.hygaar_key,
+      edit_id: selectedVideo.edit_id,
+      brand_outro_video_url: MergeData.brand_outro_video_url || "",
+      outro_video_url: MergeData.brand_outro_video_url || "",
+    });
 
-      startPolling(jobId);
-    } catch (err) {
-      toast({ title: "Merge failed", status: "error" });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    // ✅ Show backend message if exists
+    toast({
+      title: res.data?.message || "Merge request submitted",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+
+    const jobId = res.data?.data?.job_id;
+    if (!jobId) throw new Error("Job failed");
+
+    startPolling(jobId);
+
+  } catch (err) {
+    // ✅ Extract backend error message
+    const backendMessage =
+      err.response?.data?.message ||
+      err.response?.data?.detail ||
+      err.message ||
+      "Merge failed";
+
+    toast({
+      title: "Merge failed",
+      description: backendMessage, // ✅ Show backend message
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   // ---------------- POLLING ----------------
   const startPolling = (jobId) => {
@@ -248,7 +274,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
               src={playingVideoUrl}
               controls
               autoPlay
-              style={{ width: "100%", height: "200px", borderRadius: "8px" }}
+              style={{ width: "100%", height: "400px", borderRadius: "8px" }}
             />
           )}
         </ModalBody>

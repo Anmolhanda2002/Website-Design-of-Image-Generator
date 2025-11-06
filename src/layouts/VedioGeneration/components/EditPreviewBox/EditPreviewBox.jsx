@@ -508,7 +508,7 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
             src={previewVideo}
             controls
             autoPlay
-            style={{ width: "100%", height:"30vh",borderRadius: "10px", background: "black" }}
+            style={{ width: "100%", height:"40vh",borderRadius: "10px", background: "black" }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />
