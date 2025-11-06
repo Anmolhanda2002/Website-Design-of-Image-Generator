@@ -141,37 +141,75 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   };
 
   // ✅ POLLING
-  const startPolling = (jobId) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+const startPolling = (jobId) => {
+  if (intervalRef.current) clearInterval(intervalRef.current);
 
-    setPolling(true);
-    setMergeStatus("submitted");
+  setPolling(true);
+  setMergeStatus("submitted");
 
-    intervalRef.current = setInterval(async () => {
-      try {
-        const res = await axiosInstance.get(`/get_video_merge_job_status/?job_id=${jobId}`);
-        const job = res.data?.data;
+  intervalRef.current = setInterval(async () => {
+    try {
+      const res = await axiosInstance.get(
+        `/get_video_merge_job_status/?job_id=${jobId}`
+      );
 
-        setMergeStatus(job.status);
+      const job = res.data?.data;
+      const status = job?.status?.toLowerCase() || "unknown";
 
-        if (job.status === "completed") {
-          clearInterval(intervalRef.current);
-          setPolling(false);
+      setMergeStatus(status);
 
-          const finalUrl =
-            job.final_resize_video_url ||
-            job.final_video_with_music_url ||
-            job.final_video_url;
+      // ✅ STOP on COMPLETED
+      if (status === "completed") {
+        clearInterval(intervalRef.current);
+        setPolling(false);
 
-          setMergedVideo(finalUrl);
-          setPlayingVideoUrl(finalUrl);
-          videoPlayer.onOpen();
-        }
-      } catch (e) {
-        console.log("Polling failed");
+        const finalUrl =
+          job.final_resize_video_url ||
+          job.final_video_with_music_url ||
+          job.final_video_url;
+
+        setMergedVideo(finalUrl);
+        setPlayingVideoUrl(finalUrl);
+        videoPlayer.onOpen();
+        return;
       }
-    }, 7000);
-  };
+
+      // ✅ STOP on FAILED or ERROR
+      if (
+        status === "failed" ||
+        status === "error" ||
+        status === "cancelled" ||
+        status === "stopped"
+      ) {
+        clearInterval(intervalRef.current);
+        setPolling(false);
+
+        toast({
+          title: "Merge Failed",
+          description: job?.message || "The merge job failed. Try again.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+
+        return;
+      }
+
+    } catch (err) {
+      console.log("Polling failed", err);
+
+      clearInterval(intervalRef.current);
+      setPolling(false);
+
+      toast({
+        title: "Polling Error",
+        description: "Something went wrong while checking job status.",
+        status: "error",
+      });
+    }
+  }, 7000);
+};
+
 
   // ✅ Single Video Card
   const VideoCard = ({ video, isSelected }) => {
