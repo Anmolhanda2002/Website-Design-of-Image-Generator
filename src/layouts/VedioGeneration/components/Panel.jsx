@@ -71,7 +71,7 @@ export default function Panel({
     if (!file) return;
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("video_files", file);
 
     try {
       setUploading(true);
