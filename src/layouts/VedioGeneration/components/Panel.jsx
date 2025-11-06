@@ -15,7 +15,7 @@ import {
     HStack,
     SimpleGrid,
     Icon,
-    Flex,
+    Flex,Progress
 } from "@chakra-ui/react";
 import { useState, useEffect, startTransition } from "react";
 import axiosInstance from "utils/AxiosInstance";
@@ -61,6 +61,62 @@ export default function Panel({
         sector_choices: [],
         M_key: {},
     });
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // ✅ upload video function
+  const handleVideoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      const res = await axiosInstance.post("/upload_direct_video/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+
+        // ✅ Progress bar updater
+        onUploadProgress: (p) => {
+          const percent = Math.round((p.loaded * 100) / p.total);
+          setUploadProgress(percent);
+        },
+      });
+
+      const url = res.data?.video_urls?.[0];
+
+      if (url) {
+        // ✅ Auto-fill Brand Outro URL
+        startTransition(() =>
+          setMergeData({
+            ...MergeData,
+            brand_outro_video_url: url,
+          })
+        );
+
+        toast({
+          title: "Video Uploaded Successfully",
+          description: "Brand outro URL filled automatically.",
+          status: "success",
+          duration: 2000,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Upload Failed",
+        status: "error",
+        duration: 2500,
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
 
     // 🔍 Fetch Guidelines from API (Debounced using useEffect)
 useEffect(() => {
@@ -974,6 +1030,29 @@ case "Caption Segment":
                                 mt={2}
                             />
                         </Box>
+
+                        <Box>
+        <Text fontWeight="bold" mb={2}>
+          Upload Brand Outro Video
+        </Text>
+
+        <Input
+          type="file"
+          accept="video/*"
+          onChange={handleVideoUpload}
+          bg="white"
+          p={1}
+        />
+
+        {uploading && (
+          <Progress
+            value={uploadProgress}
+            size="sm"
+            mt={2}
+            borderRadius="md"
+          />
+        )}
+      </Box>
 
                         {/* 🔹 Dropdown for Custom Resize */}
                         <Box>
