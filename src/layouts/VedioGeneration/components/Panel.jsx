@@ -1,4 +1,4 @@
-import React  from "react";
+import React ,{useRef} from "react";
 import {
     Box,
     VStack,
@@ -119,60 +119,73 @@ export default function Panel({
 
 
     // 🔍 Fetch Guidelines from API (Debounced using useEffect)
-useEffect(() => {
-  const fetchGuidelines = async () => {
-    if (!searchTerm.trim()) {
-      setGuidelines([]);
+const searchTimeout = useRef(null);
+
+const fetchGuidelines = async () => {
+  if (!searchTerm.trim()) {
+    setGuidelines([]);
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
+    const userId = selectedUser?.user_id || user?.user_id || null;
+
+    if (!userId) {
+      toast({
+        title: "User not found",
+        description: "Please log in again.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    // ✅ Fetch ALL possible guidelines
+    const res = await axiosInstance.get("/search_image_guidelines/", {
+      params: {
+        name: searchTerm,
+        user_id: userId,
+        limit: 50,    // ✅ fetch more results
+        page: 1,
+      },
+    });
 
-    try {
-      // 🔹 Get user_id from localStorage
-      const user = JSON.parse(localStorage.getItem("user"));
-      const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
-      const userId = selectedUser?.user_id || user?.user_id || null;
-
-      // 🔹 Safety check
-      if (!userId) {
-        toast({
-          title: "User not found",
-          description: "Please log in again.",
-          status: "warning",
-          duration: 2500,
-          isClosable: true,
-        });
-        setLoading(false);
-        return;
-      }
-
-      // 🔹 API call with user_id passed in params
-      const res = await axiosInstance.get("/search_image_guidelines/", {
-        params: { name: searchTerm, user_id: userId },
-      });
-
-      const data = Array.isArray(res.data)
+    const result =
+      Array.isArray(res.data?.results)
+        ? res.data.results
+        : Array.isArray(res.data)
         ? res.data
-        : res.data.results || [];
+        : [];
 
-      setGuidelines(data);
-    } catch (error) {
-      console.error("Failed to fetch guidelines:", error);
-      toast({
-        title: "Failed to fetch guidelines",
-        description: error.message || "Something went wrong",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    setGuidelines(result);
+  } catch (error) {
+    console.error("Failed to fetch guidelines:", error);
+    toast({
+      title: "Failed to fetch guidelines",
+      description: error.message || "Something went wrong",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
-  fetchGuidelines();
-}, [searchTerm, toast]);
+
+useEffect(() => {
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+  searchTimeout.current = setTimeout(() => {
+    fetchGuidelines();
+  }, 400); // ✅ 400ms debounce
+}, [searchTerm]);
 
     // Section for image to video (Dropdown fetches)
     const generateShortUUID = () => {
@@ -244,33 +257,36 @@ useEffect(() => {
       </Box>
 
       {/* 🧩 Select Guideline */}
-      <Box>
-        <Text fontWeight="bold">Select Guideline</Text>
-        {loading ? (
-          <Spinner mt={3} />
-        ) : (
-          <Select
-            placeholder="Select a guideline"
-            value={imageCreationSettings.guidelineId}
-            onChange={(e) =>
-              setImageCreationSettings((prev) => ({
-                ...prev,
-                guidelineId: e.target.value,
-              }))
-            }
-            mt={2}
-          >
-            {Array.isArray(guidelines) && guidelines.length > 0 ? (
-              guidelines.map((g) => (
-                <option key={g.guideline_id} value={g.guideline_id}>
-                  {g.name}
-                </option>
-              ))
-            ) : (
-              <option disabled>No guidelines found</option>
-            )}
-          </Select>
-        )}
+<Box mt={4}>
+  <Text fontWeight="bold">Select Guideline</Text>
+
+  {loading ? (
+    <Spinner mt={3} />
+  ) : (
+    <Select
+      placeholder="Select a guideline"
+      value={imageCreationSettings.guidelineId || ""}
+      onChange={(e) =>
+        setImageCreationSettings((prev) => ({
+          ...prev,
+          guidelineId: e.target.value,
+        }))
+      }
+      mt={2}
+    >
+      {guidelines.length > 0 ? (
+        guidelines.map((g) => (
+          <option key={g.guideline_id} value={g.guideline_id}>
+            {g.name}
+          </option>
+        ))
+      ) : (
+        <option disabled>No guidelines found</option>
+      )}
+    </Select>
+  )}
+
+
       </Box>
 
       {/* 🎯 Target Method */}
