@@ -248,7 +248,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
               src={playingVideoUrl}
               controls
               autoPlay
-              style={{ width: "100%", height: "100%", borderRadius: "8px" }}
+              style={{ width: "100%", height: "200px", borderRadius: "8px" }}
             />
           )}
         </ModalBody>

@@ -239,7 +239,7 @@ export default function CaptionedCombine({ selectedUser }) {
 
   // ✅ Processing UI
   const ProcessingView = () => (
-    <Flex align="center" justify="center" minH="70vh" direction="column">
+    <Flex align="center" width={"100%"} justify="center" minH="70vh" direction="column">
       {finalVideoUrl ? (
         <VStack spacing={6} w={{ base: "100%", md: "600px" }}>
           <Flex align="center" gap={3} color="green.500">
@@ -256,6 +256,7 @@ export default function CaptionedCombine({ selectedUser }) {
             autoPlay
             style={{
               width: "100%",
+              height:"200px",
               borderRadius: "14px",
               backgroundColor: "black",
             }}
