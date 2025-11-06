@@ -160,7 +160,7 @@ export default function AssignUsersPage() {
   }, [unassignedPage]);
 
   return (
-    <Box py={[6, 8, 12]} px={[4, 6, 10]} minH="100vh" bg={pageBg}>
+    <Box py={[6, 8, 12]} px={[4, 6, 10]} minH="100vh" bg={pageBg} mt={20}>
       <VStack spacing={10} maxW="1200px" mx="auto" align="stretch">
         <Heading textAlign="center" color="blue.600" fontSize={["2xl", "3xl", "4xl"]}>
           Assign Users to Admin
