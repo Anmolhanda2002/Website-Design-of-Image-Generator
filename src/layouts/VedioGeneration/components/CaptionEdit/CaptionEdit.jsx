@@ -266,17 +266,41 @@ export default function CaptionedCombine({ selectedUser }) {
   };
 
   // ✅ Processing status screen
-  const ProcessingView = () => (
-    <Flex
-      align="center"
-      width="100%"
-      justify="center"
-      minH="60vh"
-      direction="column"
-      py={8}
+// ✅ Processing status screen (SCROLLABLE + HIDDEN SCROLLBAR)
+const ProcessingView = () => (
+  <Flex
+    align="center"
+    justify="center"
+    width="100%"
+    minH="60vh"
+    py={4}
+    mt={"-80px"}
+  >
+    <Box
+      w="100%"
+      maxW="800px"
+      maxH="75vh"
+      overflowY="auto"
+      px={2}
+
+      // ✅ HIDE SCROLLBAR (Chrome, Edge, Safari)
+      sx={{
+        "&::-webkit-scrollbar": {
+          width: "0px",
+        },
+        "&::-webkit-scrollbar-track": {
+          background: "transparent",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          background: "transparent",
+        },
+
+        // ✅ HIDE SCROLLBAR (Firefox)
+        scrollbarWidth: "none",
+      }}
     >
       {finalVideoUrl ? (
-        <VStack spacing={6} w="100%" maxW="700px">
+        <VStack spacing={6} w="100%">
           <Flex align="center" gap={3} color="green.500">
             <MdCheckCircle size={30} />
             <Text fontSize="2xl" fontWeight="bold">
@@ -290,7 +314,7 @@ export default function CaptionedCombine({ selectedUser }) {
             autoPlay
             style={{
               width: "100%",
-              height: "auto",
+              height: "400px",
               maxHeight: "450px",
               borderRadius: "14px",
               backgroundColor: "black",
@@ -309,13 +333,15 @@ export default function CaptionedCombine({ selectedUser }) {
           </Button>
         </VStack>
       ) : (
-        <VStack spacing={4}>
+        <VStack spacing={4} py={10}>
           <Spinner size="xl" color="blue.400" />
           <Text>{pollingStatusText}</Text>
         </VStack>
       )}
-    </Flex>
-  );
+    </Box>
+  </Flex>
+);
+
 
   return (
     <Box bg={bg} minH="100vh" p={4} w="100%">
