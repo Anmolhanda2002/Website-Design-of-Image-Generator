@@ -15,9 +15,10 @@ import {
   ModalCloseButton,
   ModalBody,
   useDisclosure,
+  Input,
+  HStack,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-import { MdPlayCircle } from "react-icons/md";
 
 export default function CaptionedEdit({ selectedUser, MergeData, setMergeData }) {
   const [videos, setVideos] = useState([]);
@@ -27,9 +28,9 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   const [mergeStatus, setMergeStatus] = useState(null);
   const [polling, setPolling] = useState(false);
   const [mergedVideo, setMergedVideo] = useState(null);
-  const [resizeStatus, setResizeStatus] = useState(null);
-  const [resizedVideo, setResizedVideo] = useState(null);
   const [resizing, setResizing] = useState(false);
+  const [resizedVideo, setResizedVideo] = useState(null);
+  const [resizeInputs, setResizeInputs] = useState({ height: "", width: "" });
 
   const toast = useToast();
   const intervalRef = useRef(null);
@@ -40,14 +41,14 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const activeBorderColor = "blue.400";
 
-  // ✅ Clear intervals on unmount
+  // ✅ cleanup interval
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // ✅ Fetch videos for selected user
+  // ✅ fetch videos
   useEffect(() => {
     if (!selectedUser?.user_id) return;
 
@@ -57,10 +58,9 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
           params: { user_id: selectedUser.user_id },
         });
-
         const data = Array.isArray(res.data?.data) ? res.data.data : [];
         setVideos(res.data?.success ? data : []);
-      } catch (e) {
+      } catch {
         toast({
           title: "Failed to load videos",
           status: "error",
@@ -74,23 +74,21 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     fetchVideos();
   }, [selectedUser]);
 
-  // ✅ Select a video
+  // ✅ select a video
   const handleSelect = (video) => {
     setSelectedVideo(video);
     setMergedVideo(null);
     setResizedVideo(null);
     setMergeStatus(null);
-    setResizeStatus(null);
 
     setMergeData((prev) => ({
       ...prev,
       user_id: selectedUser?.user_id,
-    
       edit_id: video.edit_id,
     }));
   };
 
-  // ✅ Start Merge
+  // ✅ start merge
   const handleMergeSubmit = async () => {
     if (!selectedVideo) {
       toast({ title: "Select a video first", status: "warning" });
@@ -102,11 +100,13 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
 
       const res = await axiosInstance.post("/merged_video/", {
         user_id: selectedUser.user_id,
-        
         edit_id: selectedVideo.edit_id,
         brand_outro_video_url: MergeData.brand_outro_video_url || "",
         outro_video_url: MergeData.brand_outro_video_url || "",
       });
+
+      const jobId = res.data?.data?.job_id;
+      if (!jobId) throw new Error("Job ID missing");
 
       toast({
         title: res.data?.message || "Merge request submitted",
@@ -114,26 +114,19 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         duration: 2500,
       });
 
-      const jobId = res.data?.data?.job_id;
-      const mearg_id = res.data?.data?.mearg_id;
-
-      if (!jobId) throw new Error("Job ID missing");
-
       setMergeData((prev) => ({
         ...prev,
-        mearg_id: jobId || "",
+        mearg_id: jobId,
       }));
 
       startPolling(jobId);
     } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.detail ||
-        "Merge failed";
-
       toast({
         title: "Merge failed",
-        description: msg,
+        description:
+          err.response?.data?.message ||
+          err.response?.data?.detail ||
+          "Merge failed",
         status: "error",
         duration: 3000,
       });
@@ -142,10 +135,9 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     }
   };
 
-  // ✅ Poll merge job
+  // ✅ poll merge status
   const startPolling = (jobId) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-
     setPolling(true);
     setMergeStatus("submitted");
 
@@ -154,7 +146,6 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         const res = await axiosInstance.get(
           `/get_video_merge_job_status/?job_id=${jobId}`
         );
-
         const job = res.data?.data;
         const status = job?.status?.toLowerCase() || "unknown";
         setMergeStatus(status);
@@ -169,113 +160,84 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
             job.final_video_url;
 
           setMergedVideo(finalUrl);
-
-          // ✅ If custom resize true, trigger resize API
-          if (MergeData.custom_resize && MergeData.height && MergeData.width) {
-            handleResize();
-          } else {
-            setPlayingVideoUrl(finalUrl);
-            videoPlayer.onOpen();
-          }
-
-          return;
+          setPlayingVideoUrl(finalUrl);
+          videoPlayer.onOpen();
         }
 
         if (["failed", "error", "cancelled", "stopped"].includes(status)) {
           clearInterval(intervalRef.current);
           setPolling(false);
-
           toast({
             title: "Merge Failed",
             description: job?.message || "The merge job failed.",
             status: "error",
-            duration: 3000,
           });
-
-          return;
         }
-      } catch (err) {
+      } catch {
         clearInterval(intervalRef.current);
         setPolling(false);
         toast({
           title: "Polling Error",
-          description: "Something went wrong while checking job status.",
+          description: "Error while checking job status.",
           status: "error",
         });
       }
     }, 7000);
   };
 
-  // ✅ Start resize process
+  // ✅ handle resize (manual trigger)
   const handleResize = async () => {
+    if (!resizeInputs.height || !resizeInputs.width) {
+      toast({
+        title: "Enter height and width",
+        status: "warning",
+      });
+      return;
+    }
+
     try {
       setResizing(true);
-      setResizeStatus("submitted");
 
-      const res = await axiosInstance.post("/merge_resizer/", {
-        mearg_id: MergeData.job_id,
-        height: MergeData.height,
-        width: MergeData.width,
+      const payload = {
+        height: resizeInputs.height,
+        width: resizeInputs.width,
         user_id: selectedUser?.user_id,
-      });
+      };
 
-      const resizeJobId = res.data?.data?.job_id;
-      if (!resizeJobId) throw new Error("Resize job id missing");
+      const res = await axiosInstance.post("/merge_resizer/", payload);
 
-      toast({
-        title: "Resize job started",
-        status: "info",
-      });
+      if (res.data?.status === "success") {
+        toast({
+          title: res.data?.message || "Video resized successfully",
+          status: "success",
+        });
 
-      startResizePolling(resizeJobId);
+        const finalResizedUrl =
+          res.data.final_video_url || res.data.result || null;
+
+        if (finalResizedUrl) {
+          setResizedVideo(finalResizedUrl);
+          setPlayingVideoUrl(finalResizedUrl);
+          videoPlayer.onOpen();
+        }
+      } else {
+        throw new Error(res.data?.message || "Resize failed");
+      }
     } catch (err) {
-      setResizing(false);
       toast({
         title: "Resize Failed",
         description:
-          err.response?.data?.message || "Unable to start resize process",
+          err.response?.data?.message ||
+          err.message ||
+          "Resize process failed.",
         status: "error",
       });
+    } finally {
+      setResizing(false);
     }
   };
 
-  // ✅ Poll resize job
-  const startResizePolling = (jobId) => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    intervalRef.current = setInterval(async () => {
-      try {
-        const res = await axiosInstance.get(
-          `/get_video_merge_job_status/?job_id=${jobId}`
-        );
-        const job = res.data?.data;
-        const status = job?.status?.toLowerCase() || "unknown";
-        setResizeStatus(status);
-
-        if (status === "completed") {
-          clearInterval(intervalRef.current);
-          setResizing(false);
-          const finalResizedUrl =
-            job.final_resize_video_url || job.final_video_url;
-          setResizedVideo(finalResizedUrl);
-        }
-
-        if (["failed", "error", "cancelled"].includes(status)) {
-          clearInterval(intervalRef.current);
-          setResizing(false);
-          toast({
-            title: "Resize failed",
-            status: "error",
-          });
-        }
-      } catch (err) {
-        clearInterval(intervalRef.current);
-        setResizing(false);
-      }
-    }, 7000);
-  };
-
-  // ✅ Video modal for playback
+  // ✅ video modal
   const VideoPlayerModal = () => (
     <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="5xl">
       <ModalOverlay />
@@ -299,8 +261,8 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     </Modal>
   );
 
-  // ✅ Reusable VideoCard
-  const VideoCard = ({ title, url, buttonLabel }) => (
+  // ✅ reusable video card
+  const VideoCard = ({ title, url, buttonLabel, dimensions }) => (
     <VStack
       bg={panelBg}
       border="2px solid"
@@ -316,6 +278,11 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         controls
         style={{ width: "100%", height: "240px", objectFit: "cover" }}
       />
+      {dimensions && (
+        <Text color="gray.500" fontSize="sm">
+          {dimensions}
+        </Text>
+      )}
       <Button
         mt={2}
         colorScheme="blue"
@@ -331,7 +298,6 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
 
   return (
     <Flex direction="column" w="100%" p={6} h="100vh">
-      {/* Header */}
       <Flex justify="space-between" align="center">
         <Text fontSize="2xl" fontWeight="bold">
           Captioned Videos
@@ -352,24 +318,57 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
           <Flex h="65vh" justify="center" align="center">
             <Spinner size="xl" />
           </Flex>
-        ) : polling || resizing ? (
+        ) : polling ? (
           <Flex h="65vh" justify="center" align="center" direction="column">
             <Spinner size="xl" />
-            <Text mt={3}>
-              {polling
-                ? `Merging... (${mergeStatus})`
-                : `Resizing... (${resizeStatus})`}
-            </Text>
+            <Text mt={3}>Merging... ({mergeStatus})</Text>
+          </Flex>
+        ) : resizing ? (
+          <Flex h="65vh" justify="center" align="center" direction="column">
+            <Spinner size="xl" />
+            <Text mt={3}>Resizing...</Text>
           </Flex>
         ) : resizedVideo ? (
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mt={4}>
-            <VideoCard title="Merged Video" url={mergedVideo} buttonLabel="Play Merged Video" />
-            <VideoCard title="Resized Video" url={resizedVideo} buttonLabel="Play Resized Video" />
+            <VideoCard
+              title="Merged Video"
+              url={mergedVideo}
+              buttonLabel="Play Merged Video"
+            />
+            <VideoCard
+              title="Resized Video"
+              url={resizedVideo}
+              buttonLabel={`Play Resized (${resizeInputs.width}×${resizeInputs.height})`}
+              dimensions={`${resizeInputs.width} × ${resizeInputs.height}`}
+            />
           </SimpleGrid>
         ) : mergedVideo ? (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mt={4}>
-            <VideoCard title="Merged Video" url={mergedVideo} buttonLabel="Play Merged Video" />
-          </SimpleGrid>
+          <VStack mt={4} spacing={4}>
+            <VideoCard
+              title="Merged Video"
+              url={mergedVideo}
+              buttonLabel="Play Merged Video"
+            />
+            <HStack spacing={3}>
+              <Input
+                placeholder="Height"
+                value={resizeInputs.height}
+                onChange={(e) =>
+                  setResizeInputs({ ...resizeInputs, height: e.target.value })
+                }
+                w="120px"
+              />
+              <Input
+                placeholder="Width"
+                value={resizeInputs.width}
+                onChange={(e) =>
+                  setResizeInputs({ ...resizeInputs, width: e.target.value })
+                }
+                w="120px"
+              />
+          
+            </HStack>
+          </VStack>
         ) : (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mt={4}>
             {videos.map((video) => (
