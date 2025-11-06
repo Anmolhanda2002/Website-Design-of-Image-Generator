@@ -108,16 +108,13 @@ const handleSelect = (job) => {
     }
 
     try {
-      const hygaarKey = localStorage.getItem("api_key");
-      if (!hygaarKey) {
-        throw new Error("API key missing. Please log in again.");
-      }
+
 
       setSubmitting(true);
 
       const body = {
         merge_id: selectedJob.job_id,
-        hygaar_key: hygaarKey,
+   
         user_id: selectedUser?.user_id,
       };
 
@@ -243,7 +240,19 @@ const handleSelect = (job) => {
           {submitting ? "Processing..." : "Submit to Add Music"}
         </Button>
       </Flex>
-
+    <Box
+      flex="1"
+      overflowY="auto"
+      pr={1}
+      sx={{
+        "&::-webkit-scrollbar": { width: "8px" },
+        "&::-webkit-scrollbar-track": { background: "transparent" },
+        "&::-webkit-scrollbar-thumb": {
+          background: borderColor,
+          borderRadius: "4px",
+        },
+      }}
+    >
       {/* Body / Grid */}
       {loading ? (
         <Flex align="center" justify="center" h="60vh" w="100%">
@@ -265,7 +274,9 @@ const handleSelect = (job) => {
             No merge jobs found for the selected user that are ready to receive music.
           </Text>
         </Flex>
+        
       )}
+      </Box>
     </Flex>
   );
 }
