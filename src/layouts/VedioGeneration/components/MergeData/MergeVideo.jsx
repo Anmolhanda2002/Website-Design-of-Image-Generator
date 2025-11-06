@@ -23,71 +23,70 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [mergeStatus, setMergeStatus] = useState(null);
   const [polling, setPolling] = useState(false);
+
   const [mergedVideo, setMergedVideo] = useState(null);
+
+  // ✅ For Resize Info
+  const [resizeInfo, setResizeInfo] = useState(null);
+  const resizeInfoModal = useDisclosure();
 
   const toast = useToast();
   const intervalRef = useRef(null);
 
-  // ✅ Modal for playing videos
+  // ✅ Video Player Modal
   const videoPlayer = useDisclosure();
   const [playingVideoUrl, setPlayingVideoUrl] = useState(null);
 
   const panelBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const activeBorderColor = "blue.400";
 
-  // ✅ CLEAR polling when unmount
+  // ✅ Cleanup polling
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // ✅ FETCH VIDEOS
+  // ✅ Fetch videos
   useEffect(() => {
     if (!selectedUser?.user_id) return;
 
-    const fetchVideos = async () => {
+    (async () => {
       try {
         setLoading(true);
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
           params: { user_id: selectedUser.user_id },
         });
 
-        const data = Array.isArray(res.data?.data) ? res.data.data : [];
-        setVideos(res.data?.success ? data : []);
+        setVideos(res.data?.success ? res.data?.data || [] : []);
       } catch (e) {
-        toast({
-          title: "Failed to load videos",
-          status: "error",
-          duration: 2500,
-        });
+        toast({ title: "Failed to load videos", status: "error" });
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchVideos();
+    })();
   }, [selectedUser]);
 
-  // ✅ SELECT VIDEO
+  // ✅ Select Video
   const handleSelect = (video) => {
     setSelectedVideo(video);
     setMergedVideo(null);
     setMergeStatus(null);
+    setResizeInfo(null);
 
-    setMergeData((prev) => ({
-      ...prev,
-      user_id: selectedUser?.user_id,
+    setMergeData((p) => ({
+      ...p,
+      user_id: selectedUser.user_id,
       hygaar_key: video.hygaar_key,
       edit_id: video.edit_id,
     }));
   };
 
-  // ✅ MERGE SUBMIT
+  // ✅ Merge Button
   const handleMergeSubmit = async () => {
     if (!selectedVideo) {
       toast({ title: "Select a video first", status: "warning" });
@@ -105,34 +104,24 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         outro_video_url: MergeData.brand_outro_video_url || "",
       });
 
-      toast({
-        title: res.data?.message || "Merge request submitted",
-        status: "success",
-        duration: 2500,
-      });
-
       const jobId = res.data?.data?.job_id;
-      if (!jobId) throw new Error("Job ID missing");
+      if (!jobId) throw new Error("Missing job id");
+
+      toast({ title: "Merge Started", status: "success" });
 
       startPolling(jobId);
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.detail ||
-        "Merge failed";
-
+    } catch (e) {
       toast({
-        title: "Merge failed",
-        description: msg,
+        title: "Merge Failed",
+        description: e.response?.data?.message || "Error",
         status: "error",
-        duration: 3000,
       });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ✅ POLLING
+  // ✅ Polling (Merge)
   const startPolling = (jobId) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -141,16 +130,13 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
 
     intervalRef.current = setInterval(async () => {
       try {
-        const res = await axiosInstance.get(
-          `/get_video_merge_job_status/?job_id=${jobId}`
-        );
-
+        const res = await axiosInstance.get(`/get_video_merge_job_status/?job_id=${jobId}`);
         const job = res.data?.data;
-        const status = job?.status?.toLowerCase() || "unknown";
 
+        const status = job?.status?.toLowerCase();
         setMergeStatus(status);
 
-        // ✅ STOP on COMPLETED
+        // ✅ COMPLETED
         if (status === "completed") {
           clearInterval(intervalRef.current);
           setPolling(false);
@@ -161,40 +147,61 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
             job.final_video_url;
 
           setMergedVideo(finalUrl);
-          setPlayingVideoUrl(finalUrl);
-          videoPlayer.onOpen();
-          return;
+
+          // ✅ IF CUSTOM RESIZE is ON — Call Resizer API
+          if (MergeData.custom_resize && MergeData.height && MergeData.width) {
+            callResizeAPI(jobId);
+          } else {
+            setPlayingVideoUrl(finalUrl);
+            videoPlayer.onOpen();
+          }
         }
 
-        // ✅ STOP on FAILURE
-        if (["failed", "error", "cancelled", "stopped"].includes(status)) {
+        // ✅ FAILED STATES
+        if (["failed", "error", "cancelled"].includes(status)) {
           clearInterval(intervalRef.current);
           setPolling(false);
-
           toast({
             title: "Merge Failed",
-            description: job?.message || "The merge job failed.",
+            description: job?.message || "Something went wrong",
             status: "error",
-            duration: 3000,
           });
-
-          return;
         }
-      } catch (err) {
+      } catch (e) {
         clearInterval(intervalRef.current);
-        setPolling(false);
-
         toast({
           title: "Polling Error",
-          description: "Something went wrong while checking job status.",
           status: "error",
         });
       }
-    }, 7000);
+    }, 6000);
   };
 
-  // ✅ Single Video Card
-  const VideoCard = ({ video, isSelected }) => {
+  // ✅ Call Resize API
+  const callResizeAPI = async (mergeId) => {
+    try {
+      const res = await axiosInstance.post("/merge_resizer/", {
+        
+        mearg_id: mergeId,
+        height: Number(MergeData.height),
+        width: Number(MergeData.width),
+      });
+
+      setResizeInfo(res.data?.data || {});
+      toast({ title: "Resize Completed", status: "success" });
+
+      resizeInfoModal.onOpen();
+    } catch (e) {
+      toast({
+        title: "Resize Failed",
+        description: e.response?.data?.message || "Error",
+        status: "error",
+      });
+    }
+  };
+
+  // ✅ Video Card
+  const VideoCard = ({ video }) => {
     const preview =
       video.captioned_final_video_url ||
       video.final_video_url ||
@@ -204,57 +211,44 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
       <VStack
         bg={panelBg}
         border="2px solid"
-        borderColor={isSelected ? activeBorderColor : borderColor}
+        borderColor={selectedVideo?.edit_id === video.edit_id ? "blue.400" : borderColor}
         borderRadius="lg"
-        overflow="hidden"
-        cursor="pointer"
         onClick={() => handleSelect(video)}
-        transition="0.2s"
-        _hover={{ borderColor: "blue.300" }}
+        cursor="pointer"
+        spacing={0}
       >
-        <Box h="210px" w="100%" position="relative" bg="black">
+        <Box h="200px" w="100%" position="relative">
           {preview ? (
             <video
               src={preview}
               muted
               autoPlay
               loop
-              style={{ width: "100%", height: "210px", objectFit: "cover" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setPlayingVideoUrl(preview);
-                videoPlayer.onOpen();
-              }}
+              style={{ height: "100%", width: "100%", objectFit: "cover" }}
             />
           ) : (
             <Flex h="100%" align="center" justify="center">
-              <Text color="gray.400">No Preview</Text>
+              <Text>No Preview</Text>
             </Flex>
           )}
 
-          {/* ✅ Play Button */}
           <Box
             position="absolute"
-            bottom="12px"
-            right="12px"
-            bg="rgba(0,0,0,0.6)"
-            p={2}
-            borderRadius="full"
+            bottom="10px"
+            right="10px"
             onClick={(e) => {
               e.stopPropagation();
               setPlayingVideoUrl(preview);
               videoPlayer.onOpen();
             }}
           >
-            <MdPlayCircle size={30} color="white" />
+            <MdPlayCircle size={32} color="white" />
           </Box>
         </Box>
 
-        <Box p={3} w="100%">
-          <Text fontWeight="bold" noOfLines={1}>
-            {video.project_name}
-          </Text>
-          <Text color="gray.500" fontSize="sm">
+        <Box p={2} w="100%">
+          <Text fontWeight="bold">{video.project_name}</Text>
+          <Text fontSize="sm" color="gray.500">
             {video.edit_id}
           </Text>
         </Box>
@@ -262,99 +256,106 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     );
   };
 
-  // ✅ Video Modal
-  const VideoPlayerModal = () => (
-    <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="5xl">
-      <ModalOverlay />
-      <ModalContent bg="black">
-        <ModalCloseButton color="white" />
-        <ModalBody p={0}>
-          {playingVideoUrl && (
-            <video
-              src={playingVideoUrl}
-              controls
-              autoPlay
-              style={{
-                width: "100%",
-                height: "500px",
-                objectFit: "contain",
-              }}
-            />
-          )}
-        </ModalBody>
-      </ModalContent>
-    </Modal>
-  );
-
   return (
-    <Flex direction="column" w="100%" p={6} h="100vh">
+    <Flex direction="column" w="100%" p={5} h="100vh">
       {/* ✅ Header */}
       <Flex justify="space-between" align="center">
         <Text fontSize="2xl" fontWeight="bold">
           Captioned Videos
         </Text>
 
-        <Button
-          colorScheme="blue"
-          isLoading={submitting}
-          onClick={handleMergeSubmit}
-          isDisabled={!selectedVideo || polling}
-        >
-          Start Merge
-        </Button>
+        <Flex gap={3}>
+          {/* ✅ Resize Info Button */}
+          {resizeInfo && (
+            <Button colorScheme="green" onClick={resizeInfoModal.onOpen}>
+              View Resize Info
+            </Button>
+          )}
+
+          <Button
+            colorScheme="blue"
+            isLoading={submitting}
+            onClick={handleMergeSubmit}
+            isDisabled={!selectedVideo || polling}
+          >
+            Start Merge
+          </Button>
+        </Flex>
       </Flex>
 
-      {/* ✅ Scrollable Container */}
-      <Box
-        mt={4}
-        flex="1"
-        overflowY="auto"
-        pr={2}
-        sx={{
-          "&::-webkit-scrollbar": {
-            width: "0px",
-            background: "transparent",
-          },
-          scrollbarWidth: "none",
-        }}
+      {/* ✅ Scrollable Area */}
+      <Box flex="1" mt={4} overflowY="auto"
+        sx={{ "&::-webkit-scrollbar": { display: "none" }, scrollbarWidth: "none" }}
       >
-        {/* Loader */}
         {loading ? (
-          <Flex h="65vh" justify="center" align="center">
+          <Flex h="70vh" justify="center" align="center">
             <Spinner size="xl" />
           </Flex>
         ) : videos.length === 0 ? (
-          <Flex h="65vh" justify="center" align="center" direction="column">
-            <Text fontSize="xl" fontWeight="bold" color="gray.500">
-              No videos found
-            </Text>
-            <Text color="gray.400">This user has no captioned videos.</Text>
+          <Flex h="70vh" justify="center" align="center" direction="column">
+            <Text fontSize="xl">No Videos Found</Text>
           </Flex>
         ) : polling ? (
-          <Flex h="65vh" justify="center" align="center" direction="column">
+          <Flex h="70vh" justify="center" align="center" direction="column">
             <Spinner size="xl" />
             <Text mt={3}>Status: {mergeStatus}</Text>
           </Flex>
         ) : (
-          <SimpleGrid
-            columns={{ base: 1, md: 2, lg: 3 }}
-            spacing={6}
-            mt={4}
-            w="100%"
-          >
-            {videos.map((video) => (
-              <VideoCard
-                key={video.edit_id}
-                video={video}
-                isSelected={selectedVideo?.edit_id === video.edit_id}
-              />
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>
+            {videos.map((v) => (
+              <VideoCard key={v.edit_id} video={v} />
             ))}
           </SimpleGrid>
         )}
       </Box>
 
-      {/* Modal */}
-      <VideoPlayerModal />
+      {/* ✅ Video Modal */}
+      <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="5xl">
+        <ModalOverlay />
+        <ModalContent bg="black">
+          <ModalCloseButton color="white" />
+          <ModalBody p={0}>
+            {playingVideoUrl && (
+              <video src={playingVideoUrl} controls autoPlay style={{ width: "100%" }} />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* ✅ Resize Info Modal */}
+      <Modal isOpen={resizeInfoModal.isOpen} onClose={resizeInfoModal.onClose}>
+        <ModalOverlay />
+        <ModalContent p={5}>
+          <ModalCloseButton />
+
+          <Text fontSize="xl" fontWeight="bold" mb={4}>
+            Resize Information
+          </Text>
+
+          {resizeInfo ? (
+            <Box>
+              <Text><b>Merge ID:</b> {resizeInfo.mearg_id}</Text>
+              <Text><b>Width:</b> {resizeInfo.width}</Text>
+              <Text><b>Height:</b> {resizeInfo.height}</Text>
+
+              {resizeInfo?.final_video_url && (
+                <Button
+                  mt={4}
+                  colorScheme="blue"
+                  onClick={() => {
+                    setPlayingVideoUrl(resizeInfo.final_video_url);
+                    videoPlayer.onOpen();
+                  }}
+                >
+                  Play Resized Video
+                </Button>
+              )}
+            </Box>
+          ) : (
+            <Text>No resize info found</Text>
+          )}
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 }
