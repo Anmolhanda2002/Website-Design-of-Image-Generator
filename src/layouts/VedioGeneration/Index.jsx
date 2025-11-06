@@ -241,31 +241,31 @@ useEffect(() => {
 
 
     // Existing useEffect for Captioned Videos 
-useEffect(() => {
-  if (activeTab !== "Captioned Edit" || !selectedUser) return;
+// useEffect(() => {
+//   if (activeTab !== "Captioned Edit" || !selectedUser) return;
 
-  const fetchCaptionedVideos = async () => {
-    setLoadingCaptioned(true);
-    try {
-      const res = await axiosInstance.get(`/get_edited_videos_by_user/?user_id=${selectedUser}`);
-      if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-        setCaptionedVideos(res.data.data);
-      } else {
-        setCaptionedVideos([]);
-        toast({ title: "No videos found for this user", status: "warning", duration: 2000 });
-      }
-    } catch (err) {
-      console.error("Error fetching captioned videos:", err);
-      toast({ title: "Failed to load videos", status: "error", duration: 2000 });
-    } finally {
-      setLoadingCaptioned(false);
-    }
-  };
+//   const fetchCaptionedVideos = async () => {
+//     setLoadingCaptioned(true);
+//     try {
+//       const res = await axiosInstance.get(`/get_edited_videos_by_user/?user_id=${selectedUser}`);
+//       if (res.data?.status === "success" && Array.isArray(res.data.data)) {
+//         setCaptionedVideos(res.data.data);
+//       } else {
+//         setCaptionedVideos([]);
+//         toast({ title: "No videos found for this user", status: "warning", duration: 2000 });
+//       }
+//     } catch (err) {
+//       console.error("Error fetching captioned videos:", err);
+//       toast({ title: "Failed to load videos", status: "error", duration: 2000 });
+//     } finally {
+//       setLoadingCaptioned(false);
+//     }
+//   };
 
-  // small async defer (prevents React from thinking it’s synchronous)
-  const timer = setTimeout(fetchCaptionedVideos, 0);
-  return () => clearTimeout(timer);
-}, [activeTab, selectedUser]);
+//   // small async defer (prevents React from thinking it’s synchronous)
+//   const timer = setTimeout(fetchCaptionedVideos, 0);
+//   return () => clearTimeout(timer);
+// }, [activeTab, selectedUser]);
 
 
 

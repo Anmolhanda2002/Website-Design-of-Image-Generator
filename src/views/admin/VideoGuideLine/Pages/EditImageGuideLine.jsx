@@ -20,7 +20,7 @@ import {
 import axiosInstance from "utils/AxiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
-
+import { useLocation } from "react-router-dom";
 export default function EditVideoGuideline() {
   const { guideline_id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,9 @@ export default function EditVideoGuideline() {
   const [choices, setChoices] = useState({});
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
-
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const userId = queryParams.get("user_id");
   const [form, setForm] = useState({
     guideline_name: "",
     pace: "",
@@ -55,15 +57,11 @@ export default function EditVideoGuideline() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const api_key = localStorage.getItem("api_key");
-        if (!api_key) {
-          showAlert("warning", "Missing API Key", "Please login first.", colorMode);
-          return;
-        }
+    
 
         const [choicesRes, guidelineRes] = await Promise.all([
           axiosInstance.get("/get_video_guideline_choices/"),
-          axiosInstance.post("/factory_development_get_video_guideline_detail/", {guideline_id }),
+          axiosInstance.post("/factory_development_get_video_guideline_detail/", {guideline_id,user_id:userId }),
         ]);
 
         if (choicesRes.data.status === "success") {
@@ -113,7 +111,7 @@ export default function EditVideoGuideline() {
       setSubmitting(true);
       
 
-      const payload = {  guideline_id, ...form };
+      const payload = {  guideline_id,user_id:userId, ...form };
       const { data } = await axiosInstance.post("/factory_development_update_video_guideline/", payload);
 
       if (data.status === "success") {

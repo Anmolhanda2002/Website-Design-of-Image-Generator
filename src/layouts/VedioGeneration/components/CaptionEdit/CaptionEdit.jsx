@@ -78,11 +78,14 @@ export default function CaptionedCombine({ selectedUser }) {
 useEffect(() => {
   if (!selectuser) return;
 
-  startTransition(() => {
+  
     const fetchVideos = async () => {
       console.log("🎯 Fetching videos for user:", selectuser);
       setLoading(true);
       try {
+
+console.log("")
+        
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
           params: { user_id: selectuser },
         });
@@ -135,7 +138,7 @@ useEffect(() => {
     };
 
     fetchVideos();
-  });
+ 
 }, [selectuser, toast]);
 
   // ✅ Cleanup polling interval on unmount

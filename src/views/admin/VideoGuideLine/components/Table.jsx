@@ -41,6 +41,7 @@ export default function GuidelineTable() {
   const navigate = useNavigate();
   const { id: userIdParam } = useParams();
 
+  console.log(userIdParam)
   const fetchGuidelines = async () => {
     try {
       const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userIdParam}`);
@@ -71,7 +72,7 @@ export default function GuidelineTable() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axiosInstance.post(`/factory_development_delete_video_guideline/`, { guideline_id: id });
+          await axiosInstance.post(`/factory_development_delete_video_guideline/`, { guideline_id: id,user_id:userIdParam });
           Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
           fetchGuidelines();
         } catch (err) {
@@ -94,8 +95,12 @@ export default function GuidelineTable() {
   };
 
   const handleAddGuideline = () => {
-    navigate('/admin/add/videoguidelines');
+    navigate(`/admin/add/videoguidelines/${userIdParam}`);
   };
+
+  const handleEditPage =(guidleline)=>{
+navigate(`/admin/edit/videoguidelines/${guidleline}?user_id=${userIdParam}`)
+  }
 
   const columns = useMemo(
     () => [
@@ -144,7 +149,7 @@ export default function GuidelineTable() {
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() => navigate(`/admin/edit/videoguidelines/${row.guideline_id}`)}
+                onClick={() => handleEditPage(row.guideline_id)}
               />
               <IconButton
                 aria-label="Delete"

@@ -20,13 +20,14 @@ import {
 import axiosInstance from "utils/AxiosInstance";
 import { useNavigate } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
+import { useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 export default function VideoGuidelineForm({userId}) {
   const [loading, setLoading] = useState(true);
   const [choices, setChoices] = useState(null);
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
-
+const {id} = useParams()
   const [form, setForm] = useState({
     guideline_name: "",
     pace: "",
@@ -85,23 +86,10 @@ export default function VideoGuidelineForm({userId}) {
 const handleSubmit = async () => {
   try {
     // ✅ Get user_id from localStorage (adjust key names as per your app)
-    const userId =
-      JSON.parse(localStorage.getItem("user"))?.user_id ||
-      localStorage.getItem("user_id");
 
-    // 🛑 Check if user_id exists
-    if (!userId) {
-      Swal.fire({
-        icon: "warning",
-        title: "User Not Found",
-        text: "Please select or log in with a user before submitting the guideline.",
-        confirmButtonColor: "#3085d6",
-      });
-      return;
-    }
 
     // ✅ Create payload with user_id (no api_key)
-    const payload = { user_id: userId, ...form };
+    const payload = { user_id: id, ...form };
 
     // ✅ Call backend
     const { data } = await axiosInstance.post(

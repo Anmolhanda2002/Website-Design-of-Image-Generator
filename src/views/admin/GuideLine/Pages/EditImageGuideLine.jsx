@@ -18,10 +18,14 @@ import {
 import { useParams } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
 import Swal from "sweetalert2";
+import { useLocation } from "react-router-dom";
 export default function EditImageGuideline() {
   const { guideline_id } = useParams();
   const toast = useToast();
-
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const userId = queryParams.get("user_id");
+    console.log("User ID from query:", userId);
   const [choices, setChoices] = useState({});
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -43,7 +47,7 @@ export default function EditImageGuideline() {
         const [choicesRes, guidelineRes] = await Promise.all([
           axiosInstance.get("/get_image_guideline_choices"),
           axiosInstance.post("/factory_development_get_image_guideline/", {
-
+            user_id:userId,
             guideline_id,
           }),
         ]);

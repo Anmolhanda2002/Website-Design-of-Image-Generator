@@ -70,6 +70,11 @@ export default function GuidelineTable({userId}) {
 
   const columnHelper = createColumnHelper();
 
+const handlegoeditpage = (guidlelineid)=>{
+  navigate(`/admin/edit_guideline/${guidlelineid}?user_id=${userId}`);
+}
+
+
   // Delete Guideline
   const handleDelete = async (id) => {
     Swal.fire({
@@ -85,7 +90,7 @@ export default function GuidelineTable({userId}) {
         try {
        
           await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
-         
+         user_id:userIdParam,
             guideline_id: id,
           });
           Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
@@ -113,7 +118,7 @@ export default function GuidelineTable({userId}) {
       Swal.fire('Error!', 'Failed to activate guideline.', 'error');
     }
   };
-console.log("user",userId)
+
   const handleAddGuideline = () => navigate(`/admin/add/guidelines/${userId}`);
 
   // Table Columns
@@ -165,8 +170,8 @@ console.log("user",userId)
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() =>
-                  navigate(`/admin/edit_guideline/${row.guideline_id}`)
+                onClick={()=>
+                 handlegoeditpage(row.guideline_id)
                 }
               />
               <IconButton

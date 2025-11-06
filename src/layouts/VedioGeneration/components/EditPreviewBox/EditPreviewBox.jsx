@@ -139,6 +139,7 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
         key: "HYG-EAE6D1FA3895EB67-8C69",
         creation_ids: selected,
         transition_effect: transitionEffect,
+       user_id: selectedUser?.user_id,
       };
 
       const res = await axiosInstance.post(`/factory_development_combined_video/`, payload);

@@ -27,18 +27,6 @@ const handleLogout = () => {
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
-    const user = JSON.parse(localStorage.getItem("user"));
-    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
-
-    // ✅ Determine role and user_id
-    const userRoles = user?.roles || [];
-    const isManager = userRoles.some(
-      (role) => role.toLowerCase() === "manager"
-    );
-
-    
-    const userIdToSend =
-      isManager && (selectedUser?.user_id || user?.user_id) ? (selectedUser?.user_id || user?.user_id) : null;
 
     // ✅ Attach Bearer token if available
     if (token && token !== "undefined" && token !== "null") {
@@ -47,19 +35,8 @@ axiosInstance.interceptors.request.use(
       localStorage.removeItem("access_token");
     }
 
-    // ✅ Only send user_id if Manager
-    if (userIdToSend) {
-      if (config.method === "get") {
-        // Some APIs allow GET with data; use query param if not
-        config.data = { user_id: userIdToSend };
-      } else if (config.data instanceof FormData) {
-        config.data.append("user_id", userIdToSend);
-      } else if (config.data && typeof config.data === "object") {
-        config.data = { ...config.data, user_id: userIdToSend };
-      } else {
-        config.data = { user_id: userIdToSend };
-      }
-    }
+    // ✅ Remove automatic user_id injection
+    // No user_id will be sent automatically anymore
 
     return config;
   },
@@ -72,8 +49,6 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
-    const user = JSON.parse(localStorage.getItem("user"));
-    const userIdToSend = user?.user_id || null;
 
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -86,8 +61,8 @@ axiosInstance.interceptors.response.use(
         }
 
         const res = await axios.post(
-          `${process.env.REACT_APP_API_URL}auth/access/`, // ✅ Updated endpoint
-          { refresh_token, user_id: userIdToSend },
+          `${process.env.REACT_APP_API_URL}auth/access/`,
+          { refresh_token },
           { headers: { "Content-Type": "application/json" } }
         );
 

@@ -185,7 +185,7 @@ const routes = [
       {
     name: 'Add Guidelines',
     layout: '/admin',
-    path: '/add/videoguidelines',
+    path: '/add/videoguidelines/:id',
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <AddVideoGuideLine />,
     showInSidebar:false,
