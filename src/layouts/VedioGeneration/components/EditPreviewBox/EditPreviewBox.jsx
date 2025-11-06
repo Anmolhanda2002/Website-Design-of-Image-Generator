@@ -508,91 +508,13 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
             src={previewVideo}
             controls
             autoPlay
-            style={{ width: "100%", height:"60vh",borderRadius: "10px", background: "black" }}
+            style={{ width: "100%", height:"30vh",borderRadius: "10px", background: "black" }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />
 
           {/* ✅ Show Accept/Recreate buttons only while playing */}
-          {isPlaying && (
-            <Flex justify="center" mt={5} gap={5}>
-              {/* Accept Button */}
-              <Button
-                colorScheme="green"
-                onClick={async () => {
-                  try {
-                    const currentVideo = videos.find(
-                      (v) =>
-                        v.cloudinary_video_url === previewVideo ||
-                        v.manual_video_url === previewVideo
-                    );
-                    if (!currentVideo?.creation_id) {
-                      toast({ title: "No creation ID found", status: "error" });
-                      return;
-                    }
 
-                    const payload = {
-                      creation_id: currentVideo.creation_id,
-                      manual_qc: "accept",
-                      user_id:selectedUser?.user_id
-                    };
-                    await axiosInstance.post(`/manual_qc_video/`, payload);
-
-                    toast({ title: "Video accepted", status: "success" });
-                    setIsPreviewOpen(false);
-                  } catch (err) {
-                    toast({ title: "Error accepting video", status: "error" });
-                  }
-                }}
-              >
-                Accept
-              </Button>
-
-              {/* Recreate Button */}
-              <Button
-                colorScheme="red"
-                onClick={async () => {
-                  try {
-                    const currentVideo = videos.find(
-                      (v) =>
-                        v.cloudinary_video_url === previewVideo ||
-                        v.manual_video_url === previewVideo
-                    );
-                    if (!currentVideo?.creation_id) {
-                      toast({ title: "No creation ID found", status: "error" });
-                      return;
-                    }
-
-                    const payload = {
-                      creation_id: currentVideo.creation_id,
-                      manual_qc: "recreate",
-                      user_id:selectedUser?.user_id
-      
-                    };
-                    await axiosInstance.post(`/manual_qc_video/`, payload);
-
-                    toast({
-                      title: "Video sent for recreation",
-                      status: "success",
-                    });
-
-                    // 🔁 Move parent tab to Image to Video
-                    setActiveTab("Image to Video");
-setclone(true)
-setclonecreationid(currentVideo.creation_id)
-                    setIsPreviewOpen(false);
-                  } catch (err) {
-                    toast({
-                      title: "Error sending recreate request",
-                      status: "error",
-                    });
-                  }
-                }}
-              >
-                Recreate
-              </Button>
-            </Flex>
-          )}
         </Box>
       ) : (
         <Text>No video available</Text>
