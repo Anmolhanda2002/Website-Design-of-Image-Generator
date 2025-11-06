@@ -9,7 +9,6 @@ import {
   useColorModeValue,
   SimpleGrid,
   VStack,
-  Image,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -18,7 +17,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-import { MdPlayCircle, MdCheckCircle } from "react-icons/md";
+import { MdPlayCircle } from "react-icons/md";
 
 export default function CaptionedEdit({ selectedUser, MergeData, setMergeData }) {
   const [videos, setVideos] = useState([]);
@@ -26,33 +25,28 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [mergeStatus, setMergeStatus] = useState(null);
-  const [mergedVideo, setMergedVideo] = useState(null);
   const [polling, setPolling] = useState(false);
+  const [mergedVideo, setMergedVideo] = useState(null);
 
   const toast = useToast();
   const intervalRef = useRef(null);
 
-  // ✅ Modal for Video Playback
+  // ✅ Modal for playing videos
   const videoPlayer = useDisclosure();
   const [playingVideoUrl, setPlayingVideoUrl] = useState(null);
 
   const panelBg = useColorModeValue("white", "gray.800");
-  const borderColor = useColorModeValue("gray.200", "gray.700");
-  const pageBg = useColorModeValue("#F8FAFC", "#1A202C");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
   const activeBorderColor = "blue.400";
-  const activeShadow = useColorModeValue(
-    "0 0 10px rgba(66,153,225,0.7)",
-    "0 0 10px rgba(66,153,225,0.9)"
-  );
 
-  // ---------------- STOP POLLING ----------------
+  // ✅ CLEAR polling when unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // ---------------- FETCH VIDEOS ----------------
+  // ✅ FETCH VIDEOS
   useEffect(() => {
     if (!selectedUser?.user_id) return;
 
@@ -63,18 +57,15 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
           params: { user_id: selectedUser.user_id },
         });
 
-        const success = res.data?.success ?? false;
-        const videos = Array.isArray(res.data?.data) ? res.data.data : [];
+        const success = res.data?.success;
+        const data = Array.isArray(res.data?.data) ? res.data.data : [];
 
-        if (success && videos.length > 0) {
-          setVideos(videos);
-        } else {
-          setVideos([]);
-        }
-      } catch (err) {
+        setVideos(success ? data : []);
+      } catch (e) {
         toast({
           title: "Failed to load videos",
           status: "error",
+          duration: 2500,
         });
       } finally {
         setLoading(false);
@@ -84,7 +75,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     fetchVideos();
   }, [selectedUser]);
 
-  // ---------------- SELECT VIDEO ----------------
+  // ✅ SELECT VIDEO
   const handleSelect = (video) => {
     setSelectedVideo(video);
     setMergedVideo(null);
@@ -93,69 +84,63 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     setMergeData((prev) => ({
       ...prev,
       user_id: selectedUser?.user_id,
-      edit_id: video.edit_id,
       hygaar_key: video.hygaar_key,
+      edit_id: video.edit_id,
     }));
   };
 
-  // ---------------- MERGE SUBMIT ----------------
-const handleMergeSubmit = async () => {
-  if (!selectedVideo) {
-    toast({
-      title: "Select a video first",
-      status: "warning",
-      duration: 2500,
-    });
-    return;
-  }
+  // ✅ MERGE SUBMIT
+  const handleMergeSubmit = async () => {
+    if (!selectedVideo) {
+      toast({
+        title: "Select a video first",
+        status: "warning",
+      });
+      return;
+    }
 
-  try {
-    setSubmitting(true);
+    try {
+      setSubmitting(true);
 
-    const res = await axiosInstance.post("/merged_video/", {
-      user_id: selectedUser.user_id,
-      hygaar_key: selectedVideo.hygaar_key,
-      edit_id: selectedVideo.edit_id,
-      brand_outro_video_url: MergeData.brand_outro_video_url || "",
-      outro_video_url: MergeData.brand_outro_video_url || "",
-    });
+      const res = await axiosInstance.post("/merged_video/", {
+        user_id: selectedUser.user_id,
+        hygaar_key: selectedVideo.hygaar_key,
+        edit_id: selectedVideo.edit_id,
+        brand_outro_video_url: MergeData.brand_outro_video_url || "",
+        outro_video_url: MergeData.brand_outro_video_url || "",
+      });
 
-    // ✅ Show backend message if exists
-    toast({
-      title: res.data?.message || "Merge request submitted",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
+      // ✅ Show backend success message
+      toast({
+        title: res.data?.message || "Merge request submitted",
+        status: "success",
+        duration: 2500,
+      });
 
-    const jobId = res.data?.data?.job_id;
-    if (!jobId) throw new Error("Job failed");
+      const jobId = res.data?.data?.job_id;
+      if (!jobId) throw new Error("Job ID missing");
 
-    startPolling(jobId);
+      startPolling(jobId);
 
-  } catch (err) {
-    // ✅ Extract backend error message
-    const backendMessage =
-      err.response?.data?.message ||
-      err.response?.data?.detail ||
-      err.message ||
-      "Merge failed";
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        "Merge failed";
 
-    toast({
-      title: "Merge failed",
-      description: backendMessage, // ✅ Show backend message
-      status: "error",
-      duration: 4000,
-      isClosable: true,
-    });
+      toast({
+        title: "Merge failed",
+        description: backendMessage,
+        status: "error",
+        duration: 3000,
+      });
 
-  } finally {
-    setSubmitting(false);
-  }
-};
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-
-  // ---------------- POLLING ----------------
+  // ✅ POLLING
   const startPolling = (jobId) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -179,18 +164,18 @@ const handleMergeSubmit = async () => {
             job.final_video_url;
 
           setMergedVideo(finalUrl);
-          videoPlayer.onOpen();
           setPlayingVideoUrl(finalUrl);
+          videoPlayer.onOpen();
         }
-      } catch (err) {
-        console.log("Polling error:", err);
+      } catch (e) {
+        console.log("Polling failed");
       }
-    }, 8000);
+    }, 7000);
   };
 
-  // ---------------- VIDEO CARD ----------------
+  // ✅ Single Video Card
   const VideoCard = ({ video, isSelected }) => {
-    const previewUrl =
+    const preview =
       video.captioned_final_video_url ||
       video.final_video_url ||
       video.final_resize_video_url;
@@ -200,71 +185,66 @@ const handleMergeSubmit = async () => {
         bg={panelBg}
         border="2px solid"
         borderColor={isSelected ? activeBorderColor : borderColor}
-        borderRadius="xl"
-        boxShadow={isSelected ? activeShadow : "sm"}
+        borderRadius="lg"
         overflow="hidden"
         cursor="pointer"
         onClick={() => handleSelect(video)}
+        transition="0.2s"
+        _hover={{ borderColor: "blue.300" }}
       >
-        <Flex
-          h="200px"
-          align="center"
-          justify="center"
-          bg="black"
-          position="relative"
-          w="100%"
-        >
-          {previewUrl ? (
+        <Box h="210px" w="100%" position="relative" bg="black">
+          {preview ? (
             <video
-              src={previewUrl}
+              src={preview}
               muted
               autoPlay
               loop
-              style={{ width: "100%", height: "200px", objectFit: "cover" }}
+              style={{ width: "100%", height: "210px", objectFit: "cover" }}
               onClick={(e) => {
                 e.stopPropagation();
-                setPlayingVideoUrl(previewUrl);
+                setPlayingVideoUrl(preview);
                 videoPlayer.onOpen();
               }}
             />
           ) : (
-            <Text color="gray.500">No Preview</Text>
+            <Flex h="100%" align="center" justify="center">
+              <Text color="gray.400">No Preview</Text>
+            </Flex>
           )}
 
-          {/* Play button on hover */}
+          {/* play button */}
           <Box
             position="absolute"
-            bottom="10px"
-            right="10px"
+            bottom="12px"
+            right="12px"
             bg="rgba(0,0,0,0.6)"
             p={2}
             borderRadius="full"
-            cursor="pointer"
             onClick={(e) => {
               e.stopPropagation();
-              setPlayingVideoUrl(previewUrl);
+              setPlayingVideoUrl(preview);
               videoPlayer.onOpen();
             }}
           >
-            <MdPlayCircle color="white" size={28} />
+            <MdPlayCircle size={30} color="white" />
           </Box>
-        </Flex>
+        </Box>
 
         <Box p={3} w="100%">
           <Text fontWeight="bold" noOfLines={1}>
             {video.project_name}
           </Text>
-          <Text fontSize="sm" color="gray.500">
-            ID: {video.edit_id}
+          <Text color="gray.500" fontSize="sm">
+            {video.edit_id}
           </Text>
         </Box>
       </VStack>
     );
   };
 
-  // ---------------- VIDEO PLAYER MODAL ----------------
+  // ✅ Video Modal
   const VideoPlayerModal = () => (
-    <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="4xl">
+    <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="5xl">
       <ModalOverlay />
       <ModalContent bg="black">
         <ModalCloseButton color="white" />
@@ -274,7 +254,7 @@ const handleMergeSubmit = async () => {
               src={playingVideoUrl}
               controls
               autoPlay
-              style={{ width: "100%", height: "400px", borderRadius: "8px" }}
+              style={{ width: "100%", height: "500px", objectFit: "contain" }}
             />
           )}
         </ModalBody>
@@ -282,9 +262,9 @@ const handleMergeSubmit = async () => {
     </Modal>
   );
 
-  // ---------------- UI ----------------
   return (
-    <Flex direction="column" p={6} bg={pageBg}>
+    <Flex direction="column" w="100%" p={6}>
+      {/* Header */}
       <Flex justify="space-between" align="center">
         <Text fontSize="2xl" fontWeight="bold">
           Captioned Videos
@@ -292,6 +272,7 @@ const handleMergeSubmit = async () => {
 
         <Button
           colorScheme="blue"
+          isLoading={submitting}
           onClick={handleMergeSubmit}
           isDisabled={!selectedVideo || polling}
         >
@@ -299,17 +280,34 @@ const handleMergeSubmit = async () => {
         </Button>
       </Flex>
 
-      {polling ? (
-        <VStack minH="70vh" justify="center">
-          <Spinner size="xl" />
-          <Text>Status: {mergeStatus}</Text>
-        </VStack>
-      ) : loading ? (
-        <Flex justify="center" h="60vh">
+      {/* Loader */}
+      {loading ? (
+        <Flex h="65vh" justify="center" align="center">
           <Spinner size="xl" />
         </Flex>
+      ) : videos.length === 0 ? (
+        // ✅ EMPTY VIEW
+        <Flex
+          h="65vh"
+          justify="center"
+          align="center"
+          direction="column"
+          w="100%"
+        >
+          <Text fontSize="xl" fontWeight="bold" color="gray.500">
+            No videos found
+          </Text>
+          <Text color="gray.400">This user has no captioned videos.</Text>
+        </Flex>
+      ) : polling ? (
+        // ✅ Polling View
+        <Flex h="65vh" justify="center" align="center" direction="column">
+          <Spinner size="xl" />
+          <Text mt={3}>Status: {mergeStatus}</Text>
+        </Flex>
       ) : (
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={6} mt={6}>
+        // ✅ Video Grid
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mt={6} w="100%">
           {videos.map((video) => (
             <VideoCard
               key={video.edit_id}
@@ -320,7 +318,7 @@ const handleMergeSubmit = async () => {
         </SimpleGrid>
       )}
 
-      {/* ✅ VIDEO PLAYER MODAL */}
+      {/* Player Modal */}
       <VideoPlayerModal />
     </Flex>
   );

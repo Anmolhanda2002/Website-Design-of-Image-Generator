@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, startTransition } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
   Flex,
@@ -39,10 +39,10 @@ export default function CaptionedCombine({ selectedUser }) {
 
   const transitionOptions = [
     "none", "fade", "dissolve", "slide", "slideright", "slideleft",
-    "slideup", "slidedown", "zoomin", "zoomout", "wiperight",
-    "wipeleft", "wipeup", "wipedown", "fadeblack", "fadewhite",
-    "radial", "circlecrop", "rectcrop", "smoothleft", "smoothright",
-    "distance", "dis_rot", "sequence", "sequential",
+    "slideup", "slidedown", "zoomin", "zoomout", "wiperight", "wipeleft",
+    "wipeup", "wipedown", "fadeblack", "fadewhite", "radial", "circlecrop",
+    "rectcrop", "smoothleft", "smoothright", "distance", "dis_rot", "sequence",
+    "sequential",
   ];
 
   // Sync selected user
@@ -52,7 +52,7 @@ export default function CaptionedCombine({ selectedUser }) {
     }
   }, [selectedUser]);
 
-  // ✅ Fetch videos with playback support
+  // ✅ Fetch videos
   useEffect(() => {
     if (!selectuser) return;
 
@@ -65,7 +65,6 @@ export default function CaptionedCombine({ selectedUser }) {
 
         const allVideos = res.data?.data || [];
 
-        // ✅ Accept ANY valid video URL so preview plays
         const captionedVideos = allVideos.filter((v) =>
           v.captioned_final_video_url ||
           v.final_video_url ||
@@ -95,14 +94,13 @@ export default function CaptionedCombine({ selectedUser }) {
     };
   }, []);
 
-  // Select Video
   const handleSelectVideo = (video) => {
     setSelectedVideo((prev) =>
       prev?.edit_id === video.edit_id ? null : video
     );
   };
 
-  // ✅ Polling Logic
+  // ✅ Polling logic
   const pollStatus = (url) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -122,7 +120,6 @@ export default function CaptionedCombine({ selectedUser }) {
         if (status === "completed" || status === "completed_captioned") {
           clearInterval(intervalRef.current);
 
-          // ✅ Support all video keys
           const finalUrl =
             data.final_video_url ||
             data.captioned_combined_video_url ||
@@ -140,6 +137,7 @@ export default function CaptionedCombine({ selectedUser }) {
         if (status === "failed" || status === "error") {
           clearInterval(intervalRef.current);
           setProcessing(false);
+
           toast({
             title: "❌ Processing failed",
             status: "error",
@@ -151,7 +149,7 @@ export default function CaptionedCombine({ selectedUser }) {
     }, 6000);
   };
 
-  // ✅ Start Processing
+  // ✅ Start video combine process
   const handleSubmit = async () => {
     if (!selectedVideo) {
       toast({
@@ -173,20 +171,44 @@ export default function CaptionedCombine({ selectedUser }) {
 
     try {
       const res = await axiosInstance.post(`/captioned_combined_video/`, payload);
+
+      // ✅ Show backend success message
+      toast({
+        title: res.data?.message || "Processing started",
+        status: "success",
+      });
+
       const statusUrl = res.data?.data?.status_check_url;
+
+      if (!statusUrl) {
+        toast({
+          title: "Error",
+          description: "No status URL returned",
+          status: "error",
+        });
+        setProcessing(false);
+        return;
+      }
 
       pollStatus(statusUrl);
     } catch (err) {
+      const backendMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        err.message ||
+        "Error starting processing";
+
       toast({
-        title: "Error starting processing",
-        description: err.message,
+        title: "Processing failed",
+        description: backendMessage,
         status: "error",
       });
+
       setProcessing(false);
     }
   };
 
-  // ✅ Video Card (preview plays properly)
+  // ✅ Video card
   const VideoCard = ({ video }) => {
     const selected = selectedVideo?.edit_id === video.edit_id;
 
@@ -206,16 +228,22 @@ export default function CaptionedCombine({ selectedUser }) {
         overflow="hidden"
         cursor="pointer"
         onClick={() => handleSelectVideo(video)}
+        w="100%"
       >
         {videoUrl ? (
           <video
             src={videoUrl}
-            controls        // ✅ PREVIEW CAN PLAY NOW
-            style={{ width: "100%", height: "200px", objectFit: "cover" }}
+            controls
+            style={{
+              width: "100%",
+              height: "auto",
+              maxHeight: "250px",
+              objectFit: "cover",
+            }}
           />
         ) : (
           <Box
-            h="200px"
+            h="250px"
             bg="gray.200"
             display="flex"
             alignItems="center"
@@ -237,11 +265,18 @@ export default function CaptionedCombine({ selectedUser }) {
     );
   };
 
-  // ✅ Processing UI
+  // ✅ Processing status screen
   const ProcessingView = () => (
-    <Flex align="center" width={"100%"} justify="center" minH="70vh" direction="column">
+    <Flex
+      align="center"
+      width="100%"
+      justify="center"
+      minH="60vh"
+      direction="column"
+      py={8}
+    >
       {finalVideoUrl ? (
-        <VStack spacing={6} w={{ base: "100%", md: "600px" }}>
+        <VStack spacing={6} w="100%" maxW="700px">
           <Flex align="center" gap={3} color="green.500">
             <MdCheckCircle size={30} />
             <Text fontSize="2xl" fontWeight="bold">
@@ -249,14 +284,14 @@ export default function CaptionedCombine({ selectedUser }) {
             </Text>
           </Flex>
 
-          {/* ✅ PLAY FINAL VIDEO HERE */}
           <video
             src={finalVideoUrl}
             controls
             autoPlay
             style={{
               width: "100%",
-              height:"200px",
+              height: "auto",
+              maxHeight: "450px",
               borderRadius: "14px",
               backgroundColor: "black",
             }}
@@ -283,8 +318,8 @@ export default function CaptionedCombine({ selectedUser }) {
   );
 
   return (
-    <Box bg={bg} minH="100vh" p={6}>
-      <Flex justify="space-between" mb={6} flexWrap="wrap">
+    <Box bg={bg} minH="100vh" p={4} w="100%">
+      <Flex justify="space-between" mb={6} w="100%" flexWrap="wrap">
         <Text fontSize="2xl" fontWeight="bold">
           Captioned Video Combine
         </Text>
@@ -322,14 +357,20 @@ export default function CaptionedCombine({ selectedUser }) {
           <Spinner size="xl" />
         </Flex>
       ) : videos.length > 0 ? (
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
+        <SimpleGrid
+          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+          spacing={6}
+          width="100%"
+        >
           {videos.map((v) => (
             <VideoCard key={v.edit_id} video={v} />
           ))}
         </SimpleGrid>
       ) : (
-        <Flex align="center" justify="center" h="50vh">
-          <Text>No videos found.</Text>
+        <Flex align="center" justify="center" h="50vh" w="100%">
+          <Text fontSize="xl" fontWeight="bold" color="gray.500">
+            No videos found
+          </Text>
         </Flex>
       )}
     </Box>
