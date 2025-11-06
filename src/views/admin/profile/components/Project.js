@@ -63,7 +63,7 @@ export default function Project(props) {
             {subtitle}
           </Text>
         </Box>
-        <Link
+        {/* <Link
           href={`/projects/${projectId}`}
           variant="no-hover"
           me="16px"
@@ -71,7 +71,7 @@ export default function Project(props) {
           p="0px !important"
         >
           <Icon as={MdEdit} color="secondaryGray.500" h="18px" w="18px" />
-        </Link>
+        </Link> */}
       </Flex>
     </Card>
   );
