@@ -204,7 +204,7 @@ const handleSubmit = async () => {
           image_urls: images.map((img) => img.url),
           prompt: text,
           img_guideline_id: imageCreationSettings?.guidelineId,
-          user_id: selectedUser,
+          user_id: selectedUser?.user_id,
         }
       );
 
@@ -229,7 +229,7 @@ const handleSubmit = async () => {
             target_height: targetHeight,
             resize_method: resizeMethod,
             quality,
-            user_id: selectedUser,
+            user_id: selectedUser?.user_id,
           }
         );
 
@@ -259,7 +259,7 @@ const handleSubmit = async () => {
           target_height: targetHeight,
           resize_method: resizeMethod,
           quality,
-          user_id: selectedUser,
+          user_id: selectedUser?.user_id,
         }
       );
 
@@ -321,7 +321,7 @@ else if (activeTab === "Image to Video") {
     resize,
     resize_width,
     resize_height,
-    user_id: selectedUser,
+    user_id: selectedUser?.user_id,
   });
 
   const creationId = res1?.data?.creation_id;
