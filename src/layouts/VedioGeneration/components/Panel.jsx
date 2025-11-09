@@ -1,4 +1,4 @@
-import React ,{useRef} from "react";
+import React ,{useRef,useCallback} from "react";
 import {
     Box,
     VStack,
@@ -43,6 +43,7 @@ export default function Panel({
     setCaptionData,
     MergeData,
     setMergeData,
+    selectedUser
 }) {
     const panelBg = useColorModeValue("white", "gray.800");
 
@@ -54,8 +55,12 @@ export default function Panel({
     const [searchTerm, setSearchTerm] = useState("");
     const [guidelines, setGuidelines] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [useCases, setUseCases] = useState([]);
+const [loadingUseCase, setLoadingUseCase] = useState(false);
     const toast = useToast();
-
+   // ✅ get context
+  const prevUserIdRef = useRef(null);
+console.log(selectedUser)
     const [dropdownData, setDropdownData] = useState({
         video_dimensions_choices: {},
         sector_choices: [],
@@ -118,43 +123,59 @@ export default function Panel({
 
 
 
+
+  
+
     // 🔍 Fetch Guidelines from API (Debounced using useEffect)
     const searchTimeout = useRef(null);
-useEffect(() => {
-  loadAllGuidelines();
-}, []);
+const loadAllGuidelines = useCallback(async () => {
+    try {
+      setLoading(true);
 
-const loadAllGuidelines = async () => {
-  try {
-    setLoading(true);
+      const user = JSON.parse(localStorage.getItem("user"));
+      const selected = JSON.parse(localStorage.getItem("selected_user"));
+      const userId = selected?.user_id || user?.user_id;
 
-    const user = JSON.parse(localStorage.getItem("user"));
-    const selectedUser = JSON.parse(localStorage.getItem("selected_user"));
-    const userId = selectedUser?.user_id || user?.user_id;
+      const res = await axiosInstance.get("/list_active_image_guidelines/", {
+        params: {
+          name: "",
+          user_id: userId,
+          limit: 50,
+          page: 1,
+        },
+      });
 
-    const res = await axiosInstance.get("/search_image_guidelines/", {
-      params: {
-        name: "",        // ✅ empty → backend returns all
-        user_id: userId,
-        limit: 50,
-        page: 1,
-      },
-    });
+      const result =
+        Array.isArray(res.data?.results)
+          ? res.data.results
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
 
-    const result =
-      Array.isArray(res.data?.results)
-        ? res.data.results
-        : Array.isArray(res.data)
-        ? res.data
-        : [];
+      setGuidelines(result);
+    } catch (err) {
+      console.error("Error fetching guidelines:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    setGuidelines(result);
-  } catch (err) {
-    console.log(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  // ✅ Only refetch when selected user changes
+  useEffect(() => {
+    const currentUserId = selectedUser?.user_id;
+    if (!currentUserId) return;
+
+    // skip on first mount
+    if (prevUserIdRef.current === null) {
+      prevUserIdRef.current = currentUserId;
+      return;
+    }
+
+    if (currentUserId !== prevUserIdRef.current) {
+      prevUserIdRef.current = currentUserId;
+      loadAllGuidelines(); // 👈 refetch when user changes
+    }
+  }, [selectedUser, loadAllGuidelines]);
 useEffect(() => {
   if (!searchTerm.trim()) {
     loadAllGuidelines();   // ✅ When search is empty → show all again
@@ -169,6 +190,9 @@ useEffect(() => {
 }, [searchTerm]);
 
 
+
+
+
     // Section for image to video (Dropdown fetches)
     const generateShortUUID = () => {
         return (
@@ -178,6 +202,40 @@ useEffect(() => {
             Date.now().toString(36)
         ).slice(0, 48);
     };
+
+
+    const fetchUseCases = useCallback(async () => {
+    try {
+      setLoadingUseCase(true);
+      const res = await axiosInstance.get("/get_image_guideline_choices");
+
+      const data = res.data?.data?.use_case_choices || {};
+      const formatted = Object.entries(data).map(([label, value]) => ({
+        label,
+        value,
+      }));
+
+      setUseCases(formatted);
+    } catch (err) {
+      console.error("Error fetching use case choices:", err);
+    } finally {
+      setLoadingUseCase(false);
+    }
+  }, []);
+
+  // ✅ Re-fetch ONLY when selected user changes AND tab = "Image Creation"
+  useEffect(() => {
+    if (activeTab !== "Image Creation") return;
+
+
+    // 🔹 On first mount
+    
+   
+      fetchUseCases();
+ 
+
+
+  }, [activeTab, selectedUser?.user_id, fetchUseCases]);
 
     useEffect(() => {
         const fetchDropdowns = async () => {
@@ -221,54 +279,83 @@ useEffect(() => {
 
     const renderPanelContent = () => {
         switch (activeTab) {
-           case "Image Creation":
+          case "Image Creation":
   return (
     <VStack align="stretch" spacing={4}>
       {/* 🔍 Search Image Guidelines */}
       <Box>
         <Text fontWeight="bold">Search Image Guidelines</Text>
-   <Input
-  placeholder="Enter guideline name..."
-  value={searchTerm}
-  onChange={(e) => {
-    const value = e.target.value;
-    startTransition(() => setSearchTerm(value));
-  }}
-  mt={2}
-/>
+        <Input
+          placeholder="Enter guideline name..."
+          value={searchTerm}
+          onChange={(e) => {
+            const value = e.target.value;
+            startTransition(() => setSearchTerm(value));
+          }}
+          mt={2}
+        />
       </Box>
 
       {/* 🧩 Select Guideline */}
-<Box mt={4}>
-  <Text fontWeight="bold">Select Guideline</Text>
+      <Box mt={4}>
+        <Text fontWeight="bold">Select Guideline</Text>
 
-  {loading ? (
-    <Spinner mt={3} />
-  ) : (
-    <Select
-      placeholder="Select a guideline"
-      value={imageCreationSettings.guidelineId || ""}
-      onChange={(e) =>
-        setImageCreationSettings((prev) => ({
-          ...prev,
-          guidelineId: e.target.value,
-        }))
-      }
-      mt={2}
-    >
-      {guidelines.length > 0 ? (
-        guidelines.map((g) => (
-          <option key={g.guideline_id} value={g.guideline_id}>
-            {g.name}
-          </option>
-        ))
-      ) : (
-        <option disabled>No guidelines found</option>
-      )}
-    </Select>
-  )}
+        {loading ? (
+          <Spinner mt={3} />
+        ) : (
+          <Select
+            placeholder="Select a guideline"
+            value={imageCreationSettings.guidelineId || ""}
+            onChange={(e) =>
+              setImageCreationSettings((prev) => ({
+                ...prev,
+                guidelineId: e.target.value,
+              }))
+            }
+            mt={2}
+          >
+            {guidelines.length > 0 ? (
+              guidelines.map((g) => (
+                <option key={g.guideline_id} value={g.guideline_id}>
+                  {g.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>No guidelines found</option>
+            )}
+          </Select>
+        )}
+      </Box>
 
+      {/* 🧠 Use Case Dropdown (from API) */}
+      <Box mt={4}>
+        <Text fontWeight="bold">Select Use Case</Text>
 
+        {loadingUseCase ? (
+          <Spinner mt={3} />
+        ) : (
+          <Select
+            placeholder="Select a use case"
+            value={imageCreationSettings.use_case || ""}
+            onChange={(e) =>
+              setImageCreationSettings((prev) => ({
+                ...prev,
+                use_case: e.target.value,
+              }))
+            }
+            mt={2}
+          >
+            {useCases.length > 0 ? (
+              useCases.map(({ label, value }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))
+            ) : (
+              <option disabled>No use cases found</option>
+            )}
+          </Select>
+        )}
       </Box>
 
       {/* 🎯 Target Method */}
@@ -372,8 +459,7 @@ useEffect(() => {
       </Box>
     </VStack>
   );
-
-          case "Resize Image":
+         case "Resize Image":
   return (
     <VStack align="stretch" spacing={4}>
       {/* Target Width */}

@@ -7,17 +7,17 @@ import {
   Button,
   useToast,
   useColorModeValue,
-  SimpleGrid,
-  VStack,
+  VStack,SimpleGrid
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-import { MdSend } from "react-icons/md";
+import { MdSend, MdReplay } from "react-icons/md";
 
 export default function CaptionedEdit({ selectedUser, captionData, setCaptionData }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [resultVideo, setResultVideo] = useState(null); // ✅ New state for result page
   const toast = useToast();
 
   const panelBg = useColorModeValue("white", "gray.800");
@@ -25,10 +25,9 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
   const hoverBg = useColorModeValue("gray.50", "gray.700");
   const color = useColorModeValue("#A0AEC0", "#4A5568");
 
-  // ✅ Fetch edited videos safely when user changes
+  // ✅ Fetch all edited videos for user
   useEffect(() => {
     if (!selectedUser?.user_id) return;
-
     const controller = new AbortController();
 
     const fetchVideos = async () => {
@@ -70,7 +69,7 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
     return () => controller.abort();
   }, [selectedUser?.user_id, toast]);
 
-  // ✅ Handle video selection safely
+  // ✅ Handle video selection
   const handleSelect = (video) => {
     startTransition(() => {
       setSelectedVideo(video);
@@ -82,7 +81,7 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
     });
   };
 
-  // ✅ Handle submit with async safety
+  // ✅ Handle caption submission
   const handleSubmit = async () => {
     if (!selectedVideo) {
       toast({
@@ -119,22 +118,28 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
 
     try {
       const res = await axiosInstance.post(`/factory_add_segment_captions/`, payload);
-      if (res.data?.success || res.data?.status === "success") {
+
+      if (res.data?.success) {
+        const { captioned_segment_url, edit_id, segment_number } = res.data.data;
+
         toast({
-          title: "Caption segment submitted successfully!",
+          title: `Captions added successfully!`,
           status: "success",
           duration: 2500,
           isClosable: true,
         });
 
-        startTransition(() => {
-          setCaptionData((prev) => ({
-            ...prev,
-            text: "",
-            start_time: "",
-            end_time: "",
-          }));
+        // ✅ Show only the result video in a new view
+        setResultVideo({
+          captioned_segment_url,
+          edit_id,
+          segment_number,
+          project_name: selectedVideo.project_name || "Captioned Video",
         });
+
+        // ✅ Clear previous videos and selections
+        setVideos([]);
+        setSelectedVideo(null);
       } else {
         throw new Error(res.data?.message || "API response error");
       }
@@ -152,64 +157,62 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
     }
   };
 
-  // ✅ Video Card Component
-  const VideoCard = ({ video, isSelected, onSelect }) => (
-    <Box
-      bg={panelBg}
-      border="2px solid"
-      borderColor={isSelected ? "blue.400" : borderColor}
-      borderRadius="xl"
-      boxShadow={isSelected ? "0 0 15px rgba(66,153,225,0.5)" : "sm"}
-      overflow="hidden"
-      transition="all 0.3s ease"
-      transform={isSelected ? "scale(0.97)" : "scale(1)"}
-      _hover={{
-        transform: "scale(0.99)",
-        bg: hoverBg,
-      }}
-      onClick={() => startTransition(() => onSelect(video))}
-      cursor="pointer"
-    >
-      {video.final_video_url || video.captioned_final_video_url ? (
-        <video
-          src={video.captioned_final_video_url || video.final_video_url}
-          style={{
-            width: "100%",
-            height: "200px",
-            objectFit: "cover",
-          }}
-          controls
-          muted
-        />
-      ) : (
+  // ✅ Result view for single captioned video
+  if (resultVideo) {
+    return (
+      <Flex direction="column" align="center" justify="center" h="100%" p={6} >
         <Box
-          h="200px"
-          bg="gray.100"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          bg={panelBg}
+          p={5}
+          borderRadius="xl"
+          boxShadow="lg"
+          maxW="700px"
+          w="100%"
+          textAlign="center"
+          overflowY="auto"
+          sx={{
+            "&::-webkit-scrollbar": { width: "8px" },
+            "&::-webkit-scrollbar-thumb": { background: "none", borderRadius: "4px" },
+          }}
+           
         >
-          <Text color="gray.500">No Video Available</Text>
-        </Box>
-      )}
-      <Box p={3}>
-        <Text fontWeight="bold" noOfLines={1}>
-          {video.project_name || "Unnamed Project"}
-        </Text>
-        <Text fontSize="sm" color="gray.500">
-          Total Segments: {video.total_segments_created || 0}
-        </Text>
-        {isSelected && (
-          <Text fontSize="sm" color="blue.500" fontWeight="semibold">
-            Selected: Edit ID {video.edit_id}
+          <Text fontSize="2xl" fontWeight="bold" mb={4}>
+            🎉 Captioned Segment Ready!
           </Text>
-        )}
-      </Box>
-    </Box>
-  );
 
+          <video
+            src={resultVideo.captioned_segment_url}
+            controls
+            autoPlay
+            style={{
+              width: "100%",
+              borderRadius: "12px",
+              maxHeight:"300px",
+              marginBottom: "16px",
+              boxShadow: "0 0 20px rgba(0,0,0,0.2)",
+            }}
+          />
+
+          <Text fontWeight="semibold">
+            Edit ID: <b>{resultVideo.edit_id}</b>
+          </Text>
+          <Text color="green.500" fontWeight="bold">
+            Segment #{resultVideo.segment_number}
+          </Text>
+
+
+        </Box>
+      </Flex>
+    );
+  }
+
+  // ✅ Default Video List View
   return (
-    <Flex direction="column" h="100%" w="100%" p={4} gap={4}>
+    <Flex direction="column" h="100%" w="100%" p={4} gap={4} overflowY="auto"
+          sx={{
+            "&::-webkit-scrollbar": { width: "8px" },
+            "&::-webkit-scrollbar-thumb": { background: color, borderRadius: "4px" },
+          }}>
       <Flex justify="space-between" align="center">
         <VStack align="flex-start" spacing={0}>
           <Text fontSize="xl" fontWeight="bold">
@@ -241,28 +244,84 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
         </Flex>
       ) : videos.length === 0 ? (
         <Flex align="center" justify="center" flex="1">
-          <Text color="gray.500">No videos found that are available for caption editing.</Text>
+          <Text color="gray.500">No videos found for caption editing.</Text>
         </Flex>
       ) : (
         <Box
-          flex="1"
-          overflowY="auto"
-          sx={{
-            "&::-webkit-scrollbar": { width: "8px" },
-            "&::-webkit-scrollbar-thumb": { background: color, borderRadius: "4px" },
+  flex="1"
+  overflowY="auto"
+  sx={{
+    "&::-webkit-scrollbar": { width: "0px" },
+    "&::-webkit-scrollbar-thumb": { background: "none", borderRadius: "4px" },
+  }}
+>
+  <SimpleGrid
+    columns={{ base: 1, sm: 2, md: 3 }} // 👈 1 col mobile, 2 tab, 3 desktop
+    spacing={4}
+    justifyItems="center"
+  >
+    {videos.map((video) => {
+      const videoSrc =
+        video.captioned_segment_url ||
+        video.captioned_final_video_url ||
+        video.final_video_url;
+
+      const isSelected = selectedVideo?.edit_id === video.edit_id;
+
+      return (
+        <Box
+          key={video.edit_id}
+          bg={panelBg}
+          border="2px solid"
+          borderColor={isSelected ? "blue.400" : borderColor}
+          borderRadius="xl"
+          boxShadow={isSelected ? "0 0 15px rgba(66,153,225,0.5)" : "sm"}
+          overflow="hidden"
+          transition="all 0.3s ease"
+          cursor="pointer"
+          onClick={() => handleSelect(video)}
+          _hover={{
+            transform: "scale(1.03)",
+            boxShadow: "lg",
           }}
         >
-          <SimpleGrid columns={{ base: 1, sm: 2, md: 2, lg: 3 }} spacing={6} w="100%">
-            {videos.map((video) => (
-              <VideoCard
-                key={video.edit_id}
-                video={video}
-                isSelected={selectedVideo?.edit_id === video.edit_id}
-                onSelect={handleSelect}
-              />
-            ))}
-          </SimpleGrid>
+          {videoSrc ? (
+            <video
+              src={videoSrc}
+              style={{
+                width: "100%",
+                height: "200px",
+                objectFit: "cover",
+              }}
+              controls
+              muted
+            />
+          ) : (
+            <Box
+              w="100%"
+              h="200px"
+              bg="gray.100"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Text color="gray.500">No Video</Text>
+            </Box>
+          )}
+          <Box p={3}>
+            <Text fontWeight="bold" noOfLines={1}>
+              {video.project_name || "Unnamed Project"}
+            </Text>
+            <Text fontSize="sm" color="gray.500">
+              ID: {video.edit_id}
+            </Text>
+          </Box>
         </Box>
+      );
+    })}
+  </SimpleGrid>
+</Box>
+
       )}
     </Flex>
   );

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Flex,
@@ -7,14 +7,15 @@ import {
   Button,
   Text,
   IconButton,
-  Badge,
-  Spinner,
+  Select,
   useColorModeValue,
   useBreakpointValue,
+  Stack,
+  Badge,
   SimpleGrid,
+  Spinner,
 } from '@chakra-ui/react';
 import { EditIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons';
-import { useSelectedUser } from 'utils/SelectUserContext';
 import {
   createColumnHelper,
   flexRender,
@@ -25,9 +26,10 @@ import {
 import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
-export default function GuidelineTable() {
+export default function GuidelineTable({userId}) {
+
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
@@ -42,59 +44,40 @@ export default function GuidelineTable() {
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const navigate = useNavigate();
-  const { selectedUser } = useSelectedUser();
+  const { id: userIdParam } = useParams();
 
-  const prevUserIdRef = useRef(null);
-
-  // === Fetch Guidelines ===
-  const fetchGuidelines = useCallback(async () => {
+  // Fetch Guidelines
+  const fetchGuidelines = async () => {
     try {
       setLoading(true);
-
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      const userId = selectedUser?.user_id || storedUser?.user_id;
-
-      if (!userId) {
-        console.warn('⚠️ No valid user_id found.');
-        setGuidelines([]);
-        return;
-      }
-
-      const response = await axiosInstance.get(`/list_image_guidelines?user_id=${userId}`);
-
-      if (response.data?.status === 'success') {
+      const response = await axiosInstance.get(
+        `/list_image_guidelines?user_id=${userIdParam}`
+      );
+      if (response.data.status === 'success') {
         setGuidelines(response.data.results || []);
         setTotalPages(1);
-      } else {
-        console.warn('Unexpected response:', response.data);
-        setGuidelines([]);
       }
     } catch (error) {
       console.error('Error fetching guidelines:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedUser]);
+  };
 
-  // ✅ Fetch only when selected user changes (not on refresh)
-useEffect(() => {
-  const currentUserId = selectedUser?.user_id;
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const defaultUserId = storedUser?.user_id;
-
-  const effectiveUserId = currentUserId || defaultUserId;
-
-  // ✅ Fetch when user changes OR first load
-  if (effectiveUserId && effectiveUserId !== prevUserIdRef.current) {
-    prevUserIdRef.current = effectiveUserId;
+  useEffect(() => {
     fetchGuidelines();
-  }
-}, [selectedUser, fetchGuidelines]);
+  }, []);
+
+  const columnHelper = createColumnHelper();
+
+const handlegoeditpage = (guidlelineid)=>{
+  navigate(`/admin/edit_guideline/${guidlelineid}?user_id=${userId}`);
+}
 
 
-  // === Delete Guideline ===
+  // Delete Guideline
   const handleDelete = async (id) => {
-    const confirm = await Swal.fire({
+    Swal.fire({
       title: 'Are you sure?',
       text: 'This action cannot be undone!',
       icon: 'warning',
@@ -102,36 +85,32 @@ useEffect(() => {
       confirmButtonColor: '#3182CE',
       cancelButtonColor: '#E53E3E',
       confirmButtonText: 'Yes, delete it!',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+       
+          await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
+         user_id:userIdParam,
+            guideline_id: id,
+          });
+          Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+          fetchGuidelines();
+        } catch (err) {
+          console.error(err);
+          Swal.fire('Error!', 'Failed to delete guideline.', 'error');
+        }
+      }
     });
-
-    if (!confirm.isConfirmed) return;
-
-    try {
-
-
-      await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
-        guideline_id: id,
-        user_id:selectedUser?.user_id
-      });
-
-      Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-      fetchGuidelines();
-    } catch (err) {
-      console.error(err);
-      Swal.fire('Error!', 'Failed to delete guideline.', 'error');
-    }
   };
 
-  // === Activate Guideline ===
+  // Activate Guideline
   const handleActivate = async (id) => {
     try {
-
-
+   
       await axiosInstance.post(`/factory_development_activate_image_guideline/`, {
-   user_id:selectedUser?.user_id,
+       user_id:userId,
         guideline_id: id,
       });
-
       Swal.fire('Activated!', 'The guideline is now active.', 'success');
       fetchGuidelines();
     } catch (err) {
@@ -140,18 +119,23 @@ useEffect(() => {
     }
   };
 
-  // === Table Columns ===
-  const columnHelper = createColumnHelper();
+  const handleAddGuideline = () => navigate(`/admin/add/guidelines/${userId}`);
+
+  // Table Columns
   const columns = useMemo(
     () => [
       columnHelper.accessor('guideline_id', {
         header: 'ID',
-        cell: (info) => <Text fontSize="sm">{info.getValue()}</Text>,
+        cell: (info) => (
+          <Text fontSize="sm" color={textColor}>
+            {info.getValue()}
+          </Text>
+        ),
       }),
       columnHelper.accessor('name', {
         header: 'Guideline Name',
         cell: (info) => (
-          <Text fontSize="sm" fontWeight="500">
+          <Text fontSize="sm" fontWeight="500" color={textColor}>
             {info.getValue()}
           </Text>
         ),
@@ -186,7 +170,9 @@ useEffect(() => {
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
+                onClick={()=>
+                 handlegoeditpage(row.guideline_id)
+                }
               />
               <IconButton
                 aria-label="Delete"
@@ -201,10 +187,9 @@ useEffect(() => {
         },
       }),
     ],
-    [navigate]
+    [textColor, navigate]
   );
 
-  // === Filter + Table setup ===
   const filteredData = useMemo(
     () =>
       guidelines.filter((row) =>
@@ -217,17 +202,38 @@ useEffect(() => {
     data: filteredData,
     columns,
     state: { pagination: { pageIndex, pageSize } },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const newState = updater({ pageIndex, pageSize });
+        setPageIndex(newState.pageIndex);
+        setPageSize(newState.pageSize);
+      }
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // === Render ===
+  // --- Render ---
   return (
-    <Card w="100%" bg={cardBg} mt="100px" shadow="md" borderRadius="lg" p={4}>
-      <Flex justify="space-between" align="center" mb={4}>
-        <Text fontSize="2xl" fontWeight="bold">
+    <Card w="100%" bg={cardBg} mt={"-100px"} shadow="md" borderRadius="lg">
+      <Flex
+        justify="space-between"
+        align={{ base: 'start', md: 'center' }}
+        direction={{ base: 'column', md: 'row' }}
+        mb={4}
+        gap={3}
+      >
+        <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Guidelines
         </Text>
+        <Button
+          size="sm"
+          colorScheme="blue"
+          onClick={handleAddGuideline}
+          w={{ base: '100%', md: 'auto' }}
+        >
+          + Add Guideline
+        </Button>
       </Flex>
 
       <Input
@@ -239,18 +245,18 @@ useEffect(() => {
 
       {loading ? (
         <Flex justify="center" py={10}>
-          <Spinner size="lg" color="blue.500" />
+          <Spinner size="lg" />
         </Flex>
       ) : (
         <>
-          {/* === Desktop Table === */}
+          {/* ✅ TABLE (Desktop) */}
           {!isMobile ? (
             <Box overflowX="auto">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  {table.getHeaderGroups().map((hg) => (
-                    <tr key={hg.id}>
-                      {hg.headers.map((header) => (
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
                         <th
                           key={header.id}
                           style={{
@@ -261,7 +267,10 @@ useEffect(() => {
                             fontSize: '13px',
                           }}
                         >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                         </th>
                       ))}
                     </tr>
@@ -269,7 +278,12 @@ useEffect(() => {
                 </thead>
                 <tbody>
                   {table.getRowModel().rows.map((row) => (
-                    <tr key={row.id} style={{ borderBottom: `1px solid ${borderColor}` }}>
+                    <tr
+                      key={row.id}
+                      style={{
+                        borderBottom: `1px solid ${borderColor}`,
+                      }}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} style={{ padding: '10px' }}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -281,7 +295,7 @@ useEffect(() => {
               </table>
             </Box>
           ) : (
-            /* === Mobile Cards === */
+            /* ✅ CARD VIEW (Mobile) */
             <SimpleGrid columns={1} spacing={4}>
               {filteredData.length > 0 ? (
                 filteredData.map((item) => (
@@ -292,13 +306,17 @@ useEffect(() => {
                     p={4}
                     shadow="sm"
                   >
-                    <Text fontWeight="bold">{item.name}</Text>
+                    <Text fontWeight="bold" color={textColor}>
+                      {item.name}
+                    </Text>
                     <Text fontSize="sm" color={subText} mt={1}>
                       ID: {item.guideline_id}
                     </Text>
                     <Flex justify="space-between" align="center" mt={3}>
                       {item.is_active ? (
-                        <Badge colorScheme="green">Active</Badge>
+                        <Badge colorScheme="green" variant="solid">
+                          Active
+                        </Badge>
                       ) : (
                         <Button
                           size="xs"
@@ -337,6 +355,72 @@ useEffect(() => {
               )}
             </SimpleGrid>
           )}
+
+          {/* ✅ Pagination */}
+       <Flex
+  justify="space-between"
+  align="center"
+  mt={6}
+  direction={{ base: 'column', md: 'row' }}
+  gap={{ base: 4, md: 3 }}
+  w="100%"
+>
+  {/* Rows per page */}
+  <Flex
+    align="center"
+    justify={{ base: 'center', md: 'flex-start' }}
+    gap={2}
+    w={{ base: '100%', md: 'auto' }}
+  >
+    <Text fontSize="sm" whiteSpace="nowrap">
+      Rows per page:
+    </Text>
+    <Select
+      w={{ base: '100px', sm: '80px' }}
+      size="sm"
+      value={pageSize}
+      onChange={(e) => setPageSize(Number(e.target.value))}
+    >
+      {[5, 10, 20, 50].map((size) => (
+        <option key={size} value={size}>
+          {size}
+        </option>
+      ))}
+    </Select>
+  </Flex>
+
+  {/* Page navigation */}
+  <Flex
+    gap={3}
+    align="center"
+    justify={{ base: 'center', md: 'flex-end' }}
+    flexWrap="wrap"
+    w={{ base: '100%', md: 'auto' }}
+  >
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
+      isDisabled={pageIndex === 0}
+      w={{ base: '100px', sm: 'auto' }}
+    >
+      Previous
+    </Button>
+    <Text fontSize="sm" minW="90px" textAlign="center">
+      Page {pageIndex + 1} of {totalPages}
+    </Text>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => setPageIndex(Math.min(totalPages - 1, pageIndex + 1))}
+      isDisabled={pageIndex + 1 === totalPages}
+      w={{ base: '100px', sm: 'auto' }}
+    >
+      Next
+    </Button>
+  </Flex>
+</Flex>
+
         </>
       )}
     </Card>

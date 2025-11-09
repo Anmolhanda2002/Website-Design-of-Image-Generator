@@ -26,12 +26,13 @@ import axiosInstance from "utils/AxiosInstance";
 import routes from "routes";
 import NavbarClock from "./NavbarClock";
 import { SidebarResponsive } from "components/sidebar/Sidebar";
-
+import { useSelectedUser } from "utils/SelectUserContext";
 export default function HeaderLinks({ secondary }) {
   const navigate = useNavigate();
+  
   const toast = useToast();
   const { colorMode, toggleColorMode } = useColorMode();
-
+const { selectedUser, setSelectedUser } = useSelectedUser();
   // === Colors & Styles ===
   const menuBg = useColorModeValue("white", "navy.800");
   const textColor = useColorModeValue("gray.800", "white");
@@ -53,10 +54,10 @@ export default function HeaderLinks({ secondary }) {
   const [dropdownLoading, setDropdownLoading] = useState(false);
 
   // === Selected user ===
-  const [selectedUser, setSelectedUser] = useState(() => {
-    const storedUser = JSON.parse(localStorage.getItem("selected_user"));
-    return storedUser || null;
-  });
+  // const [selectedUser, setSelectedUser] = useState(() => {
+  //   const storedUser = JSON.parse(localStorage.getItem("selected_user"));
+  //   return storedUser || null;
+  // });
 
   // === Load user + routes ===
   useEffect(() => {
@@ -128,6 +129,7 @@ const handleSelectUser = (u) => {
   startTransition(() => {
     if (u && Object.keys(u).length > 0) {
       setSelectedUser(u);
+      
       localStorage.setItem("selected_user", JSON.stringify(u));
     } else {
       setSelectedUser(null);

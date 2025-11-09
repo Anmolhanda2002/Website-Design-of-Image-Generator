@@ -5,6 +5,7 @@ import initialTheme from './theme/theme';
 import { useState, lazy, Suspense } from 'react';
 import { UserProvider } from "./contexts/UserContext";
 import CreateNnewPassword from 'views/auth/forgetpassword/Create_new_password';
+import { SelectedUserProvider } from 'utils/SelectUserContext';
 
 // Lazy load layouts and pages
 const AuthLayout = lazy(() => import('./layouts/auth'));
@@ -18,6 +19,7 @@ export default function Main() {
 
   return (
     <UserProvider>
+    <SelectedUserProvider>
       <ChakraProvider theme={currentTheme}>
         {/* ✅ Wrap all lazy routes with Suspense */}
         <Suspense
@@ -47,6 +49,7 @@ export default function Main() {
           </Routes>
         </Suspense>
       </ChakraProvider>
+      </SelectedUserProvider>
     </UserProvider>
   );
 }

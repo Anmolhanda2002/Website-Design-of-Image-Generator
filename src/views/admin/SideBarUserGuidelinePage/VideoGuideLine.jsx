@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -16,6 +16,7 @@ import {
   Tr,
   Th,
   Td,
+  Spinner,
 } from '@chakra-ui/react';
 import { EditIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons';
 import {
@@ -28,52 +29,74 @@ import {
 import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useSelectedUser } from 'utils/SelectUserContext';
 
-export default function GuidelineTable() {
+export default function VideoGuidelineTable() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
   const [guidelines, setGuidelines] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+
   const textColor = useColorModeValue('gray.800', 'whiteAlpha.900');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
+  const cardBg = useColorModeValue('white', 'gray.800');
+
   const navigate = useNavigate();
-  const { id: userIdParam } = useParams();
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const { selectedUser } = useSelectedUser();
+  const prevUserIdRef = useRef(null);
 
-  const fetchGuidelines = async () => {
-    setLoading(true);
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-
-    // 🧩 Extract user_id safely
-    const userId = storedUser?.user_id;
-
-    if (!userId) {
-      console.error("No user_id found in localStorage");
-      setLoading(false);
-      return;
-    }
-
+  // ✅ Fetch Video Guidelines
+  const fetchGuidelines = useCallback(async () => {
     try {
+      setLoading(true);
+
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      const userId = selectedUser?.user_id || storedUser?.user_id;
+
+      if (!userId) {
+        console.warn('⚠️ No valid user_id found.');
+        setGuidelines([]);
+        return;
+      }
+
       const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userId}`);
-      if (response.data.status === 'success') {
+
+      if (response.data?.status === 'success') {
         setGuidelines(response.data.results || []);
         setTotalPages(1);
+      } else {
+        console.warn('Unexpected response:', response.data);
+        setGuidelines([]);
       }
     } catch (error) {
-      console.error('Error fetching guidelines:', error);
+      console.error('Error fetching video guidelines:', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [selectedUser]);
 
+  // ✅ Run on mount & when selectedUser changes
   useEffect(() => {
-    fetchGuidelines();
-  }, []);
+    const currentUserId = selectedUser?.user_id;
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    const defaultUserId = storedUser?.user_id;
 
-  const columnHelper = createColumnHelper();
+    const effectiveUserId = currentUserId || defaultUserId;
 
+    // Run on first load and whenever user changes
+    if (effectiveUserId && effectiveUserId !== prevUserIdRef.current) {
+      prevUserIdRef.current = effectiveUserId;
+      fetchGuidelines();
+    }
+  }, [selectedUser, fetchGuidelines]);
+
+  // ✅ Delete Guideline
   const handleDelete = async (id) => {
-    Swal.fire({
+    const confirm = await Swal.fire({
       title: 'Are you sure?',
       text: 'This action cannot be undone!',
       icon: 'warning',
@@ -81,23 +104,29 @@ export default function GuidelineTable() {
       confirmButtonColor: '#3182ce',
       cancelButtonColor: '#e53e3e',
       confirmButtonText: 'Yes, delete it!',
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          await axiosInstance.post(`/factory_development_delete_video_guideline/`, { guideline_id: id });
-          Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-          fetchGuidelines();
-        } catch (err) {
-          console.error(err);
-          Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
-        }
-      }
     });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await axiosInstance.post(`/factory_development_delete_video_guideline/`, {
+        guideline_id: id,
+      });
+      Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+      fetchGuidelines();
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
+    }
   };
 
+  // ✅ Set Default Guideline
   const handleSetDefault = async (id) => {
     try {
-      await axiosInstance.post(`/factory_development_activate_video_guideline/`, { guideline_id: id });
+      await axiosInstance.post(`/factory_development_activate_video_guideline/`, {
+        user_id:selectedUser?.user_id,
+        guideline_id: id,
+      });
       Swal.fire('Success!', 'This guideline is now set as default.', 'success');
       fetchGuidelines();
     } catch (err) {
@@ -106,10 +135,13 @@ export default function GuidelineTable() {
     }
   };
 
+  // ✅ Add New Guideline
   const handleAddGuideline = () => {
     navigate('/admin/add/videoguidelines');
   };
 
+  // ✅ Table Columns
+  const columnHelper = createColumnHelper();
   const columns = useMemo(
     () => [
       columnHelper.accessor('guideline_id', {
@@ -145,11 +177,37 @@ export default function GuidelineTable() {
           );
         },
       }),
-    
+      columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <Flex gap={2}>
+              <IconButton
+                aria-label="Edit"
+                icon={<EditIcon />}
+                size="xs"
+                variant="outline"
+                onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
+              />
+              <IconButton
+                aria-label="Delete"
+                icon={<DeleteIcon />}
+                size="xs"
+                colorScheme="red"
+                variant="outline"
+                onClick={() => handleDelete(row.guideline_id)}
+              />
+            </Flex>
+          );
+        },
+      }),
     ],
     [navigate]
   );
 
+  // ✅ Search Filter
   const filteredData = useMemo(
     () =>
       guidelines.filter((row) =>
@@ -166,21 +224,16 @@ export default function GuidelineTable() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const isMobile = useBreakpointValue({ base: true, md: false });
-
+  // ✅ Render UI
   return (
-    <Card w="100%" p={5}  mt={"100px"} boxShadow="md" borderRadius="xl">
-      <Flex
-        justify="space-between"
-        align={{ base: 'stretch', md: 'center' }}
-        direction={{ base: 'column', md: 'row' }}
-        mb={5}
-        gap={3}
-      >
+    <Card w="100%" p={5} mt="100px" bg={cardBg} boxShadow="md" borderRadius="xl">
+      <Flex justify="space-between" align="center" mb={5}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Video Guidelines
         </Text>
-
+        <Button colorScheme="blue" size="sm" onClick={handleAddGuideline}>
+          Add New
+        </Button>
       </Flex>
 
       <Input
@@ -188,84 +241,40 @@ export default function GuidelineTable() {
         mb={4}
         value={globalFilter}
         onChange={(e) => setGlobalFilter(e.target.value)}
-        size="md"
       />
 
-      <Box overflowX="auto">
-        <Table variant="simple" size="sm">
-          <Thead bg={useColorModeValue('gray.100', 'gray.700')}>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <Tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <Th key={header.id} fontSize="sm">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </Th>
-                ))}
-              </Tr>
-            ))}
-          </Thead>
-          <Tbody>
-            {table.getRowModel().rows.map((row) => (
-              <Tr key={row.id} _hover={{ bg: borderColor }}>
-                {row.getVisibleCells().map((cell) => (
-                  <Td key={cell.id} fontSize="sm">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </Td>
-                ))}
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </Box>
-
-      {/* Responsive Pagination */}
-      <Flex
-        justify="space-between"
-        align="center"
-        mt={6}
-        direction={{ base: 'column', md: 'row' }}
-        gap={{ base: 4, md: 3 }}
-      >
-        <Flex align="center" justify={{ base: 'center', md: 'flex-start' }} gap={2}>
-          <Text fontSize="sm">Rows per page:</Text>
-          <Select
-            w={{ base: '100px', sm: '80px' }}
-            size="sm"
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-          >
-            {[5, 10, 20, 50].map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </Select>
+      {loading ? (
+        <Flex justify="center" py={10}>
+          <Spinner size="lg" color="blue.500" />
         </Flex>
-
-        <Flex gap={3} align="center" justify={{ base: 'center', md: 'flex-end' }} flexWrap="wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setPageIndex(Math.max(0, pageIndex - 1))}
-            isDisabled={pageIndex === 0}
-            w={{ base: '100px', sm: 'auto' }}
-          >
-            Previous
-          </Button>
-          <Text fontSize="sm" minW="90px" textAlign="center">
-            Page {pageIndex + 1} of {totalPages}
-          </Text>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setPageIndex(Math.min(totalPages - 1, pageIndex + 1))}
-            isDisabled={pageIndex + 1 === totalPages}
-            w={{ base: '100px', sm: 'auto' }}
-          >
-            Next
-          </Button>
-        </Flex>
-      </Flex>
+      ) : (
+        <Box overflowX="auto">
+          <Table variant="simple" size="sm">
+            <Thead bg={cardBg}>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <Tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <Th key={header.id} fontSize="sm">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </Th>
+                  ))}
+                </Tr>
+              ))}
+            </Thead>
+            <Tbody>
+              {table.getRowModel().rows.map((row) => (
+                <Tr key={row.id} _hover={{ bg: borderColor }}>
+                  {row.getVisibleCells().map((cell) => (
+                    <Td key={cell.id} fontSize="sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </Td>
+                  ))}
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+      )}
     </Card>
   );
 }

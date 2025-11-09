@@ -55,6 +55,7 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [previewVideoData, setPreviewVideoData] = useState(null);
 
   // ✅ Transition effects (memoized constant)
   const transitionEffects = React.useMemo(
@@ -179,36 +180,62 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
   };
 
   // ✅ Manual QC
-  const handleQC = async (action) => {
-    if (!generatedVideo?.creation_id) {
-      toast({ title: "No creation ID found", status: "error" });
-      return;
-    }
+const handleQC = async (action) => {
+  const creationId =
+    generatedVideo?.creation_id || previewVideoData?.creation_id;
 
-    try {
-      const payload = {
-        creation_id: generatedVideo.creation_id,
-        manual_qc: action,
-        user_id: selectedUser?.user_id,
-      };
-      await axiosInstance.post(`/manual_qc_video/`, payload);
+  if (!creationId) {
+    toast({ title: "No creation ID found", status: "error" });
+    return;
+  }
+
+  try {
+    const payload = {
+      creation_id: creationId,
+      manual_qc: action,
+      user_id: selectedUser?.user_id,
+    };
+    await axiosInstance.post(`/manual_qc_video/`, payload);
+
+    if (action === "accept") {
       toast({
-        title: `Video ${action === "accept" ? "accepted" : "sent for recreate"}`,
+        title: "Video accepted successfully ✅",
         status: "success",
       });
       setGeneratedVideo(null);
       setSelected([]);
-    } catch (err) {
-      toast({ title: "Error submitting QC", status: "error" });
+      setProcessing(false);
+      setIsPreviewOpen(false);
+    } else if (action === "recreate") {
+      toast({
+        title: "Video sent for recreation 🔄 — please select new clips",
+        status: "info",
+      });
+      setGeneratedVideo(null);
+      setProcessing(false);
+      setSelected([]);
+      setIsPreviewOpen(false);
+      fetchVideos(1, searchTerm); // refresh list
     }
-  };
+  } catch (err) {
+    console.error("QC error:", err);
+    toast({ title: "Error submitting QC", status: "error" });
+  }
+};
+
 
   // ✅ Video Preview Handler
-  const openPreview = useCallback((e, url) => {
-    e.stopPropagation();
-    setPreviewVideo(url);
-    setIsPreviewOpen(true);
-  }, []);
+// ✅ Video Preview Handler
+const openPreview = useCallback((e, video) => {
+  e.stopPropagation();
+  const videoUrl =
+    video.cloudinary_video_url ||
+    video.processed_video_url ||
+    video.manual_video_url;
+  setPreviewVideo(videoUrl);
+  setPreviewVideoData(video); // store full video object
+  setIsPreviewOpen(true);
+}, []);
 
   return (
     <Box p={6} mt={20} minH="100vh" bg="transparent">
@@ -336,7 +363,8 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
                       left="50%"
                       transform="translate(-50%, -50%)"
                       cursor="pointer"
-                      onClick={(e) => openPreview(e, videoUrl)}
+                    onClick={(e) => openPreview(e, video)}
+
                     />
                   </Box>
 
@@ -428,18 +456,12 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
                   style={{
                     width: "100%",
                     maxWidth: "700px",
+                    height:"300px",
                     borderRadius: "10px",
                     background: "black",
                   }}
                 />
-                <Flex justify="center" mt={5} gap={5}>
-                  <Button colorScheme="green" onClick={() => handleQC("accept")}>
-                    Accept
-                  </Button>
-                  <Button colorScheme="red" onClick={() => handleQC("recreate")}>
-                    Recreate
-                  </Button>
-                </Flex>
+
               </>
             )}
           </Box>
@@ -508,13 +530,20 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
             src={previewVideo}
             controls
             autoPlay
-            style={{ width: "100%", height:"40vh",borderRadius: "10px", background: "black" }}
+            style={{ width: "100%", height:"50vh",borderRadius: "10px", background: "black" }}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />
 
           {/* ✅ Show Accept/Recreate buttons only while playing */}
-
+                <Flex justify="center" mt={5} gap={5}>
+                  <Button colorScheme="green" onClick={() => handleQC("accept")}>
+                    Accept
+                  </Button>
+                  <Button colorScheme="red" onClick={() => handleQC("recreate")}>
+                    Recreate
+                  </Button>
+                </Flex>
         </Box>
       ) : (
         <Text>No video available</Text>

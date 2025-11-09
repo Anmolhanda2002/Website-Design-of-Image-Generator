@@ -203,6 +203,7 @@ const handleSubmit = async () => {
   
           image_urls: images.map((img) => img.url),
           prompt: text,
+          use_case:imageCreationSettings?.use_case,
           img_guideline_id: imageCreationSettings?.guidelineId,
           user_id: selectedUser?.user_id,
         }

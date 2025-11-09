@@ -37,6 +37,8 @@ import AssignUsersPage from 'views/admin/EditUser/pages/AssignUser';
 import EditPreviewBox from 'layouts/VedioGeneration/components/EditPreviewBox/EditPreviewBox';
 import ImageGuideUser from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
 import VideoGuideline from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
+import ImageGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
+import VideoGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 const routes = [
   {
     name: 'Main Dashboard',
@@ -121,6 +123,24 @@ const routes = [
     path: '/videoassets',
     icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
     component: <VideosPage />,
+    showInSidebar: true,
+    roles: ['Administrator','Manager','Standard User'],
+  },
+    {
+    name: 'Image Guideline',
+    layout: '/admin',
+    path: '/image_guideline_user',
+    icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
+    component: <ImageGuidelineSidebar />,
+    showInSidebar: true,
+    roles: ['Administrator','Manager','Standard User'],
+  },
+      {
+    name: 'Video Guideline',
+    layout: '/admin',
+    path: '/video_guideline_user',
+    icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
+    component: <VideoGuidelineSidebar />,
     showInSidebar: true,
     roles: ['Administrator','Manager','Standard User'],
   },
