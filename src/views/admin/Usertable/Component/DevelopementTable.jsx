@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -21,34 +21,41 @@ export default function UsersTable({ type = 'user' }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get pageIndex from query params or default to 1
+  // Get initial page from URL
   const query = new URLSearchParams(location.search);
   const initialPage = parseInt(query.get('page')) || 1;
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
-  const [pageIndex, setPageIndex] = useState(initialPage); 
+  const [pageIndex, setPageIndex] = useState(initialPage);
   const [users, setUsers] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100');
 
-  // Fetch users/admins
-  const fetchUsers = async () => {
+  // ✅ Fetch users or admins (from backend, with search param)
+  const fetchUsers = useCallback(async () => {
     try {
-      const pageParam = type === "user" ? "user_page" : "admin_page";
-      const response = await axiosInstance.get(
-        `/view_all_accounts/?${pageParam}=${pageIndex}&per_page=${pageSize}`
-      );
+      setLoading(true);
+      const pageParam = type === 'user' ? 'user_page' : 'admin_page';
 
-      if (response.data.status === "success") {
+      const response = await axiosInstance.get('/view_all_accounts/', {
+        params: {
+          [pageParam]: pageIndex,
+          per_page: pageSize,
+          search: globalFilter.trim(), // ✅ Pass search term to backend
+        },
+      });
+
+      if (response.data.status === 'success') {
         const results =
-          type === "user"
+          type === 'user'
             ? response.data.users.results
             : response.data.admins.results;
         const total =
-          type === "user"
+          type === 'user'
             ? response.data.users.total_pages
             : response.data.admins.total_pages;
 
@@ -56,50 +63,52 @@ export default function UsersTable({ type = 'user' }) {
         setTotalPages(total || 1);
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [pageIndex, pageSize, type, globalFilter]);
 
-  // ✅ Fetch on mount or dependency change
+  // ✅ Run on mount or when dependencies change
   useEffect(() => {
     fetchUsers();
-  }, [pageIndex, pageSize, type]);
+  }, [fetchUsers]);
 
-  // Delete user/admin
-const handleDelete = async (id) => {
-  Swal.fire({
-    title: "Are you sure?",
-    text: "This action cannot be undone!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, delete it!",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        console.log("Deleting user:", id);
+  // ✅ Debounce search (wait 500ms before triggering)
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchUsers();
+    }, 500);
+    return () => clearTimeout(delay);
+  }, [globalFilter]);
 
-        // ✅ Use DELETE method and send body via 'data'
-        await axiosInstance.delete("/factory_development/delete/", {
-          data: { user_id: id },
-        });
-
-        Swal.fire("Deleted!", "The account has been deleted.", "success");
-    fetchUsers();
-        // ✅ Optionally update your UI list (if needed)
-        // setUsers((prev) => prev.filter((user) => user.user_id !== id));
-
-      } catch (err) {
-        console.error("Delete error:", err);
-        Swal.fire("Error!", "Failed to delete the account.", "error");
+  // ✅ Delete user/admin
+  const handleDelete = async (id) => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'This action cannot be undone!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axiosInstance.delete('/factory_development/delete/', {
+            data: { user_id: id },
+          });
+          Swal.fire('Deleted!', 'The account has been deleted.', 'success');
+          fetchUsers();
+        } catch (err) {
+          console.error('Delete error:', err);
+          Swal.fire('Error!', 'Failed to delete the account.', 'error');
+        }
       }
-    }
-  });
-};
+    });
+  };
 
-
-  // Add user/admin
+  // ✅ Add user/admin
   const handleAddUser = () => {
     Swal.fire({
       title: `Add New ${type === 'user' ? 'User' : 'Admin'}`,
@@ -125,26 +134,25 @@ const handleDelete = async (id) => {
         try {
           const url = type === 'user' ? '/add_user/' : '/add_admin/';
           await axiosInstance.post(url, result.value);
-          Swal.fire('Success!', `${type === 'user' ? 'User' : 'Admin'} added successfully.`, 'success');
-          setPageIndex(1); // refresh first page
+          Swal.fire(
+            'Success!',
+            `${type === 'user' ? 'User' : 'Admin'} added successfully.`,
+            'success'
+          );
+          setPageIndex(1);
+          fetchUsers();
         } catch (err) {
-          Swal.fire('Error!', `Failed to add ${type === 'user' ? 'user' : 'admin'}.`, 'error');
+          Swal.fire(
+            'Error!',
+            `Failed to add ${type === 'user' ? 'user' : 'admin'}.`,
+            'error'
+          );
         }
       }
     });
   };
 
-  // Filtered data
-  const filteredData = useMemo(() => {
-    return users.filter((row) => {
-      return (
-        (row.username?.toLowerCase() || '').includes(globalFilter.toLowerCase()) ||
-        (row.email?.toLowerCase() || '').includes(globalFilter.toLowerCase())
-      );
-    });
-  }, [users, globalFilter]);
-
-  // Navigate to edit but preserve page in query
+  // ✅ Edit navigation
   const handleEdit = (id) => {
     navigate(`/admin/edit_user/${id}?page=${pageIndex}`);
   };
@@ -166,7 +174,10 @@ const handleDelete = async (id) => {
         placeholder={`Search ${type === 'user' ? 'users' : 'admins'} by username or email...`}
         mb={4}
         value={globalFilter}
-        onChange={(e) => setGlobalFilter(e.target.value)}
+        onChange={(e) => {
+          setGlobalFilter(e.target.value);
+          setPageIndex(1); // reset to first page when searching
+        }}
       />
 
       {/* Table */}
@@ -174,34 +185,72 @@ const handleDelete = async (id) => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>Username / Email</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>Created</th>
-              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>Actions</th>
+              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
+                Username / Email
+              </th>
+              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
+                Created
+              </th>
+              <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((row) => (
-              <tr key={row.user_id} style={{ borderBottom: `1px solid ${borderColor}` }}>
-                <td style={{ padding: '10px' }}>
-                  <Flex align="center" gap={3}>
-                    <Circle size="10px" bg={row.is_approved ? 'green.400' : 'gray.300'} />
-                    <Flex direction="column">
-                      <Text fontSize="sm" fontWeight="500" color={textColor}>{row.username}</Text>
-                      <Text fontSize="xs" color="gray.500">{row.email}</Text>
-                    </Flex>
-                  </Flex>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <Text fontSize="xs" color="gray.500">{new Date(row.created_at).toLocaleString()}</Text>
-                </td>
-                <td style={{ padding: '10px' }}>
-                  <Flex gap={2}>
-                    <IconButton aria-label="Edit" icon={<EditIcon />} size="xs" variant="outline" onClick={() => handleEdit(row.user_id)} />
-                    <IconButton aria-label="Delete" icon={<DeleteIcon />} size="xs" colorScheme="red" onClick={() => handleDelete(row.user_id)} />
-                  </Flex>
+            {loading ? (
+              <tr>
+                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
+                  <Text>Loading...</Text>
                 </td>
               </tr>
-            ))}
+            ) : users.length > 0 ? (
+              users.map((row) => (
+                <tr key={row.user_id} style={{ borderBottom: `1px solid ${borderColor}` }}>
+                  <td style={{ padding: '10px' }}>
+                    <Flex align="center" gap={3}>
+                      <Circle size="10px" bg={row.is_approved ? 'green.400' : 'gray.300'} />
+                      <Flex direction="column">
+                        <Text fontSize="sm" fontWeight="500" color={textColor}>
+                          {row.username}
+                        </Text>
+                        <Text fontSize="xs" color="gray.500">
+                          {row.email}
+                        </Text>
+                      </Flex>
+                    </Flex>
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <Text fontSize="xs" color="gray.500">
+                      {new Date(row.created_at).toLocaleString()}
+                    </Text>
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    <Flex gap={2}>
+                      <IconButton
+                        aria-label="Edit"
+                        icon={<EditIcon />}
+                        size="xs"
+                        variant="outline"
+                        onClick={() => handleEdit(row.user_id)}
+                      />
+                      <IconButton
+                        aria-label="Delete"
+                        icon={<DeleteIcon />}
+                        size="xs"
+                        colorScheme="red"
+                        onClick={() => handleDelete(row.user_id)}
+                      />
+                    </Flex>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
+                  <Text>No records found.</Text>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </Box>
@@ -216,20 +265,32 @@ const handleDelete = async (id) => {
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
-              setPageIndex(1); // reset to first page
+              setPageIndex(1);
             }}
           >
             {[5, 10, 20, 50].map((size) => (
-              <option key={size} value={size}>{size}</option>
+              <option key={size} value={size}>
+                {size}
+              </option>
             ))}
           </Select>
         </Flex>
         <Flex gap={2} align="center">
-          <Button size="sm" onClick={() => setPageIndex(Math.max(1, pageIndex - 1))} isDisabled={pageIndex === 1}>
+          <Button
+            size="sm"
+            onClick={() => setPageIndex(Math.max(1, pageIndex - 1))}
+            isDisabled={pageIndex === 1}
+          >
             Previous
           </Button>
-          <Text fontSize="sm">Page {pageIndex} of {totalPages}</Text>
-          <Button size="sm" onClick={() => setPageIndex(Math.min(totalPages, pageIndex + 1))} isDisabled={pageIndex === totalPages}>
+          <Text fontSize="sm">
+            Page {pageIndex} of {totalPages}
+          </Text>
+          <Button
+            size="sm"
+            onClick={() => setPageIndex(Math.min(totalPages, pageIndex + 1))}
+            isDisabled={pageIndex === totalPages}
+          >
             Next
           </Button>
         </Flex>

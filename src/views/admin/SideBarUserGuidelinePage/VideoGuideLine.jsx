@@ -7,7 +7,7 @@ import {
   Button,
   Text,
   IconButton,
-  Select,
+  Spinner,
   useColorModeValue,
   useBreakpointValue,
   Table,
@@ -16,9 +16,13 @@ import {
   Tr,
   Th,
   Td,
-  Spinner,
 } from '@chakra-ui/react';
 import { EditIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons';
+import Swal from 'sweetalert2';
+import Card from 'components/card/Card';
+import axiosInstance from 'utils/AxiosInstance';
+import { useNavigate } from 'react-router-dom';
+import { useSelectedUser } from 'utils/SelectUserContext';
 import {
   createColumnHelper,
   flexRender,
@@ -26,73 +30,94 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from '@tanstack/react-table';
-import Swal from 'sweetalert2';
-import Card from 'components/card/Card';
-import axiosInstance from 'utils/AxiosInstance';
-import { useNavigate } from 'react-router-dom';
-import { useSelectedUser } from 'utils/SelectUserContext';
 
 export default function VideoGuidelineTable() {
+  const [guidelines, setGuidelines] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [loading, setLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
-  const [guidelines, setGuidelines] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
 
   const textColor = useColorModeValue('gray.800', 'whiteAlpha.900');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
   const cardBg = useColorModeValue('white', 'gray.800');
-
   const navigate = useNavigate();
   const isMobile = useBreakpointValue({ base: true, md: false });
+
   const { selectedUser } = useSelectedUser();
   const prevUserIdRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
-  // ✅ Fetch Video Guidelines
-  const fetchGuidelines = useCallback(async () => {
-    try {
-      setLoading(true);
+  // ✅ Fetch video guidelines from backend (with search)
+  const fetchGuidelines = useCallback(
+    async (search = '') => {
+      try {
+        setLoading(true);
 
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      const userId = selectedUser?.user_id || storedUser?.user_id;
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const userId = selectedUser?.user_id || storedUser?.user_id;
 
-      if (!userId) {
-        console.warn('⚠️ No valid user_id found.');
-        setGuidelines([]);
-        return;
+        if (!userId) {
+          console.warn('⚠️ No valid user_id found.');
+          setGuidelines([]);
+          return;
+        }
+
+        // ✅ Server-side search
+        const response = await axiosInstance.get('/list_video_guidelines/', {
+          params: {
+            user_id: userId,
+            search: search, // backend search query
+            limit: 50,
+            page: 1,
+          },
+        });
+
+        if (response.data?.status === 'success') {
+          const data = Array.isArray(response.data.results)
+            ? response.data.results
+            : Array.isArray(response.data)
+            ? response.data
+            : [];
+          setGuidelines(data);
+          setTotalPages(1);
+        } else {
+          console.warn('Unexpected response:', response.data);
+          setGuidelines([]);
+        }
+      } catch (error) {
+        console.error('Error fetching video guidelines:', error);
+      } finally {
+        setLoading(false);
       }
+    },
+    [selectedUser]
+  );
 
-      const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userId}`);
-
-      if (response.data?.status === 'success') {
-        setGuidelines(response.data.results || []);
-        setTotalPages(1);
-      } else {
-        console.warn('Unexpected response:', response.data);
-        setGuidelines([]);
-      }
-    } catch (error) {
-      console.error('Error fetching video guidelines:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedUser]);
-
-  // ✅ Run on mount & when selectedUser changes
+  // ✅ Run when user changes
   useEffect(() => {
     const currentUserId = selectedUser?.user_id;
     const storedUser = JSON.parse(localStorage.getItem('user'));
     const defaultUserId = storedUser?.user_id;
-
     const effectiveUserId = currentUserId || defaultUserId;
 
-    // Run on first load and whenever user changes
     if (effectiveUserId && effectiveUserId !== prevUserIdRef.current) {
       prevUserIdRef.current = effectiveUserId;
-      fetchGuidelines();
+      fetchGuidelines('');
     }
   }, [selectedUser, fetchGuidelines]);
+
+  // ✅ Search input with debounce (server call)
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchGuidelines(globalFilter.trim());
+    }, 500);
+
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [globalFilter, fetchGuidelines]);
 
   // ✅ Delete Guideline
   const handleDelete = async (id) => {
@@ -111,9 +136,10 @@ export default function VideoGuidelineTable() {
     try {
       await axiosInstance.post(`/factory_development_delete_video_guideline/`, {
         guideline_id: id,
+        user_id: selectedUser?.user_id,
       });
       Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-      fetchGuidelines();
+      fetchGuidelines(globalFilter);
     } catch (err) {
       console.error(err);
       Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
@@ -124,23 +150,23 @@ export default function VideoGuidelineTable() {
   const handleSetDefault = async (id) => {
     try {
       await axiosInstance.post(`/factory_development_activate_video_guideline/`, {
-        user_id:selectedUser?.user_id,
+        user_id: selectedUser?.user_id,
         guideline_id: id,
       });
       Swal.fire('Success!', 'This guideline is now set as default.', 'success');
-      fetchGuidelines();
+      fetchGuidelines(globalFilter);
     } catch (err) {
       console.error(err);
       Swal.fire('Error!', 'Failed to set the guideline as default.', 'error');
     }
   };
 
-  // ✅ Add New Guideline
+  // ✅ Add new guideline
   const handleAddGuideline = () => {
     navigate('/admin/add/videoguidelines');
   };
 
-  // ✅ Table Columns
+  // ✅ Table setup
   const columnHelper = createColumnHelper();
   const columns = useMemo(
     () => [
@@ -177,63 +203,52 @@ export default function VideoGuidelineTable() {
           );
         },
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <Flex gap={2}>
-              <IconButton
-                aria-label="Edit"
-                icon={<EditIcon />}
-                size="xs"
-                variant="outline"
-                onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
-              />
-              <IconButton
-                aria-label="Delete"
-                icon={<DeleteIcon />}
-                size="xs"
-                colorScheme="red"
-                variant="outline"
-                onClick={() => handleDelete(row.guideline_id)}
-              />
-            </Flex>
-          );
-        },
-      }),
+      // columnHelper.display({
+      //   id: 'actions',
+      //   header: 'Actions',
+      //   cell: (info) => {
+      //     const row = info.row.original;
+      //     return (
+      //       <Flex gap={2}>
+      //         <IconButton
+      //           aria-label="Edit"
+      //           icon={<EditIcon />}
+      //           size="xs"
+      //           variant="outline"
+      //           onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
+      //         />
+      //         <IconButton
+      //           aria-label="Delete"
+      //           icon={<DeleteIcon />}
+      //           size="xs"
+      //           colorScheme="red"
+      //           variant="outline"
+      //           onClick={() => handleDelete(row.guideline_id)}
+      //         />
+      //       </Flex>
+      //     );
+      //   },
+      // }),
     ],
     [navigate]
   );
 
-  // ✅ Search Filter
-  const filteredData = useMemo(
-    () =>
-      guidelines.filter((row) =>
-        (row.guideline_name?.toLowerCase() || '').includes(globalFilter.toLowerCase())
-      ),
-    [guidelines, globalFilter]
-  );
-
   const table = useReactTable({
-    data: filteredData,
+    data: guidelines,
     columns,
     state: { pagination: { pageIndex, pageSize } },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // ✅ Render UI
+  // ✅ UI
   return (
     <Card w="100%" p={5} mt="100px" bg={cardBg} boxShadow="md" borderRadius="xl">
       <Flex justify="space-between" align="center" mb={5}>
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Video Guidelines
         </Text>
-        <Button colorScheme="blue" size="sm" onClick={handleAddGuideline}>
-          Add New
-        </Button>
+
       </Flex>
 
       <Input
@@ -271,6 +286,15 @@ export default function VideoGuidelineTable() {
                   ))}
                 </Tr>
               ))}
+              {guidelines.length === 0 && !loading && (
+                <Tr>
+                  <Td colSpan={columns.length}>
+                    <Text textAlign="center" color="gray.500">
+                      No guidelines found.
+                    </Text>
+                  </Td>
+                </Tr>
+              )}
             </Tbody>
           </Table>
         </Box>

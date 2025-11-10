@@ -28,9 +28,9 @@ import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate } from 'react-router-dom';
 
 export default function GuidelineTable() {
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [pageSize, setPageSize] = useState(10);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pageSize] = useState(10);
+  const [pageIndex] = useState(0);
   const [guidelines, setGuidelines] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -43,54 +43,67 @@ export default function GuidelineTable() {
 
   const navigate = useNavigate();
   const { selectedUser } = useSelectedUser();
-
   const prevUserIdRef = useRef(null);
+  const searchTimeout = useRef(null);
 
-  // === Fetch Guidelines ===
-  const fetchGuidelines = useCallback(async () => {
-    try {
-      setLoading(true);
+  // === Fetch Guidelines (with search support) ===
+  const fetchGuidelines = useCallback(
+    async (search = '') => {
+      try {
+        setLoading(true);
 
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      const userId = selectedUser?.user_id || storedUser?.user_id;
+        const storedUser = JSON.parse(localStorage.getItem('user'));
+        const userId = selectedUser?.user_id || storedUser?.user_id;
 
-      if (!userId) {
-        console.warn('⚠️ No valid user_id found.');
+        if (!userId) {
+          console.warn('⚠️ No valid user_id found.');
+          setGuidelines([]);
+          return;
+        }
+
+        const response = await axiosInstance.get(
+          `/list_image_guidelines?user_id=${userId}&search=${encodeURIComponent(search)}`
+        );
+
+        if (response.data?.status === 'success') {
+          setGuidelines(response.data.results || []);
+          setTotalPages(1);
+        } else {
+          console.warn('Unexpected response:', response.data);
+          setGuidelines([]);
+        }
+      } catch (error) {
+        console.error('Error fetching guidelines:', error);
         setGuidelines([]);
-        return;
+      } finally {
+        setLoading(false);
       }
+    },
+    [selectedUser]
+  );
 
-      const response = await axiosInstance.get(`/list_image_guidelines?user_id=${userId}`);
+  // ✅ Fetch when user changes
+  useEffect(() => {
+    const currentUserId = selectedUser?.user_id;
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    const defaultUserId = storedUser?.user_id;
 
-      if (response.data?.status === 'success') {
-        setGuidelines(response.data.results || []);
-        setTotalPages(1);
-      } else {
-        console.warn('Unexpected response:', response.data);
-        setGuidelines([]);
-      }
-    } catch (error) {
-      console.error('Error fetching guidelines:', error);
-    } finally {
-      setLoading(false);
+    const effectiveUserId = currentUserId || defaultUserId;
+
+    if (effectiveUserId && effectiveUserId !== prevUserIdRef.current) {
+      prevUserIdRef.current = effectiveUserId;
+      fetchGuidelines('');
     }
-  }, [selectedUser]);
+  }, [selectedUser, fetchGuidelines]);
 
-  // ✅ Fetch only when selected user changes (not on refresh)
-useEffect(() => {
-  const currentUserId = selectedUser?.user_id;
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const defaultUserId = storedUser?.user_id;
-
-  const effectiveUserId = currentUserId || defaultUserId;
-
-  // ✅ Fetch when user changes OR first load
-  if (effectiveUserId && effectiveUserId !== prevUserIdRef.current) {
-    prevUserIdRef.current = effectiveUserId;
-    fetchGuidelines();
-  }
-}, [selectedUser, fetchGuidelines]);
-
+  // ✅ Handle search (with debounce)
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      fetchGuidelines(searchQuery);
+    }, 500); // wait 0.5s after typing
+    return () => clearTimeout(searchTimeout.current);
+  }, [searchQuery, fetchGuidelines]);
 
   // === Delete Guideline ===
   const handleDelete = async (id) => {
@@ -107,15 +120,13 @@ useEffect(() => {
     if (!confirm.isConfirmed) return;
 
     try {
-
-
       await axiosInstance.post(`/factory_development_delete_image_guideline/`, {
         guideline_id: id,
-        user_id:selectedUser?.user_id
+        user_id: selectedUser?.user_id,
       });
 
       Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
-      fetchGuidelines();
+      fetchGuidelines(searchQuery);
     } catch (err) {
       console.error(err);
       Swal.fire('Error!', 'Failed to delete guideline.', 'error');
@@ -125,15 +136,13 @@ useEffect(() => {
   // === Activate Guideline ===
   const handleActivate = async (id) => {
     try {
-
-
       await axiosInstance.post(`/factory_development_activate_image_guideline/`, {
-   user_id:selectedUser?.user_id,
+        user_id: selectedUser?.user_id,
         guideline_id: id,
       });
 
       Swal.fire('Activated!', 'The guideline is now active.', 'success');
-      fetchGuidelines();
+      fetchGuidelines(searchQuery);
     } catch (err) {
       console.error(err);
       Swal.fire('Error!', 'Failed to activate guideline.', 'error');
@@ -174,47 +183,38 @@ useEffect(() => {
             </Button>
           ),
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'Actions',
-        cell: (info) => {
-          const row = info.row.original;
-          return (
-            <Flex gap={2}>
-              <IconButton
-                aria-label="Edit"
-                icon={<EditIcon />}
-                size="xs"
-                variant="outline"
-                onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
-              />
-              <IconButton
-                aria-label="Delete"
-                icon={<DeleteIcon />}
-                size="xs"
-                colorScheme="red"
-                variant="outline"
-                onClick={() => handleDelete(row.guideline_id)}
-              />
-            </Flex>
-          );
-        },
-      }),
+      // columnHelper.display({
+      //   id: 'actions',
+      //   header: 'Actions',
+      //   cell: (info) => {
+      //     const row = info.row.original;
+      //     return (
+      //       <Flex gap={2}>
+      //         <IconButton
+      //           aria-label="Edit"
+      //           icon={<EditIcon />}
+      //           size="xs"
+      //           variant="outline"
+      //           onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
+      //         />
+      //         <IconButton
+      //           aria-label="Delete"
+      //           icon={<DeleteIcon />}
+      //           size="xs"
+      //           colorScheme="red"
+      //           variant="outline"
+      //           onClick={() => handleDelete(row.guideline_id)}
+      //         />
+      //       </Flex>
+      //     );
+      //   },
+      // }),
     ],
     [navigate]
   );
 
-  // === Filter + Table setup ===
-  const filteredData = useMemo(
-    () =>
-      guidelines.filter((row) =>
-        (row.name?.toLowerCase() || '').includes(globalFilter.toLowerCase())
-      ),
-    [guidelines, globalFilter]
-  );
-
   const table = useReactTable({
-    data: filteredData,
+    data: guidelines,
     columns,
     state: { pagination: { pageIndex, pageSize } },
     getCoreRowModel: getCoreRowModel(),
@@ -226,15 +226,15 @@ useEffect(() => {
     <Card w="100%" bg={cardBg} mt="100px" shadow="md" borderRadius="lg" p={4}>
       <Flex justify="space-between" align="center" mb={4}>
         <Text fontSize="2xl" fontWeight="bold">
-          Guidelines
+          Image Guidelines
         </Text>
       </Flex>
 
       <Input
         placeholder="Search guidelines..."
         mb={5}
-        value={globalFilter}
-        onChange={(e) => setGlobalFilter(e.target.value)}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
       />
 
       {loading ? (
@@ -243,7 +243,6 @@ useEffect(() => {
         </Flex>
       ) : (
         <>
-          {/* === Desktop Table === */}
           {!isMobile ? (
             <Box overflowX="auto">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -281,10 +280,9 @@ useEffect(() => {
               </table>
             </Box>
           ) : (
-            /* === Mobile Cards === */
             <SimpleGrid columns={1} spacing={4}>
-              {filteredData.length > 0 ? (
-                filteredData.map((item) => (
+              {guidelines.length > 0 ? (
+                guidelines.map((item) => (
                   <Box
                     key={item.guideline_id}
                     borderWidth="1px"
