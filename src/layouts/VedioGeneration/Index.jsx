@@ -55,8 +55,8 @@ const initialImageToVideoSettings = {
     customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
     tags: "", sector: "", goal: "", key_instructions: "", consumer_message: "", 
     M_key: "", resize: false, resize_width: "", resize_height: "", 
-    duration: "8s", aspect_ratio: "16:9", customSize: "false", 
-    customWidth: "", customHeight: "", video_type: "",
+    duration: "8s", aspect_ratio: "16:9",
+     video_type: "",
 };
 const initialCaptionData = {
     edit_id: "", segment_number: "", text: "", start_time: "", end_time: "", 

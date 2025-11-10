@@ -781,13 +781,13 @@ useEffect(() => {
         <Text fontWeight="bold">Custom Size</Text>
         <Select
           placeholder="Select option"
-          value={imageToVideoSettings.customSize || ""}
+          value={imageToVideoSettings.resize || ""}
           onChange={(e) => {
             const value = e.target.value;
             setImageToVideoSettings((prev) => ({
               ...prev,
-              customSize: value,
-              ...(value === "false" && { customWidth: "", customHeight: "" }),
+              resize: value,
+              ...(value === "false" && { resize_width: "", resize_height: "" }),
             }));
           }}
           mt={2}
@@ -796,18 +796,18 @@ useEffect(() => {
           <option value="false">False</option>
         </Select>
 
-        {imageToVideoSettings.customSize === "true" && (
+        {imageToVideoSettings.resize === "true" && (
           <>
             <Box mt={4}>
               <Text fontWeight="bold">Custom Width (px)</Text>
               <Input
                 type="number"
                 placeholder="Width in px"
-                value={imageToVideoSettings.customWidth || ""}
+                value={imageToVideoSettings.resize_width || ""}
                 onChange={(e) =>
                   setImageToVideoSettings((prev) => ({
                     ...prev,
-                    customWidth: e.target.value,
+                    resize_width: e.target.value,
                   }))
                 }
                 mt={2}
@@ -819,11 +819,11 @@ useEffect(() => {
               <Input
                 type="number"
                 placeholder="Height in px"
-                value={imageToVideoSettings.customHeight || ""}
+                value={imageToVideoSettings.resize_height || ""}
                 onChange={(e) =>
                   setImageToVideoSettings((prev) => ({
                     ...prev,
-                    customHeight: e.target.value,
+                    resize_height: e.target.value,
                   }))
                 }
                 mt={2}
