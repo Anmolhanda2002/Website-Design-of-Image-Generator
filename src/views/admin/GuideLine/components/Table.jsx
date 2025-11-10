@@ -66,7 +66,7 @@ export default function GuidelineTable({userId}) {
 
   useEffect(() => {
     fetchGuidelines();
-  });
+  }, []);
 
   const columnHelper = createColumnHelper();
 

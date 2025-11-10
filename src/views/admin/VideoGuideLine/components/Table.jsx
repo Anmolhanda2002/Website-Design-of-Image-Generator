@@ -9,7 +9,7 @@ import {
   IconButton,
   Select,
   useColorModeValue,
- 
+  useBreakpointValue,
   Table,
   Thead,
   Tbody,
@@ -56,7 +56,7 @@ export default function GuidelineTable() {
 
   useEffect(() => {
     fetchGuidelines();
-  },);
+  }, []);
 
   const columnHelper = createColumnHelper();
 
@@ -163,7 +163,7 @@ navigate(`/admin/edit/videoguidelines/${guidleline}?user_id=${userIdParam}`)
         },
       }),
     ],
-   
+    [navigate]
   );
 
   const filteredData = useMemo(
@@ -182,7 +182,7 @@ navigate(`/admin/edit/videoguidelines/${guidleline}?user_id=${userIdParam}`)
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  // const isMobile = useBreakpointValue({ base: true, md: false });
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   return (
     <Card w="100%" p={5}  mt={"-100px"} boxShadow="md" borderRadius="xl">

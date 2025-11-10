@@ -183,32 +183,32 @@ export default function GuidelineTable() {
             </Button>
           ),
       }),
-      // columnHelper.display({
-      //   id: 'actions',
-      //   header: 'Actions',
-      //   cell: (info) => {
-      //     const row = info.row.original;
-      //     return (
-      //       <Flex gap={2}>
-      //         <IconButton
-      //           aria-label="Edit"
-      //           icon={<EditIcon />}
-      //           size="xs"
-      //           variant="outline"
-      //           onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
-      //         />
-      //         <IconButton
-      //           aria-label="Delete"
-      //           icon={<DeleteIcon />}
-      //           size="xs"
-      //           colorScheme="red"
-      //           variant="outline"
-      //           onClick={() => handleDelete(row.guideline_id)}
-      //         />
-      //       </Flex>
-      //     );
-      //   },
-      // }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <Flex gap={2}>
+              <IconButton
+                aria-label="Edit"
+                icon={<EditIcon />}
+                size="xs"
+                variant="outline"
+                onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
+              />
+              <IconButton
+                aria-label="Delete"
+                icon={<DeleteIcon />}
+                size="xs"
+                colorScheme="red"
+                variant="outline"
+                onClick={() => handleDelete(row.guideline_id)}
+              />
+            </Flex>
+          );
+        },
+      }),
     ],
     [navigate]
   );
