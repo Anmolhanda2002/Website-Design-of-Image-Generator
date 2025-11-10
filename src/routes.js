@@ -2,10 +2,10 @@ import React from 'react';
 import { Icon } from '@chakra-ui/react';
 import {
   MdBarChart,
-  MdPerson,
+
   MdHome,
   MdLock,
-  MdOutlineShoppingCart,
+  // MdOutlineShoppingCart,
   MdVideoLibrary,
   MdSettings,
   MdImage,
@@ -46,7 +46,7 @@ import SignUp from 'views/auth/SignUp';
 import ForgotPassword from 'views/auth/forgetpassword/ForgetPassword';
 
 // ✅ Video Layouts
-import DashboardLayout from 'views/admin/NextPageGenerateVedio/GenerateVedio';
+// import DashboardLayout from 'views/admin/NextPageGenerateVedio/GenerateVedio';
 
 // 🧠 Utility function: Assign icons automatically
 const getIcon = (name) => {

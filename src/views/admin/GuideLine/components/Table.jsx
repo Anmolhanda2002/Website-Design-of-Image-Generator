@@ -10,7 +10,7 @@ import {
   Select,
   useColorModeValue,
   useBreakpointValue,
-  Stack,
+
   Badge,
   SimpleGrid,
   Spinner,
@@ -66,7 +66,7 @@ export default function GuidelineTable({userId}) {
 
   useEffect(() => {
     fetchGuidelines();
-  }, []);
+  });
 
   const columnHelper = createColumnHelper();
 
