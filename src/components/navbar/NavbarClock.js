@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, Flex, useColorModeValue, Icon } from "@chakra-ui/react";
+import { Text, Flex, useColorModeValue, Icon } from "@chakra-ui/react";
 import { FiClock } from "react-icons/fi";
 
 const NavbarClock = () => {
