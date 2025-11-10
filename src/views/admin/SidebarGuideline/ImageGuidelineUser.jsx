@@ -66,7 +66,7 @@ export default function GuidelineTable({userId}) {
 
   useEffect(() => {
     fetchGuidelines();
-  });
+  }, []);
 
   const columnHelper = createColumnHelper();
 
@@ -150,7 +150,7 @@ const handlegoeditpage = (guidlelineid)=>{
           ) : (
             <Button
               size="xs"
-              colorScheme={"green"}
+              colorScheme="green"
               leftIcon={<CheckIcon />}
               onClick={() => handleActivate(info.row.original.guideline_id)}
             >
@@ -187,7 +187,7 @@ const handlegoeditpage = (guidlelineid)=>{
         },
       }),
     ],
-    [textColor]
+    [textColor, navigate]
   );
 
   const filteredData = useMemo(
