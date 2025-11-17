@@ -25,6 +25,10 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
   const [lifestyleLoading, setLifestyleLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // NEW STATES
+  const [isFirstApiDone, setIsFirstApiDone] = useState(false);
+  const [isLifestyleDone, setIsLifestyleDone] = useState(false);
+
   /* ---------------- IMAGE UPLOAD ---------------- */
   const handleImageUpload = async (file) => {
     const id = Date.now() + Math.random();
@@ -102,7 +106,7 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
 
       const updatedData = {
         ...bulkImageData,
-        model:Number(bulkImageData.model),
+        model: Number(bulkImageData.model),
         user_id: selectedUser?.user_id,
         customer_id: `CRM-${selectedUser?.user_id}`,
         product_id: generateShortUUID(),
@@ -116,7 +120,6 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       const apiData = res?.data?.data;
       setSessionId(apiData.session_id);
 
-      // Fix: Remove duplicate images
       const finalImages = Array.from(
         new Set([
           apiData.base_shot.image_url,
@@ -132,6 +135,9 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       setShotMapping(mapping);
       setPreviewImages(finalImages);
       setSelectedImage(finalImages[0]);
+
+      setIsFirstApiDone(true);
+      setIsLifestyleDone(false);
 
       toast({ title: "Submitted Successfully", status: "success" });
     } catch (err) {
@@ -173,7 +179,6 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       );
 
       const data = res.data.data;
-
       const lifestyleUrls = Object.values(data.image_urls).filter(
         (url) => url !== null
       );
@@ -181,6 +186,8 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       setLifestyleImages(lifestyleUrls);
       setPreviewImages(lifestyleUrls);
       setSelectedImage(lifestyleUrls[0]);
+
+      setIsLifestyleDone(true);
 
       toast({ title: "Lifestyle Generated!", status: "success" });
     } catch (err) {
@@ -190,17 +197,34 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     }
   };
 
+  /* ---------------- CLEAR ALL ---------------- */
+  const handleClear = () => {
+    setPreviewImages([]);
+    setLifestyleImages([]);
+    setSelectedImage(null);
+    setShotMapping({});
+    setSessionId(null);
+
+    setIsFirstApiDone(false);
+    setIsLifestyleDone(false);
+
+    setBulkImageData((prev) => ({
+      ...prev,
+      product_images: { front: "", back: "" },
+    }));
+  };
+
   return (
     <Box w="100%" p={5}>
 
       {/* ⭐ PREVIEW SECTION ⭐ */}
       <Box
         w="100%"
-        h="260px"
+        h="350px"   // Increased size
         bg="white"
         borderRadius="xl"
         border="1px solid #e6ecf5"
-        p={3}
+        mt={"-20px"}
         overflow="hidden"
         position="relative"
       >
@@ -246,11 +270,21 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
             <Text fontSize="18px" color="gray.500">Preview Area</Text>
           </Flex>
         ) : (
-          <Flex gap={3} overflowX="auto" h="100%" align="center">
+          <Flex
+            gap={3}
+            overflowX="auto"
+            h="100%"
+            align="center"
+            sx={{
+              "&::-webkit-scrollbar": { display: "none" },
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
             {previewImages.map((url, index) => (
               <Box
                 key={index}
-                minW="150px"
+                minW="220px"
                 h="100%"
                 borderRadius="lg"
                 overflow="hidden"
@@ -267,9 +301,11 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
         )}
       </Box>
 
-      {/* ⭐ GENERATE LIFESTYLE BUTTON ⭐ */}
-      {selectedImage && (
-        <Flex mt={4} justify="center">
+      {/* ⭐ BUTTONS BELOW PREVIEW ⭐ */}
+      <Flex mt={4} justify="center" gap={3}>
+
+        {/* Generate Lifestyle only after first API, before lifestyle API */}
+        {isFirstApiDone && !isLifestyleDone && (
           <Button
             colorScheme="purple"
             onClick={handleGenerateLifestyle}
@@ -277,136 +313,122 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
           >
             Generate Lifestyle
           </Button>
-        </Flex>
-      )}
+        )}
 
-      {/* ⭐ LIFESTYLE GRID ⭐ */}
-      {/* {lifestyleImages.length > 0 && (
-        <Box mt={6}>
-          <Text fontSize="20px" fontWeight="700">Lifestyle Results</Text>
+        {/* Clear Button only after any API done */}
+        {(isFirstApiDone || isLifestyleDone) && (
+          <Button colorScheme="red" onClick={handleClear}>
+            Clear
+          </Button>
+        )}
 
-          <Flex wrap="wrap" gap={4} mt={3}>
-            {lifestyleImages.map((url, index) => (
-              <Box
-                key={index}
-                w="200px"
-                h="260px"
-                borderRadius="xl"
-                border="1px solid #e2e8f0"
-                overflow="hidden"
-                cursor="pointer"
-                onClick={() => setSelectedImage(url)}
-                _hover={{ boxShadow: "0 4px 15px rgba(0,0,0,0.15)" }}
-              >
-                <Image src={url} w="100%" h="100%" objectFit="cover" />
-              </Box>
-            ))}
-          </Flex>
-        </Box>
-      )} */}
+      </Flex>
 
       {/* ⭐ FRONT | BACK | SUBMIT ⭐ */}
-      <Flex gap={5} alignItems="center" mt={8}>
-        <Flex flex="3" gap={4}>
-          {/* FRONT */}
+      {!isFirstApiDone && (
+        <Flex gap={5} alignItems="center" mt={2}>
+          <Flex flex="3" gap={4}>
+            {/* FRONT */}
+            <Box
+              flex="1"
+              h="80px"
+              maxW="80px"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid #d0d7e3"
+              display="flex"
+              
+              flexDirection="column"
+              justifyContent="center"
+              alignItems="center"
+              cursor="pointer"
+              onClick={() => document.getElementById("frontInput").click()}
+            >
+              {uploading ? (
+                <Spinner />
+              ) : bulkImageData.product_images.front ? (
+                <Image
+                  src={bulkImageData.product_images.front}
+                  h="100%"
+                  w="100%"
+                  objectFit="cover"
+                  borderRadius="xl"
+                />
+              ) : (
+                <>
+                  <FiUpload size={22} color="#3182CE" />
+                  <Text mt={1}>Front</Text>
+                </>
+              )}
+
+              <Input
+                id="frontInput"
+                type="file"
+                display="none"
+                accept="image/*"
+                onChange={(e) => handleSingleImage(e, "front")}
+              />
+            </Box>
+
+            {/* BACK */}
+            <Box
+              flex="1"
+              h="80px"
+              maxW="80px"
+              bg="white"
+              borderRadius="xl"
+              border="1px solid #d0d7e3"
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+              alignItems="center"
+              cursor="pointer"
+              onClick={() => document.getElementById("backInput").click()}
+            >
+              {uploading ? (
+                <Spinner />
+              ) : bulkImageData.product_images.back ? (
+                <Image
+                  src={bulkImageData.product_images.back}
+                  h="100%"
+                  w="100%"
+                  objectFit="cover"
+                  borderRadius="xl"
+                />
+              ) : (
+                <>
+                  <FiUpload size={22} color="#805AD5" />
+                  <Text mt={1}>Back</Text>
+                </>
+              )}
+
+              <Input
+                id="backInput"
+                type="file"
+                display="none"
+                accept="image/*"
+                onChange={(e) => handleSingleImage(e, "back")}
+              />
+            </Box>
+          </Flex>
+
+          {/* SUBMIT */}
           <Box
             flex="1"
-            h="80px"
-            maxW="80px"
-            bg="white"
+            h="55px"
+            maxW="55px"
+            bg="green.500"
             borderRadius="xl"
-            border="1px solid #d0d7e3"
             display="flex"
-            flexDirection="column"
             justifyContent="center"
             alignItems="center"
             cursor="pointer"
-            onClick={() => document.getElementById("frontInput").click()}
+            onClick={handleSubmit}
           >
-            {uploading ? (
-              <Spinner />
-            ) : bulkImageData.product_images.front ? (
-              <Image
-                src={bulkImageData.product_images.front}
-                h="100%"
-                w="100%"
-                objectFit="cover"
-                borderRadius="xl"
-              />
-            ) : (
-              <>
-                <FiUpload size={22} color="#3182CE" />
-                <Text mt={1}>Front</Text>
-              </>
-            )}
-
-            <Input
-              id="frontInput"
-              type="file"
-              display="none"
-              accept="image/*"
-              onChange={(e) => handleSingleImage(e, "front")}
-            />
-          </Box>
-
-          {/* BACK */}
-          <Box
-            flex="1"
-            h="80px"
-            maxW="80px"
-            bg="white"
-            borderRadius="xl"
-            border="1px solid #d0d7e3"
-            display="flex"
-            flexDirection="column"
-            justifyContent="center"
-            alignItems="center"
-            cursor="pointer"
-            onClick={() => document.getElementById("backInput").click()}
-          >
-            {uploading ? (
-              <Spinner />
-            ) : bulkImageData.product_images.back ? (
-              <Image
-                src={bulkImageData.product_images.back}
-                h="100%"
-                w="100%"
-                objectFit="cover"
-                borderRadius="xl"
-              />
-            ) : (
-              <>
-                <FiUpload size={22} color="#805AD5" />
-                <Text mt={1}>Back</Text>
-              </>
-            )}
-
-            <Input
-              id="backInput"
-              type="file"
-              display="none"
-              accept="image/*"
-              onChange={(e) => handleSingleImage(e, "back")}
-            />
+            <FiSend size={20} color="white" />
           </Box>
         </Flex>
-
-        {/* SUBMIT */}
-        <Box
-          flex="1"
-          h="55px"
-          maxW="55px"
-          bg="green.500"
-          borderRadius="xl"
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          cursor="pointer"
-          onClick={handleSubmit}
-        >
-          <FiSend size={20} color="white" />
-        </Box>
-      </Flex>
+      )}
     </Box>
   );
 };

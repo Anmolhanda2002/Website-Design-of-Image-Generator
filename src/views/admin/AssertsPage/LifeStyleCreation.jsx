@@ -29,6 +29,9 @@ const LifestyleShots = ({ userId }) => {
   const [pagination, setPagination] = useState({ total_pages: 1 });
   const [selectedSession, setSelectedSession] = useState(null);
 
+  // ⭐ NEW STATE for BIG IMAGE VIEWER
+  const [bigImage, setBigImage] = useState(null);
+
   // Fetch shots
   const fetchShots = async (pageNumber = 1) => {
     setLoading(true);
@@ -166,7 +169,7 @@ const LifestyleShots = ({ userId }) => {
         </Flex>
       )}
 
-      {/* Session modal */}
+      {/* ================= SESSION MODAL ================= */}
       {selectedSession && (
         <Modal
           isOpen={!!selectedSession}
@@ -185,13 +188,23 @@ const LifestyleShots = ({ userId }) => {
                   <Text>Status: {selectedSession.status}</Text>
                   <Text>Use Case: {selectedSession.use_case}</Text>
                   <Text>Model Used: {selectedSession.model_used}</Text>
-                  <Text>Created At: {new Date(selectedSession.created_at).toLocaleString()}</Text>
+                  <Text>
+                    Created At:{" "}
+                    {new Date(selectedSession.created_at).toLocaleString()}
+                  </Text>
                 </Box>
 
-                {/* All images */}
+                {/* All session images */}
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
                   {getSessionImages(selectedSession).map((img, idx) => (
-                    <Box key={idx} borderWidth="1px" borderRadius="md" overflow="hidden">
+                    <Box
+                      key={idx}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      overflow="hidden"
+                      cursor="pointer"
+                      onClick={() => setBigImage(img)} // ⭐ CLICK = BIG VIEW
+                    >
                       <Image
                         src={img}
                         alt={`Session Image ${idx + 1}`}
@@ -208,6 +221,40 @@ const LifestyleShots = ({ userId }) => {
           </ModalContent>
         </Modal>
       )}
+
+      {/* ================= BIG IMAGE VIEWER MODAL ================= */}
+     {bigImage && (
+  <Modal
+    isOpen={!!bigImage}
+    onClose={() => setBigImage(null)}
+    size="full"
+    motionPreset="none"
+  >
+    <ModalOverlay bg="rgba(0,0,0,0.9)" />
+
+    <ModalContent
+      bg="transparent"
+      boxShadow="none"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      p={0}
+    >
+      <ModalCloseButton color="white" />
+
+      <ModalBody p={0} display="flex" justifyContent="center" alignItems="center">
+        <Image
+          src={bigImage}
+          maxH="90vh"
+          maxW="90vw"
+          objectFit="contain"
+          cursor="pointer"
+        />
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+)}
+
     </Box>
   );
 };

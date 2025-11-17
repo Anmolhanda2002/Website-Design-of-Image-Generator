@@ -19,11 +19,12 @@ import {
   MdMergeType,
   MdVolumeUp,
   MdMenu,
+MdPhotoLibrary
 } from "react-icons/md";
-
+// import { MdPhotoLibrary } from "react-icons/md";
 // ✅ Sidebar Items
 export const sidebarItems = [
-  { name: "Bulk Image", icon: MdBrush },
+  { name: "Bulk Image", icon: MdPhotoLibrary },
   { name: "Image Creation", icon: MdBrush },
   { name: "Resize Image", icon: MdCrop },
   { name: "Image to Video", icon: MdMovie },
