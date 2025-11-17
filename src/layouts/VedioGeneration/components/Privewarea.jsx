@@ -9,9 +9,9 @@ import {
   Image,
   useColorModeValue,
   useToast,
-  Progress,
+  Progress,Button
 } from "@chakra-ui/react";
-import { AddIcon, ArrowUpIcon } from "@chakra-ui/icons";
+import { AddIcon, ArrowUpIcon,CloseIcon  } from "@chakra-ui/icons";
 import axiosInstance from "utils/AxiosInstance";
 import Swal from "sweetalert2";
 import { ViewIcon } from "@chakra-ui/icons";
@@ -32,7 +32,7 @@ export default function PreviewArea({
   generatedImage,
   setGeneratedImage,
   resizedImage,
-  setResizedImage,generatedVideo,setGeneratedVideo
+  setResizedImage,generatedVideo,setGeneratedVideo,setActiveTab,setlastimagetovideo
 }){
   const previewBg = useColorModeValue("gray.50", "gray.900");
   const panelBg = useColorModeValue("white", "gray.800");
@@ -183,6 +183,32 @@ const handleImageChangeSingle = async (e) => {
     }
 };
 
+
+const handleRemoveImage = (id) => {
+  setImages((prev) => prev.filter((img) => img.id !== id));
+};
+
+
+const handleUseInImageToVideo = (imgUrl) => {
+  if (!generatedImage && !resizedImage) return;
+const id = Date.now() + Math.random();
+  const newImage = {
+    id,
+    url: imgUrl,
+    file: null, // no upload file needed
+  };
+
+  console.log("newImage",newImage)
+setImages([newImage]);
+setlastimagetovideo(true)
+
+// Auto-select it if needed
+// setSelectedImage(newImage.url)
+  console.log(images)  // load image into Image-to-Video images[]
+  setActiveTab("Image to Video"); // switch tab
+};
+
+
   // Handle form submit
 const handleSubmit = async () => {
   setSubmitting(true);
@@ -296,6 +322,7 @@ else if (activeTab === "Image to Video") {
     resize,
     resize_width,
     resize_height,
+    project_id
   } = imageToVideoSettings || {};
 
   // 🧩 Generate unique IDs
@@ -323,6 +350,7 @@ else if (activeTab === "Image to Video") {
     resize_width,
     resize_height,
     user_id: selectedUser?.user_id,
+     project_id
   });
 
   const creationId = res1?.data?.creation_id;
@@ -628,6 +656,16 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
           )}
         </Box>
 
+{(generatedImage || resizedImage) && activeTab !== "Image to Video" && (
+  <Button
+    mt={3}
+    colorScheme="blue"
+    size="sm"
+    onClick={() => handleUseInImageToVideo(resizedImage || generatedImage)}
+  >
+    Use this image in Image to Video
+  </Button>
+)}
         <IconButton
           icon={submitting ? <Spinner size="sm" /> : <ArrowUpIcon />}
           aria-label="Send"
@@ -713,29 +751,45 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
           }}
         >
           {images.map((img) => (
-            <Box key={img.id} position="relative">
-              <Image
-                src={img.url}
-                alt="preview"
-                boxSize="50px"
-                objectFit="cover"
-                borderRadius="sm"
-                border="1px solid"
-                borderColor={borderColor}
-              />
-              {progressMap[img.id] !== undefined && (
-                <Progress
-                  size="xs"
-                  value={progressMap[img.id]}
-                  position="absolute"
-                  bottom="0"
-                  left="0"
-                  width="100%"
-                  borderRadius="0 0 2px 2px"
-                />
-              )}
-            </Box>
-          ))}
+  <Box key={img.id} position="relative">
+    <Image
+      src={img.url}
+      alt="preview"
+      boxSize="50px"
+      objectFit="cover"
+      borderRadius="sm"
+      border="1px solid"
+      borderColor={borderColor}
+    />
+
+ <IconButton
+  icon={<CloseIcon boxSize={2} />}
+  w="14px"
+  h="14px"
+  minW="14px"
+  position="absolute"
+  top="0"
+  right="0"
+  bg="red.500"
+  color="white"
+  borderRadius="full"
+  onClick={() => handleRemoveImage(img.id)}
+/>
+
+    {progressMap[img.id] !== undefined && (
+      <Progress
+        size="xs"
+        value={progressMap[img.id]}
+        position="absolute"
+        bottom="0"
+        left="0"
+        width="100%"
+        borderRadius="0 0 2px 2px"
+      />
+    )}
+  </Box>
+))}
+
         </Box>
 
         {/* Send Button */}
@@ -765,7 +819,7 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
           }
         >
           {videoStatus === "completed"
-            ? "✅ Video generation completed!"
+            ? ""
             : videoStatus === "processing"
             ? ""
             : `❌ ${videoStatus}`}
@@ -847,30 +901,56 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
           }}
         >
           {images.map((img) => (
-            <Box key={img.id} position="relative">
-              <Image
-                src={img.url}
-                alt="preview"
-                boxSize="50px"
-                objectFit="cover"
-                borderRadius="sm"
-                border="1px solid"
-                borderColor={borderColor}
-              />
-              {progressMap[img.id] !== undefined && (
-                <Progress
-                  size="xs"
-                  value={progressMap[img.id]}
-                  position="absolute"
-                  bottom="0"
-                  left="0"
-                  width="100%"
-                  borderRadius="0 0 2px 2px"
-                />
-              )}
-            </Box>
-          ))}
+  <Box key={img.id} position="relative">
+    <Image
+      src={img.url}
+      alt="preview"
+      boxSize="50px"
+      objectFit="cover"
+      borderRadius="sm"
+      border="1px solid"
+      borderColor={borderColor}
+    />
+
+<IconButton
+  icon={<CloseIcon boxSize={2} />}
+  w="14px"
+  h="14px"
+  minW="14px"
+  position="absolute"
+  top="0"
+  right="0"
+  bg="red.500"
+  color="white"
+  borderRadius="full"
+  onClick={() => handleRemoveImage(img.id)}
+/>
+
+    {progressMap[img.id] !== undefined && (
+      <Progress
+        size="xs"
+        value={progressMap[img.id]}
+        position="absolute"
+        bottom="0"
+        left="0"
+        width="100%"
+        borderRadius="0 0 2px 2px"
+      />
+    )}
+  </Box>
+))}
+
         </Box>
+        {(generatedImage || resizedImage) && activeTab !== "Image to Video" && (
+  <Button
+    mt={3}
+    colorScheme="blue"
+    size="sm"
+    onClick={() => handleUseInImageToVideo(resizedImage || generatedImage)}
+  >
+    Use this image in Image to Video
+  </Button>
+)}
 
         <IconButton
           icon={submitting ? <Spinner size="sm" /> : <ArrowUpIcon />}

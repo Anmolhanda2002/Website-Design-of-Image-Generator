@@ -41,6 +41,7 @@ import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
 import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
 import MergeVideo from "./components/MergeData/MergeVideo";
 import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
+import BulkImageCreation from "./components/BulkImage/BulkImageCreation";
 
 // --- Initial State Definitions for Reset (Must be outside the component) ---
 const initialImageCreationSettings = {
@@ -56,7 +57,7 @@ const initialImageToVideoSettings = {
     tags: "", sector: "", goal: "", key_instructions: "", consumer_message: "", 
     M_key: "", resize: false, resize_width: "", resize_height: "", 
     duration: "8s", aspect_ratio: "16:9",
-     video_type: "",
+     video_type: "", project_id:""
 };
 const initialCaptionData = {
     edit_id: "", segment_number: "", text: "", start_time: "", end_time: "", 
@@ -68,6 +69,26 @@ const initialMergeData = {
     brand_outro_video_url: "", custom_resize: false, mearg_id: "", 
     height: "", width: "",
 };
+
+const initialBulkImageData = {
+  user_id: "",
+  model: "",
+  image_guideline_id: "",
+  shot_type: "",
+  product_type: "",
+  product_name: "",
+  product_images: {
+    front: "",
+    back: ""
+  },
+  product_id: "",
+  customer_id: ""
+};
+
+
+
+
+
 // -------------------------------------------------------------------------
 
 export default function PixVerseLayout() {
@@ -82,6 +103,7 @@ export default function PixVerseLayout() {
   const [dropdownLoading, setDropdownLoading] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [userss, setUser] = useState(null);
+  const [lastimagetovideo,setlastimagetovideo]=useState(false)
   
     useEffect(() => {
       if (isManager) return;
@@ -180,6 +202,8 @@ useEffect(() => {
     const [captionData, setCaptionData] = useState(initialCaptionData);
     const [MergeData, setMergeData] = useState(initialMergeData);
 const [resetTrigger, setResetTrigger] = useState(0);
+const [BulkData,setBulkData]=useState(initialBulkImageData);
+console.log(BulkData)
   const [generatedImage, setGeneratedImage] = useState("");
   const [resizedImage, setResizedImage] = useState("");
   const [generatedVideo, setGeneratedVideo] = useState(null);
@@ -205,7 +229,10 @@ const handleTabChange = (tab) => {
     const resetAllData = () => {
         // Reset core data/UI state
         setText("");
-        setImages([]);
+        if(!lastimagetovideo){
+ setImages([]);
+        }
+       
         setPreviewData(null);
         setSending(false);
         setclone(false);
@@ -528,6 +555,7 @@ const handleSearch = (e) => {
                             overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
                             sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
                         >
+                        {activeTab === "Bulk Image" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData}/>)}
                             {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} />)}
                             {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
                             {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
@@ -538,11 +566,14 @@ const handleSearch = (e) => {
                         // Default Panel/Preview Layout for other tabs
                         <>
                             <PreviewArea
+                            setlastimagetovideo={setlastimagetovideo}
+                            setActiveTab={setActiveTab}
                             generatedVideo={generatedVideo} setGeneratedVideo={setGeneratedVideo}
                               generatedImage={generatedImage} setGeneratedImage={setGeneratedImage} resizedImage={resizedImage} setResizedImage={setResizedImage} text={text} resetTrigger={resetTrigger} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} resolution={resolution} ratio={ratio} activeTab={activeTab} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser}
                             />
                             {/* Panel Below Preview in Mobile */}
                             <Panel
+                            bulkImageData={BulkData} setBulkImageData={setBulkData}
                             selectedUser={selectedUser}
                                 activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData}
                             />
@@ -594,7 +625,22 @@ const handleSearch = (e) => {
                         </Flex>
                     ) : activeTab === "Add Music" ? (
                         <AddMusic selectedUser={selectedUser} />
-                    ) : (
+                    ) : 
+                     activeTab === "Bulk Image" ? (
+                                              <Flex flex="1" overflow="auto">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel bulkImageData={BulkData} setBulkImageData={setBulkData}  selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} BulkData={BulkData} setBulkData={setBulkData} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                               <BulkImageCreation selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}/>
+                            </Box>
+                        </Flex>
+                        
+                    ) : 
+                    
+                    (
                         <Flex flex="1" overflow="hidden">
                             {/* Panel */}
                             <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
@@ -603,6 +649,8 @@ const handleSearch = (e) => {
                             {/* Preview Area */}
                             <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
                                 <PreviewArea 
+                                setlastimagetovideo={setlastimagetovideo}
+                                setActiveTab={setActiveTab}
                                 generatedVideo={generatedVideo} setGeneratedVideo={setGeneratedVideo}
                                 generatedImage={generatedImage} setGeneratedImage={setGeneratedImage} resizedImage={resizedImage} setResizedImage={setResizedImage} resetTrigger={resetTrigger} activeTab={activeTab} text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser} />
                             </Box>

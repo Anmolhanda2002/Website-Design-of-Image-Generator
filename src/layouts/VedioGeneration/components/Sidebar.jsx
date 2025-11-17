@@ -23,6 +23,7 @@ import {
 
 // ✅ Sidebar Items
 export const sidebarItems = [
+  { name: "Bulk Image", icon: MdBrush },
   { name: "Image Creation", icon: MdBrush },
   { name: "Resize Image", icon: MdCrop },
   { name: "Image to Video", icon: MdMovie },

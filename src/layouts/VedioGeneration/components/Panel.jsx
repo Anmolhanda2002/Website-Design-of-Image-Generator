@@ -15,7 +15,8 @@ import {
     HStack,
     SimpleGrid,
     Icon,
-    Flex,Progress
+    Flex,Progress,
+   
 } from "@chakra-ui/react";
 import { useState, useEffect, startTransition } from "react";
 import axiosInstance from "utils/AxiosInstance";
@@ -43,10 +44,11 @@ export default function Panel({
     setCaptionData,
     MergeData,
     setMergeData,
-    selectedUser
+    selectedUser, bulkImageData, setBulkImageData,
 }) {
     const panelBg = useColorModeValue("white", "gray.800");
 
+    console.log(bulkImageData)
     // We keep this simple logger, no need for transition
     const handleChange = (field, value) => {
         console.log(`[${activeTab}] ${field}:`, value);
@@ -57,6 +59,9 @@ export default function Panel({
     const [loading, setLoading] = useState(false);
     const [useCases, setUseCases] = useState([]);
 const [loadingUseCase, setLoadingUseCase] = useState(false);
+const [projects, setProjects] = useState([]);
+const [projectSearch, setProjectSearch] = useState("");
+const [loadingProjects, setLoadingProjects] = useState(false);
     const toast = useToast();
    // ✅ get context
   const prevUserIdRef = useRef(null);
@@ -123,7 +128,6 @@ console.log(selectedUser)
 
 
 
-
   
 
     // 🔍 Fetch Guidelines from API (Debounced using useEffect)
@@ -160,6 +164,35 @@ const loadAllGuidelines = useCallback(async () => {
     }
   }, []);
 
+
+const fetchProjects = useCallback(async (searchTerm) => {
+  try {
+    setLoadingProjects(true);
+    const user = JSON.parse(localStorage.getItem("user"));
+    const selected = JSON.parse(localStorage.getItem("selected_user"));
+    const userId = selected?.user_id || user?.user_id;
+
+    const res = await axiosInstance.get("/saved_projects/", {
+      params: {
+        user_id: userId,
+        project_name: searchTerm,
+      },
+    });
+
+    const result = Array.isArray(res.data?.data)
+      ? res.data.data
+      : [];
+
+    setProjects(result);
+  } catch (err) {
+    console.error("Error fetching projects:", err);
+    setProjects([]);
+  } finally {
+    setLoadingProjects(false);
+  }
+}, []);
+
+
   // ✅ Only refetch when selected user changes
   useEffect(() => {
     const currentUserId = selectedUser?.user_id;
@@ -173,19 +206,22 @@ const loadAllGuidelines = useCallback(async () => {
 
     if (currentUserId !== prevUserIdRef.current) {
       prevUserIdRef.current = currentUserId;
-      loadAllGuidelines(); // 👈 refetch when user changes
+      loadAllGuidelines();
+      fetchProjects() // 👈 refetch when user changes
     }
   }, [selectedUser, loadAllGuidelines]);
 useEffect(() => {
   if (!searchTerm.trim()) {
-    loadAllGuidelines();   // ✅ When search is empty → show all again
+    loadAllGuidelines();
+    fetchProjects()   // ✅ When search is empty → show all again
     return;
   }
 
   if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
   searchTimeout.current = setTimeout(() => {
-    loadAllGuidelines();    // ✅ Run search
+    loadAllGuidelines();
+    fetchProjects()    // ✅ Run search
   }, 400);
 }, [searchTerm]);
 
@@ -279,6 +315,228 @@ useEffect(() => {
 
     const renderPanelContent = () => {
         switch (activeTab) {
+case "Bulk Image":
+  return (
+    <VStack align="stretch" spacing={4}>
+      
+      {/* 🔍 Search Image Guidelines */}
+      <Box>
+        <Text fontWeight="bold">Search Image Guidelines</Text>
+        <Input
+          placeholder="Enter guideline name..."
+          value={searchTerm}
+          onChange={(e) => {
+            const value = e.target.value;
+            startTransition(() => setSearchTerm(value));
+          }}
+          mt={2}
+        />
+      </Box>
+
+      {/* 🧩 Select Guideline */}
+      <Box mt={3}>
+        <Text fontWeight="bold">Select Guideline</Text>
+
+        {loading ? (
+          <Spinner mt={3} />
+        ) : (
+          <Select
+            placeholder="Select guideline"
+            value={bulkImageData.image_guideline_id}
+            onChange={(e) =>
+              setBulkImageData((prev) => ({
+                ...prev,
+                image_guideline_id: e.target.value,
+              }))
+            }
+            mt={2}
+          >
+            {guidelines.length > 0 ? (
+              guidelines.map((g) => (
+                <option key={g.guideline_id} value={g.guideline_id}>
+                  {g.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>No guidelines found</option>
+            )}
+          </Select>
+        )}
+      </Box>
+
+      {/* 🎯 Select Shot Type */}
+      <Box>
+        <Text fontWeight="bold">Shot Type</Text>
+        <Select
+          placeholder="Select shot type"
+          value={bulkImageData.shot_type}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              shot_type: e.target.value,
+            }))
+          }
+          mt={2}
+        >
+          <option value="studio_shots">Studio Shots</option>
+          {/* <option value="lifestyle_shots">Lifestyle Shots</option>
+          <option value="flat_lay">Flat Lay</option> */}
+        </Select>
+      </Box>
+
+      {/* 👕 Product Type */}
+      <Box>
+  <Text fontWeight="bold">Product Type</Text>
+  <Select
+    placeholder="Select product type"
+    value={bulkImageData.product_type}
+    onChange={(e) =>
+      setBulkImageData((prev) => ({
+        ...prev,
+        product_type: e.target.value,
+      }))
+    }
+    mt={2}
+  >
+    <option value="top">Top</option>
+    {/* <option value="jeans">Jeans</option>
+    <option value="tshirt">T-Shirt</option>
+    <option value="kurti">Kurti</option>
+    <option value="shirt">Shirt</option>
+    <option value="dress">Dress</option>
+    <option value="hoodie">Hoodie</option>
+    <option value="shorts">Shorts</option>
+    <option value="saree">Saree</option> */}
+  </Select>
+</Box>
+
+
+      {/* 🏷️ Product Name */}
+      <Box>
+        <Text fontWeight="bold">Product Name</Text>
+        <Input
+          placeholder="Product name"
+          value={bulkImageData.product_name}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              product_name: e.target.value,
+            }))
+          }
+          mt={2}
+        />
+      </Box>
+
+      {/* 🖼️ Front Image URL */}
+      {/* <Box>
+        <Text fontWeight="bold">Front Image URL</Text>
+        <Input
+          placeholder="Enter front image URL"
+          value={bulkImageData.product_images.front}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              product_images: {
+                ...prev.product_images,
+                front: e.target.value,
+              },
+            }))
+          }
+          mt={2}
+        />
+      </Box> */}
+
+      {/* 🖼️ Back Image URL */}
+      {/* <Box>
+        <Text fontWeight="bold">Back Image URL</Text>
+        <Input
+          placeholder="Enter back image URL"
+          value={bulkImageData.product_images.back}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              product_images: {
+                ...prev.product_images,
+                back: e.target.value,
+              },
+            }))
+          }
+          mt={2}
+        />
+      </Box> */}
+
+      {/* 🆔 Product ID */}
+      {/* <Box>
+        <Text fontWeight="bold">Product ID</Text>
+        <Input
+          placeholder="SKU / product id"
+          value={bulkImageData.product_id}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              product_id: e.target.value,
+            }))
+          }
+          mt={2}
+        />
+      </Box> */}
+
+      {/* 👤 Customer ID */}
+      {/* <Box>
+        <Text fontWeight="bold">Customer ID</Text>
+        <Input
+          placeholder="Customer id"
+          value={bulkImageData.customer_id}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              customer_id: e.target.value,
+            }))
+          }
+          mt={2}
+        />
+      </Box> */}
+
+      {/* 👤 User ID */}
+      {/* <Box>
+        <Text fontWeight="bold">User ID</Text>
+        <Input
+          placeholder="User id"
+          value={bulkImageData.user_id}
+          onChange={(e) =>
+            setBulkImageData((prev) => ({
+              ...prev,
+              user_id: e.target.value,
+            }))
+          }
+          mt={2}
+        />
+      </Box> */}
+
+      {/* 🔢 Model */}
+      <Box>
+  <Text fontWeight="bold">Model ID</Text>
+
+  <Select
+    placeholder="Select Model"
+    value={bulkImageData.model}
+    onChange={(e) =>
+      setBulkImageData((prev) => ({
+        ...prev,
+        model: e.target.value,
+      }))
+    }
+    mt={2}
+  >
+    <option value="123">123</option>
+  </Select>
+</Box>
+
+
+    </VStack>
+  );
+
+
           case "Image Creation":
   return (
     <VStack align="stretch" spacing={4}>
@@ -571,6 +829,50 @@ useEffect(() => {
           mt={2}
         />
       </Box>
+{/* 🔍 Project Search & Select */}
+<Box>
+  <Text fontWeight="bold">Search Project</Text>
+  <Input
+    placeholder="Type project name..."
+    value={projectSearch}
+    onChange={(e) => {
+      const value = e.target.value;
+      setProjectSearch(value);
+      if (value.trim().length >= 2) {
+        fetchProjects(value); // Fetch when at least 2 characters entered
+      } else {
+        setProjects([]);
+      }
+    }}
+    mt={2}
+  />
+
+  <Select
+    placeholder={loadingProjects ? "Loading projects..." : "Select a project"}
+    value={imageToVideoSettings.project_id || ""}
+    onChange={(e) =>
+      setImageToVideoSettings((prev) => ({
+        ...prev,
+        project_id: e.target.value,
+      }))
+    }
+    mt={3}
+    isDisabled={loadingProjects || projects.length === 0}
+  >
+    {projects.map((p) => (
+      <option key={p.project_id} value={p.project_id}>
+        {p.project_name}
+      </option>
+    ))}
+  </Select>
+
+  {/* Optional: show no results message */}
+  {!loadingProjects && projectSearch && projects.length === 0 && (
+    <Text color="gray.500" fontSize="sm" mt={1}>
+      No projects found.
+    </Text>
+  )}
+</Box>
 
       {/* Tags */}
       <Box>
@@ -907,7 +1209,7 @@ case "Caption Segment":
       {/* ⏱️ Start / End Time */}
       <Flex gap={4}>
         <Box flex="1">
-          <Text fontWeight="bold">Start Time (sec)</Text>
+          <Text fontWeight="bold">Start Time</Text>
           <Input
             type="number"
             placeholder="e.g. 0.25"
@@ -924,7 +1226,7 @@ case "Caption Segment":
         </Box>
 
         <Box flex="1">
-          <Text fontWeight="bold">End Time (sec)</Text>
+          <Text fontWeight="bold">End Time</Text>
           <Input
             type="number"
             placeholder="e.g. 4.0"

@@ -39,6 +39,7 @@ import ImageGuideUser from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
 import VideoGuideline from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 import ImageGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
 import VideoGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
+import ViewProjectDetails from "views/admin/profile/components/ViewProjectDetails"
 const routes = [
   {
     name: 'Main Dashboard',
@@ -262,6 +263,15 @@ const routes = [
     component: <VideoGuideline />,
     showInSidebar: true,
     roles: ['Standard User']
+  },
+      {
+     name: 'Video Guideline',
+    layout: '/admin',
+    path: '/projectdetails/:id',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <ViewProjectDetails />,
+    showInSidebar: false,
+    roles: ['Standard User','Manager']
   }
 ];
 

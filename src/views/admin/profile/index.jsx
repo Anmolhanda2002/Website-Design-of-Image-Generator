@@ -32,10 +32,9 @@ export default function Overview() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [displayEmail, setDisplayEmail] = useState("");
-
   const navigate = useNavigate();
 
-  // ✅ Determine which user is active (safe parse)
+  // ✅ Get active user safely
   const getActiveUserData = useCallback(() => {
     try {
       const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
@@ -43,8 +42,7 @@ export default function Overview() {
       const userId = selectedUser?.user_id || mainUser?.user_id;
       const username = selectedUser?.username || mainUser?.username || "Unknown";
       return { userId, username };
-    } catch (err) {
-      console.error("Error parsing user data from localStorage", err);
+    } catch {
       return { userId: null, username: "Unknown" };
     }
   }, []);
@@ -54,12 +52,7 @@ export default function Overview() {
   // ✅ Fetch projects (with pagination and search)
   const fetchProjects = useCallback(
     async (pageNum = 1, search = searchTerm, userId = activeUser.userId) => {
-      if (!userId) {
-        console.error("User ID not found in localStorage");
-        setLoading(false);
-        return;
-      }
-
+      if (!userId) return;
       try {
         if (pageNum === 1) setLoading(true);
         else setLoadingPage(true);
@@ -78,8 +71,8 @@ export default function Overview() {
         } else {
           setProjects([]);
         }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
+      } catch (err) {
+        console.error("Error fetching projects:", err);
       } finally {
         setLoading(false);
         setLoadingPage(false);
@@ -88,7 +81,7 @@ export default function Overview() {
     [activeUser.userId, searchTerm]
   );
 
-  // ✅ Auto update when user changes in localStorage
+  // ✅ Listen for user change
   useEffect(() => {
     const updateUser = () => {
       const newUser = getActiveUserData();
@@ -100,27 +93,20 @@ export default function Overview() {
       }
       setDisplayEmail(newUser.username);
     };
-
     updateUser();
-
-    // listen to changes in localStorage (other tabs)
     window.addEventListener("storage", updateUser);
-
-    // also check periodically
     const interval = setInterval(updateUser, 2000);
-
     return () => {
       window.removeEventListener("storage", updateUser);
       clearInterval(interval);
     };
   }, [activeUser.userId, fetchProjects, getActiveUserData, searchTerm]);
 
-  // ✅ Initial fetch
   useEffect(() => {
     if (activeUser.userId) fetchProjects(1);
   }, [activeUser.userId, fetchProjects]);
 
-  // ✅ Search (debounced)
+  // ✅ Debounced Search
   useEffect(() => {
     const delay = setTimeout(() => {
       startTransition(() => {
@@ -131,7 +117,7 @@ export default function Overview() {
     return () => clearTimeout(delay);
   }, [searchTerm, activeUser.userId, fetchProjects]);
 
-  // ✅ Page change
+  // ✅ Pagination logic
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > totalPages) return;
     startTransition(() => {
@@ -140,29 +126,18 @@ export default function Overview() {
     });
   };
 
-  // ✅ Render pagination buttons
   const renderPageButtons = () => {
     const buttons = [];
     const maxVisible = 5;
     let start = Math.max(1, page - 2);
     let end = Math.min(totalPages, start + maxVisible - 1);
-
-    if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
+    if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
     if (start > 1) {
       buttons.push(
-        <Button key={1} size="sm" variant="outline" onClick={() => handlePageChange(1)}>
-          1
-        </Button>
+        <Button key={1} size="sm" variant="outline" onClick={() => handlePageChange(1)}>1</Button>
       );
-      if (start > 2)
-        buttons.push(
-          <Text key="start-ellipsis" color="gray.500">
-            ...
-          </Text>
-        );
+      if (start > 2) buttons.push(<Text key="s-ellipsis">...</Text>);
     }
 
     for (let i = start; i <= end; i++) {
@@ -171,7 +146,6 @@ export default function Overview() {
           key={i}
           size="sm"
           colorScheme={i === page ? "blue" : "gray"}
-          variant={i === page ? "solid" : "outline"}
           onClick={() => handlePageChange(i)}
         >
           {i}
@@ -180,12 +154,7 @@ export default function Overview() {
     }
 
     if (end < totalPages) {
-      if (end < totalPages - 1)
-        buttons.push(
-          <Text key="end-ellipsis" color="gray.500">
-            ...
-          </Text>
-        );
+      if (end < totalPages - 1) buttons.push(<Text key="e-ellipsis">...</Text>);
       buttons.push(
         <Button
           key={totalPages}
@@ -203,30 +172,20 @@ export default function Overview() {
 
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
-      {/* Header and Search */}
       <Grid templateColumns="1fr" mb="20px">
         <GradientHeading />
-
-        <Flex
-          justify="space-between"
-          align="center"
-          mt={6}
-          flexDirection={{ base: "column", md: "row" }}
-          gap={4}
-        >
-
-
+        <Flex justify="space-between" align="center" mt={6} flexWrap="wrap" gap={4}>
           <InputGroup maxW={{ base: "100%", md: "400px" }}>
             <Input
               placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               bg={useColorModeValue("gray.100", "navy.900")}
-              color={useColorModeValue("gray.800", "white")}
               borderRadius="full"
-              _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
             />
-            <InputRightElement children={<SearchIcon color="gray.400" />} />
+            <InputRightElement>
+              <SearchIcon color="gray.400" />
+            </InputRightElement>
           </InputGroup>
 
           <Button colorScheme="blue" onClick={() => navigate("/videocreate/createvideo")}>
@@ -235,49 +194,33 @@ export default function Overview() {
         </Flex>
       </Grid>
 
-      {/* Projects Section */}
-      <Grid templateColumns="1fr" gap="20px" mb="20px">
-        {loading ? (
-          <Flex justify="center" align="center" py={20}>
-            <Spinner size="xl" />
-          </Flex>
-        ) : projects.length === 0 ? (
-          <Flex direction="column" align="center" py={20}>
-            <Text fontSize="lg" color="gray.500">
-              No projects found
+      {loading ? (
+        <Flex justify="center" py={20}><Spinner size="xl" /></Flex>
+      ) : projects.length === 0 ? (
+        <Flex justify="center" py={20}><Text>No projects found</Text></Flex>
+      ) : (
+        <>
+          <Projects projects={projects} loading={loadingPage} userId={activeUser.userId} />
+          <Flex justify="center" align="center" mt={6} direction="column" gap={3}>
+            <Text fontSize="sm" color="gray.500">
+              Page {page} of {totalPages} ({totalItems} total)
             </Text>
+            <HStack spacing={2}>
+              <IconButton
+                icon={<ChevronLeftIcon />}
+                isDisabled={page === 1}
+                onClick={() => handlePageChange(page - 1)}
+              />
+              {renderPageButtons()}
+              <IconButton
+                icon={<ChevronRightIcon />}
+                isDisabled={page === totalPages}
+                onClick={() => handlePageChange(page + 1)}
+              />
+            </HStack>
           </Flex>
-        ) : (
-          <>
-            <Projects projects={projects} loading={loadingPage} />
-
-            {/* Pagination */}
-            <Flex justify="center" align="center" mt={6} direction="column" gap={3}>
-              <Text fontSize="sm" color="gray.500">
-                Showing page {page} of {totalPages} ({totalItems} projects)
-              </Text>
-
-              <HStack spacing={2}>
-                <IconButton
-                  icon={<ChevronLeftIcon />}
-                  isDisabled={page === 1}
-                  onClick={() => handlePageChange(page - 1)}
-                  aria-label="Previous"
-                  size="sm"
-                />
-                {renderPageButtons()}
-                <IconButton
-                  icon={<ChevronRightIcon />}
-                  isDisabled={page === totalPages}
-                  onClick={() => handlePageChange(page + 1)}
-                  aria-label="Next"
-                  size="sm"
-                />
-              </HStack>
-            </Flex>
-          </>
-        )}
-      </Grid>
+        </>
+      )}
     </Box>
   );
 }
