@@ -82,7 +82,9 @@ const initialBulkImageData = {
     back: ""
   },
   product_id: "",
-  customer_id: ""
+  customer_id: "",
+  file_type:"image",
+  csv_file:""
 };
 
 
@@ -237,7 +239,20 @@ const handleTabChange = (tab) => {
         setSending(false);
         setclone(false);
         setclonecreationid("");
-
+setBulkData({  user_id: "",
+  model: "",
+  image_guideline_id: "",
+  shot_type: "",
+  product_type: "",
+  product_name: "",
+  product_images: {
+    front: "",
+    back: ""
+  },
+  product_id: "",
+  customer_id: "",
+  file_type:"image",
+  csv_file:""})
         // Reset all settings using initial state objects
         setImageCreationSettings(initialImageCreationSettings);
         setResizeImageSettings(initialResizeImageSettings);
@@ -555,7 +570,7 @@ const handleSearch = (e) => {
                             overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
                             sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
                         >
-                        {activeTab === "Bulk Image" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData}/>)}
+                        {activeTab === "Bulk Image" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData} setImages={setImages} setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>)}
                             {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} />)}
                             {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
                             {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
@@ -573,6 +588,7 @@ const handleSearch = (e) => {
                             />
                             {/* Panel Below Preview in Mobile */}
                             <Panel
+                             setImages={setImages}
                             bulkImageData={BulkData} setBulkImageData={setBulkData}
                             selectedUser={selectedUser}
                                 activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData}
@@ -634,7 +650,7 @@ const handleSearch = (e) => {
                             </Box>
                             {/* Preview Area */}
                             <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
-                               <BulkImageCreation selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}/>
+                               <BulkImageCreation selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}  setImages={setImages}  setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>
                             </Box>
                         </Flex>
                         

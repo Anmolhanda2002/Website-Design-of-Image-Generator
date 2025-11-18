@@ -12,7 +12,7 @@ import {
 import { FiUpload, FiSend } from "react-icons/fi";
 import axiosInstance from "utils/AxiosInstance";
 
-const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) => {
+const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData ,setImages,setlastimagetovideo,setActiveTab}) => {
   const toast = useToast();
 
   const [uploading, setUploading] = useState(false);
@@ -24,12 +24,14 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
   const [isProcessing, setIsProcessing] = useState(false);
   const [lifestyleLoading, setLifestyleLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
-
+const [submitloading,setsubmitloading]=useState(false)
   // NEW STATES
   const [isFirstApiDone, setIsFirstApiDone] = useState(false);
   const [isLifestyleDone, setIsLifestyleDone] = useState(false);
 
-  /* ---------------- IMAGE UPLOAD ---------------- */
+  /* ------------------------------------------
+      IMAGE UPLOAD
+  ------------------------------------------- */
   const handleImageUpload = async (file) => {
     const id = Date.now() + Math.random();
     setProgressMap((prev) => ({ ...prev, [id]: 0 }));
@@ -87,7 +89,9 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     }
   };
 
-  /* ---------------- GENERATE RANDOM PRODUCT ID ---------------- */
+  /* ------------------------------------------
+      GENERATE PRODUCT ID
+  ------------------------------------------- */
   const generateShortUUID = () => {
     return (
       "SKU-" +
@@ -97,13 +101,15 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     ).slice(0, 48);
   };
 
-  /* ---------------- SUBMIT MAIN API ---------------- */
-  const handleSubmit = async () => {
+  /* ------------------------------------------
+      IMAGE SUBMIT API
+  ------------------------------------------- */
+  const handleSubmitImage = async () => {
     try {
       setIsProcessing(true);
       setLifestyleImages([]);
       setPreviewImages([]);
-
+setsubmitloading(true)
       const updatedData = {
         ...bulkImageData,
         model: Number(bulkImageData.model),
@@ -118,6 +124,7 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       );
 
       const apiData = res?.data?.data;
+      // same processing as before
       setSessionId(apiData.session_id);
 
       const finalImages = Array.from(
@@ -138,7 +145,7 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
 
       setIsFirstApiDone(true);
       setIsLifestyleDone(false);
-
+setsubmitloading(false)
       toast({ title: "Submitted Successfully", status: "success" });
     } catch (err) {
       toast({ title: "Submit Failed", status: "error" });
@@ -147,7 +154,142 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     }
   };
 
-  /* ---------------- LIFESTYLE API ---------------- */
+
+const handleCreateVideo = () => {
+  if (!selectedImage) {
+    toast({ title: "Select an image first", status: "warning" });
+    return;
+  }
+
+  console.log(selectedImage)
+   setImages([
+    {
+      id: Date.now(),
+      url: selectedImage
+    }
+  ]); 
+  setlastimagetovideo(true);
+  setActiveTab("Image to Video");
+};
+
+
+  /* ------------------------------------------
+      CSV UPLOAD API
+      (upload CSV file and set bulkImageData.csv_file)
+  ------------------------------------------- */
+  const handleCSVUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    // server expects variable name; earlier examples used "file" or "csv_file"
+    // using "file" may also work but user specified endpoint /upload_csv_file/
+    // and showed response with file_url — we'll send key "file"
+    formData.append("file", file);
+
+    setUploading(true);
+
+    try {
+      const res = await axiosInstance.post("/upload_csv_file/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // expected response: { status: true, message: "...", file_url: "..." }
+      const csvURL = res.data.file_url || res.data?.data?.file_url;
+
+      if (!csvURL) {
+        toast({ title: "CSV upload returned no URL", status: "error" });
+        setUploading(false);
+        return;
+      }
+
+      setBulkImageData((prev) => ({
+        ...prev,
+        csv_file: csvURL,
+      }));
+
+      toast({ title: "CSV Uploaded", status: "success" });
+    } catch (err) {
+      toast({ title: "CSV Upload Failed", status: "error" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* ------------------------------------------
+      CSV SUBMIT API
+      Response is same as image submit API (per your request)
+      So we parse and set previewImages, mapping, sessionId same as image flow
+  ------------------------------------------- */
+  const handleSubmitCSV = async () => {
+    if (!bulkImageData.csv_file) {
+      toast({ title: "Upload CSV first", status: "warning" });
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setLifestyleImages([]);
+      setPreviewImages([]);
+
+      // build body exactly as you showed earlier
+      const body = {
+        user_id: selectedUser?.user_id,
+        model: Number(bulkImageData.model),
+        image_guideline_id: bulkImageData.image_guideline_id,
+        project_name: bulkImageData.product_name,
+        shot_type: bulkImageData.shot_type,
+        product_type: bulkImageData.product_type,
+        product_name: bulkImageData.product_name,
+        csv_url: bulkImageData.csv_file,
+        product_id: generateShortUUID(),
+        customer_id: `CRM-${selectedUser?.user_id}`,
+      };
+
+      const res = await axiosInstance.post("/upload_bulk_csv/", body);
+
+      // per your request, assume response structure identical to image submit:
+      // res.data.data => { session_id, base_shot: { image_url }, generated_shots: [...] }
+      const apiData = res?.data?.data;
+
+      if (!apiData) {
+        toast({ title: "CSV submit returned unexpected response", status: "error" });
+        setIsProcessing(false);
+        return;
+      }
+
+      setSessionId(apiData.session_id);
+
+      const finalImages = Array.from(
+        new Set([
+          apiData.base_shot?.image_url,
+          ...((apiData.generated_shots || []).map((shot) => shot.image_url) || []),
+        ].filter(Boolean))
+      );
+
+      const mapping = {};
+      (apiData.generated_shots || []).forEach((s) => {
+        mapping[s.image_url] = s.shot_name;
+      });
+
+      setShotMapping(mapping);
+      setPreviewImages(finalImages);
+      setSelectedImage(finalImages[0]);
+
+      setIsFirstApiDone(true);
+      setIsLifestyleDone(false);
+
+      toast({ title: "CSV Submitted Successfully", status: "success" });
+    } catch (err) {
+      toast({ title: "CSV Submit Failed", status: "error" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /* ------------------------------------------
+      LIFESTYLE API (shared for both modes)
+  ------------------------------------------- */
   const handleGenerateLifestyle = async () => {
     if (!selectedImage) {
       toast({ title: "Select an image first", status: "warning" });
@@ -179,9 +321,7 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
       );
 
       const data = res.data.data;
-      const lifestyleUrls = Object.values(data.image_urls).filter(
-        (url) => url !== null
-      );
+      const lifestyleUrls = Object.values(data.image_urls).filter((url) => url !== null);
 
       setLifestyleImages(lifestyleUrls);
       setPreviewImages(lifestyleUrls);
@@ -197,7 +337,9 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     }
   };
 
-  /* ---------------- CLEAR ALL ---------------- */
+  /* ------------------------------------------
+      CLEAR ALL
+  ------------------------------------------- */
   const handleClear = () => {
     setPreviewImages([]);
     setLifestyleImages([]);
@@ -211,20 +353,33 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
     setBulkImageData((prev) => ({
       ...prev,
       product_images: { front: "", back: "" },
+      csv_file: "",
     }));
+  };
+
+  /* ------------------------------------------
+      MAIN submit: choose CSV or Image based on file_type
+  ------------------------------------------- */
+  const handleSubmit = async () => {
+    if (bulkImageData.file_type === "csv") {
+      return handleSubmitCSV();
+    } else {
+      return handleSubmitImage();
+    }
   };
 
   return (
     <Box w="100%" p={5}>
-
-      {/* ⭐ PREVIEW SECTION ⭐ */}
+      {/* ------------------------------------------
+            PREVIEW BOX (same for both CSV & IMAGE)
+      ------------------------------------------- */}
       <Box
         w="100%"
-        h="350px"   // Increased size
+        h="350px"
         bg="white"
         borderRadius="xl"
         border="1px solid #e6ecf5"
-        mt={"-20px"}
+        mt="-20px"
         overflow="hidden"
         position="relative"
       >
@@ -301,11 +456,13 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
         )}
       </Box>
 
-      {/* ⭐ BUTTONS BELOW PREVIEW ⭐ */}
+      {/* ------------------------------------------
+            MODE ACTIONS (Generate Lifestyle / Clear)
+      ------------------------------------------- */}
       <Flex mt={4} justify="center" gap={3}>
-
-        {/* Generate Lifestyle only after first API, before lifestyle API */}
         {isFirstApiDone && !isLifestyleDone && (
+            <Flex>
+         
           <Button
             colorScheme="purple"
             onClick={handleGenerateLifestyle}
@@ -313,122 +470,217 @@ const BulkImageCreation = ({ selectedUser, bulkImageData, setBulkImageData }) =>
           >
             Generate Lifestyle
           </Button>
+          </Flex>
         )}
 
-        {/* Clear Button only after any API done */}
+
         {(isFirstApiDone || isLifestyleDone) && (
+            <Flex>
+ 
+             <Button
+            colorScheme="purple"
+            onClick={handleCreateVideo}
+            isLoading={lifestyleLoading}
+          >
+            Create Video
+          </Button>
+          </Flex>
+        )}
+
+
+        {(isFirstApiDone || isLifestyleDone) && (
+            <Flex>
+ 
           <Button colorScheme="red" onClick={handleClear}>
             Clear
           </Button>
+          </Flex>
         )}
-
       </Flex>
 
-      {/* ⭐ FRONT | BACK | SUBMIT ⭐ */}
-      {!isFirstApiDone && (
-        <Flex gap={5} alignItems="center" mt={2}>
-          <Flex flex="3" gap={4}>
-            {/* FRONT */}
-            <Box
-              flex="1"
-              h="80px"
-              maxW="80px"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid #d0d7e3"
-              display="flex"
-              
-              flexDirection="column"
-              justifyContent="center"
-              alignItems="center"
-              cursor="pointer"
-              onClick={() => document.getElementById("frontInput").click()}
-            >
-              {uploading ? (
-                <Spinner />
-              ) : bulkImageData.product_images.front ? (
-                <Image
-                  src={bulkImageData.product_images.front}
-                  h="100%"
-                  w="100%"
-                  objectFit="cover"
-                  borderRadius="xl"
+      {/* ------------------------------------------
+            BOTTOM AREA:
+            Left = CSV upload (visible only when file_type === 'csv')
+            OR Front/Back uploads + Image Submit (visible when file_type === 'image' and not isFirstApiDone)
+            Right = Submit (Image or CSV depending on mode)
+      ------------------------------------------- */}
+      <Box mt={3}>
+        {/* IMAGE MODE (front/back + submit) */}
+        {!isFirstApiDone && bulkImageData.file_type === "image" && (
+          <Flex gap={5} alignItems="center" mt={2}>
+            <Flex flex="3" gap={4}>
+              {/* FRONT */}
+              <Box
+                flex="1"
+                h="80px"
+                maxW="80px"
+                bg="white"
+                borderRadius="xl"
+                border="1px solid #d0d7e3"
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                cursor="pointer"
+                onClick={() => document.getElementById("frontInput").click()}
+              >
+                {uploading ? (
+                  <Spinner />
+                ) : bulkImageData.product_images.front ? (
+                  <Image
+                    src={bulkImageData.product_images.front}
+                    h="100%"
+                    w="100%"
+                    objectFit="cover"
+                    borderRadius="xl"
+                  />
+                ) : (
+                  <>
+                    <FiUpload size={22} color="#3182CE" />
+                    <Text mt={1}>Front</Text>
+                  </>
+                )}
+
+                <Input
+                  id="frontInput"
+                  type="file"
+                  display="none"
+                  accept="image/*"
+                  onChange={(e) => handleSingleImage(e, "front")}
                 />
-              ) : (
-                <>
-                  <FiUpload size={22} color="#3182CE" />
-                  <Text mt={1}>Front</Text>
-                </>
-              )}
+              </Box>
 
-              <Input
-                id="frontInput"
-                type="file"
-                display="none"
-                accept="image/*"
-                onChange={(e) => handleSingleImage(e, "front")}
-              />
-            </Box>
+              {/* BACK */}
+              <Box
+                flex="1"
+                h="80px"
+                maxW="80px"
+                bg="white"
+                borderRadius="xl"
+                border="1px solid #d0d7e3"
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                cursor="pointer"
+                onClick={() => document.getElementById("backInput").click()}
+              >
+                {uploading ? (
+                  <Spinner />
+                ) : bulkImageData.product_images.back ? (
+                  <Image
+                    src={bulkImageData.product_images.back}
+                    h="100%"
+                    w="100%"
+                    objectFit="cover"
+                    borderRadius="xl"
+                  />
+                ) : (
+                  <>
+                    <FiUpload size={22} color="#805AD5" />
+                    <Text mt={1}>Back</Text>
+                  </>
+                )}
 
-            {/* BACK */}
-            <Box
-              flex="1"
-              h="80px"
-              maxW="80px"
-              bg="white"
-              borderRadius="xl"
-              border="1px solid #d0d7e3"
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              alignItems="center"
-              cursor="pointer"
-              onClick={() => document.getElementById("backInput").click()}
-            >
-              {uploading ? (
-                <Spinner />
-              ) : bulkImageData.product_images.back ? (
-                <Image
-                  src={bulkImageData.product_images.back}
-                  h="100%"
-                  w="100%"
-                  objectFit="cover"
-                  borderRadius="xl"
+                <Input
+                  id="backInput"
+                  type="file"
+                  display="none"
+                  accept="image/*"
+                  onChange={(e) => handleSingleImage(e, "back")}
                 />
-              ) : (
-                <>
-                  <FiUpload size={22} color="#805AD5" />
-                  <Text mt={1}>Back</Text>
-                </>
-              )}
+              </Box>
+            </Flex>
 
-              <Input
-                id="backInput"
-                type="file"
-                display="none"
-                accept="image/*"
-                onChange={(e) => handleSingleImage(e, "back")}
-              />
-            </Box>
+            {/* SUBMIT IMAGE */}
+        <Button
+  flex="1"
+  h="55px"
+  maxW="55px"
+  bg="green.500"
+  borderRadius="xl"
+  onClick={handleSubmit}
+  isLoading={submitloading}
+  isDisabled={submitloading}
+>
+  <FiSend size={20} color="white" />
+</Button>
           </Flex>
+        )}
 
-          {/* SUBMIT */}
-          <Box
-            flex="1"
-            h="55px"
-            maxW="55px"
-            bg="green.500"
-            borderRadius="xl"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            cursor="pointer"
-            onClick={handleSubmit}
+        {/* CSV Mode: left CSV upload + right CSV submit (appears when file_type === 'csv') */}
+{bulkImageData.file_type === "csv" && (
+  <Flex mt={4} justify="space-between" align="center" w="100%">
+    
+    {/* CSV UPLOAD BOX (LEFT) */}
+    <Box
+      h="80px"
+      w="80px"
+      bg="white"
+      borderRadius="xl"
+      border="1px solid #d0d7e3"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      flexDirection="column"
+      cursor="pointer"
+      p={2}
+      onClick={() => document.getElementById("csvInput").click()}
+    >
+      {uploading ? (
+        <Spinner />
+      ) : bulkImageData.csv_file ? (
+        <>
+          <FiUpload size={20} color="#3182CE" />
+          <Text
+            mt={1}
+            fontSize="9px"
+            textAlign="center"
+            noOfLines={2}
+            maxW="70px"
           >
-            <FiSend size={20} color="white" />
-          </Box>
-        </Flex>
+            {bulkImageData.csv_file.split("/").pop()}
+          </Text>
+        </>
+      ) : (
+        <>
+          <FiUpload size={22} color="#3182CE" />
+          <Text fontSize="10px" mt={1}>
+            CSV
+          </Text>
+        </>
       )}
+
+      <Input
+        id="csvInput"
+        type="file"
+        display="none"
+        accept=".csv"
+        onChange={handleCSVUpload}
+      />
+    </Box>
+
+    {/* SUBMIT ICON BUTTON (RIGHT) */}
+    <Box
+      h="55px"
+      w="55px"
+      bg="green.500"
+      borderRadius="xl"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      cursor="pointer"
+      onClick={handleSubmit}
+    >
+      <FiSend size={20} color="white" />
+    </Box>
+
+  </Flex>
+)}
+
+
+
+      </Box>
     </Box>
   );
 };

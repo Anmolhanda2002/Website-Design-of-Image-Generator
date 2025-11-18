@@ -473,6 +473,8 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
 
 
 
+console.log(images)
+
   return (
 <Flex
   direction="column"

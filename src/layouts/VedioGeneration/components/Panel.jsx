@@ -363,6 +363,23 @@ case "Bulk Image":
           </Select>
         )}
       </Box>
+      <Box mt={4}>
+  <Text fontWeight="bold">Upload File Type</Text>
+  <Select
+    
+    value={bulkImageData.file_type}
+    onChange={(e) =>
+      setBulkImageData((prev) => ({
+        ...prev,
+        file_type: e.target.value,
+      }))
+    }
+    mt={2}
+  >
+    <option value="image">Image</option>
+    <option value="csv">CSV</option>
+  </Select>
+</Box>
 
       {/* 🎯 Select Shot Type */}
       <Box>
