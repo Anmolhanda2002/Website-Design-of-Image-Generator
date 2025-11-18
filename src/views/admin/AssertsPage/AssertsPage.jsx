@@ -85,11 +85,25 @@ const AssetsPage = () => {
         const url = getApiUrl(customUserId, pageNumber, activeSearch);
         const response = await axiosInstance.get(url);
 
-        if (response.data?.status === "success") {
-          const newData = selectedOption === "3" ? response.data.data : response.data.data || [];
-          setAssets((prev) => (pageNumber === 1 ? newData : [...prev, ...newData]));
-          setTotalPages(response.data.pagination?.pages || 1);
-        } else {
+     if (response.data?.status === "success") {
+  const apiData = response.data?.data;
+
+  // If API returns no data array → fallback to empty array
+  const newData = Array.isArray(apiData) ? apiData : [];
+
+  setAssets((prev) => (pageNumber === 1 ? newData : [...prev, ...newData]));
+  setTotalPages(response.data?.pagination?.pages || 1);
+
+  // Show "No Data" toast if API has no records
+  if (newData.length === 0) {
+    toast({
+      title: "No Data Found",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+} else {
           toast({
             title: "No Data Found",
             status: "info",
