@@ -335,7 +335,7 @@ const BulkImageCreation = ({
       session_id: sessionId,
       source_shot: shotName,
       model: 123,
-      image_guideline_id: "938c2102-a810-4a92-9792-8ead76d4f06f",
+      image_guideline_id: bulkImageData.image_guideline_id,
     };
 
     try {

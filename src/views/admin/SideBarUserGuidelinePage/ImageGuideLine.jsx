@@ -26,8 +26,12 @@ import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate } from 'react-router-dom';
+  import { useColorMode } from "@chakra-ui/react";
+export default function GuidelineTable({userId}) {
+  console.log("asdf",userId)
 
-export default function GuidelineTable() {
+const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
   const [searchQuery, setSearchQuery] = useState('');
   const [pageSize] = useState(10);
   const [pageIndex] = useState(0);
@@ -38,7 +42,7 @@ export default function GuidelineTable() {
   const textColor = useColorModeValue('gray.800', 'white');
   const subText = useColorModeValue('gray.500', 'gray.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const cardBg = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('white', 'navy.800');
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const navigate = useNavigate();
@@ -82,6 +86,10 @@ export default function GuidelineTable() {
     [selectedUser]
   );
 
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const selectedUsers = JSON.parse(localStorage.getItem("selected_user") || "null");
+  const activeUserId = selectedUsers?.user_id || user?.user_id;
   // ✅ Fetch when user changes
   useEffect(() => {
     const currentUserId = selectedUser?.user_id;
@@ -115,6 +123,8 @@ export default function GuidelineTable() {
       confirmButtonColor: '#3182CE',
       cancelButtonColor: '#E53E3E',
       confirmButtonText: 'Yes, delete it!',
+        background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
     });
 
     if (!confirm.isConfirmed) return;
@@ -124,12 +134,24 @@ export default function GuidelineTable() {
         guideline_id: id,
         user_id: selectedUser?.user_id,
       });
-
-      Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+Swal.fire({
+  title: 'Deleted!',
+  text: 'The guideline has been deleted.',
+  icon: 'success',
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+});
       fetchGuidelines(searchQuery);
     } catch (err) {
       console.error(err);
-      Swal.fire('Error!', 'Failed to delete guideline.', 'error');
+      Swal.fire({
+  title: 'Error!',
+  text: 'Failed to delete guideline.',
+  icon: 'error',
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#FF4D4D" : "#D33",
+});
     }
   };
 
@@ -141,11 +163,27 @@ export default function GuidelineTable() {
         guideline_id: id,
       });
 
-      Swal.fire('Activated!', 'The guideline is now active.', 'success');
+     Swal.fire({
+  title: 'Activated!',
+  text: 'The guideline is now active.',
+  icon: 'success',
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#4A6CFF" : "#3085d6",
+});
+
       fetchGuidelines(searchQuery);
     } catch (err) {
       console.error(err);
-      Swal.fire('Error!', 'Failed to activate guideline.', 'error');
+      Swal.fire({
+  title: 'Error!',
+  text: 'Failed to activate guideline.',
+  icon: 'error',
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#4A6CFF" : "#d33",
+});
+
     }
   };
 
@@ -220,7 +258,8 @@ export default function GuidelineTable() {
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-
+  const textcolor = useColorModeValue("black","white")
+    const handleAddGuideline = () => navigate(`/admin/add/guidelines/${activeUserId}`);
   // === Render ===
   return (
     <Card w="100%" bg={cardBg} mt="100px" shadow="md" borderRadius="lg" p={4}>
@@ -228,6 +267,14 @@ export default function GuidelineTable() {
         <Text fontSize="2xl" fontWeight="bold">
           Image Guidelines
         </Text>
+          <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={handleAddGuideline}
+                  w={{ base: '100%', md: 'auto' }}
+                >
+                  + Add Guideline
+                </Button>
       </Flex>
 
       <Input
@@ -235,6 +282,8 @@ export default function GuidelineTable() {
         mb={5}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
+        color={textcolor}
+        _placeholder={{color:textcolor}}
       />
 
       {loading ? (

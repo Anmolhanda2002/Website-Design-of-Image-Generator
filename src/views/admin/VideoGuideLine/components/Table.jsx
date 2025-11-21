@@ -196,7 +196,7 @@ navigate(`/admin/edit/videoguidelines/${guidleline}?user_id=${userIdParam}`)
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Video Guidelines
         </Text>
-        <Button colorScheme="blue" onClick={handleAddGuideline} w={{ base: '100%', md: 'auto' }}>
+        <Button  size="sm" colorScheme="blue" onClick={handleAddGuideline} w={{ base: '100%', md: 'auto' }}>
           + Add Guideline
         </Button>
       </Flex>
@@ -205,13 +205,15 @@ navigate(`/admin/edit/videoguidelines/${guidleline}?user_id=${userIdParam}`)
         placeholder="Search guidelines..."
         mb={4}
         value={globalFilter}
+        color={textColor}
+        _placeholder={{color:textColor}}
         onChange={(e) => setGlobalFilter(e.target.value)}
         size="md"
       />
 
       <Box overflowX="auto">
         <Table variant="simple" size="sm">
-          <Thead bg={useColorModeValue('gray.100', 'gray.700')}>
+          <Thead bg={useColorModeValue('gray.100', '#111c44')}>
             {table.getHeaderGroups().map((headerGroup) => (
               <Tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (

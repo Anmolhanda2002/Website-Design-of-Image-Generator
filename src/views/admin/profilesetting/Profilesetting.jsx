@@ -42,6 +42,7 @@ const ProfileSettings = () => {
     first_name: "",
     last_name: "",
     email: "",
+    user_id:""
   });
 
   // Fetch user profile from API
@@ -52,8 +53,8 @@ const ProfileSettings = () => {
           `/my_account_info?user_id=${userId}`
         );
         if (response.data.status === "success") {
-          const { username, first_name, last_name, email } = response.data.data;
-          setFormData({ username, first_name, last_name, email });
+          const { username, first_name, last_name, email,user_id } = response.data.data;
+          setFormData({ username, first_name, last_name, email,user_id });
         }
       } catch (error) {
         toast({
@@ -94,6 +95,7 @@ const ProfileSettings = () => {
         first_name: formData.first_name,
         last_name: formData.last_name,
         email: formData.email,
+        
       };
 
       const response = await axiosInstance.patch(
@@ -172,7 +174,7 @@ const ProfileSettings = () => {
                 {formData.username}
               </Text>
               <Text fontSize="sm" color={textSecondary}>
-                {formData.email}
+                {formData?.user_id}
               </Text>
             </Box>
           </Flex>

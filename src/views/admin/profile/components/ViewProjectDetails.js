@@ -19,18 +19,20 @@ import {
 } from "@chakra-ui/react";
 import { useParams, useLocation } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
-
+import { IconButton } from "@chakra-ui/react";
+import { MdArrowBack } from "react-icons/md";
+import { useNavigate } from "react-router-dom";
 const ProjectDetails = () => {
   const { id: projectId } = useParams();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const userId = queryParams.get("user_id");
-
+const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const bgColor = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
+  const bgColor = useColorModeValue("gray.50", "navy.900");
+  const cardBg = useColorModeValue("white", "navy.800");
   const textColor = useColorModeValue("gray.700", "gray.300");
   const headingColor = useColorModeValue("gray.900", "white");
   const shadowColor = useColorModeValue("md", "dark-lg");
@@ -98,10 +100,20 @@ const ProjectDetails = () => {
         transition="0.3s"
         mt={10}
       >
+
+
         {/* ✅ Project Header */}
         <Flex justify="space-between" mb={8} w="100%" flexWrap="wrap" gap={6}>
           <VStack align="flex-start" spacing={2}>
             <HStack spacing={3}>
+              <IconButton
+    icon={<MdArrowBack />}
+    aria-label="Go back"
+    onClick={() => navigate(-1)}
+    variant="ghost"
+    fontSize="24px"
+    mr={3}
+  />
               <Heading
                 color={headingColor}
                 fontSize={{ base: "2xl", md: "3xl" }}

@@ -27,9 +27,11 @@ import { DownloadIcon, SearchIcon, ViewIcon } from "@chakra-ui/icons";
 import axiosInstance from "utils/AxiosInstance";
 import BulkImageCreation from "./BulkImageCreation";
 import LifeStyleCreation from "./LifeStyleCreation";
-
+  import { useColorMode } from "@chakra-ui/react";
 const AssetsPage = () => {
   const toast = useToast();
+
+const { colorMode } = useColorMode();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -95,14 +97,14 @@ const AssetsPage = () => {
   setTotalPages(response.data?.pagination?.pages || 1);
 
   // Show "No Data" toast if API has no records
-  if (newData.length === 0) {
-    toast({
-      title: "No Data Found",
-      status: "info",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
+  // if (newData.length === 0) {
+  //   toast({
+  //     title: "No Data Found",
+  //     status: "info",
+  //     duration: 3000,
+  //     isClosable: true,
+  //   });
+  // }
 } else {
           toast({
             title: "No Data Found",
@@ -178,54 +180,56 @@ const AssetsPage = () => {
     onOpen();
   };
 
-  const renderDetails = (item) => {
-    if (!item) return null;
+const renderDetails = (item) => {
+  if (!item) return null;
 
-    const fieldsToShow = {
-      "1": [
-        { label: "Creation ID", value: item.creation_id },
-        { label: "Product Name", value: item.product_name || "—" },
-        { label: "Video Dimensions", value: item.video_dimensions },
-        { label: "Status", value: item.status },
-        { label: "Created At", value: item.created_at },
-      ],
-      "2": [
-        { label: "Composition ID", value: item.composition_id },
-        { label: "Use Case", value: item.use_case },
-        { label: "Model Used", value: item.model_used },
-        { label: "Status", value: item.status },
-        { label: "Created At", value: item.created_at },
-      ],
-      "3": [
-        { label: "Image ID", value: item.image_id },
-        { label: "Resize Method", value: item.resize_method },
-        { label: "Target Size", value: `${item.target_width} x ${item.target_height}` },
-        { label: "Original Size", value: `${item.original_width} x ${item.original_height}` },
-        { label: "Status", value: item.status },
-        { label: "Created At", value: item.created_at },
-      ],
-      "4": [
-        { label: "Creation ID", value: item.creation_id },
-        { label: "Product Name", value: item.product_name || "—" },
-        { label: "Status", value: item.status },
-        { label: "Created At", value: item.created_at },
-      ],
-      "5": [],
-    };
-
-    return (
-      <VStack align="start" spacing={2} mt={4} w="100%">
-        {fieldsToShow[selectedOption]?.map(
-          (f, i) =>
-            f.value && (
-              <Text key={i} fontSize="sm" color="gray.700">
-                <strong>{f.label}:</strong> {f.value}
-              </Text>
-            )
-        )}
-      </VStack>
-    );
+  const fieldsToShow = {
+    "1": [
+      { label: "Creation ID", value: item.creation_id },
+      { label: "Product Name", value: item.product_name || "—" },
+      { label: "Video Dimensions", value: item.video_dimensions },
+      { label: "Status", value: item.status },
+      { label: "Created At", value: item.created_at },
+    ],
+ "2": [
+      { label: "Composition ID", value: item.composition_id },
+      { label: "Use Case", value: item.use_case },
+      { label: "Model Used", value: item.model_used },
+      { label: "Status", value: item.status },
+      { label: "Resized Image", value: item.resized_image },
+      { label: "Created At", value: item.created_at },
+    ],
+    "3": [
+      { label: "Image ID", value: item.image_id },
+      { label: "Resize Method", value: item.resize_method },
+      { label: "Target Size", value: `${item.target_width} x ${item.target_height}` },
+      { label: "Original Size", value: `${item.original_width} x ${item.original_height}` },
+      { label: "Status", value: item.status },
+      { label: "Created At", value: item.created_at },
+    ],
+    "4": [
+      { label: "Creation ID", value: item.creation_id },
+      { label: "Product Name", value: item.product_name || "—" },
+      { label: "Status", value: item.status },
+      { label: "Created At", value: item.created_at },
+    ],
+    "5": [],
   };
+
+  return (
+    <VStack align="start" spacing={2} mt={4} w="100%">
+      {fieldsToShow[selectedOption]?.map(
+        (f, i) =>
+          f.value && (
+            <Text key={i} fontSize="sm" color={textColor}>
+              <strong>{f.label}:</strong> {f.value}
+            </Text>
+          )
+      )}
+    </VStack>
+  );
+};
+
 
   return (
     <Box p={5} mt={20} minH="100vh" bg="transparent">
@@ -262,6 +266,12 @@ const AssetsPage = () => {
             maxW={{ base: "100%", sm: "200px", md: "150px" }}
             borderRadius="full"
             fontSize="sm"
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
           >
             <option value="1">Assets</option>
             <option value="2">Image Generation</option>
@@ -280,7 +290,7 @@ const AssetsPage = () => {
               color={useColorModeValue("gray.800", "white")}
               borderRadius="full"
               _placeholder={{ color: useColorModeValue("gray.500", "gray.300") }}
-              isDisabled={selectedOption !== "1"}
+              
             />
             <InputRightElement pointerEvents="none">
               <SearchIcon color="gray.400" />
@@ -401,7 +411,7 @@ const AssetsPage = () => {
           <ModalOverlay />
           <ModalContent borderRadius="2xl" p={3}>
             <ModalCloseButton />
-            <ModalBody p={5}>
+            <ModalBody p={5} color={textColor}>
               <Flex direction="column" align="center" gap={4}>
                 <Image
                   src={

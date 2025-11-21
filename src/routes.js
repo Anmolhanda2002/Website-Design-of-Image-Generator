@@ -40,6 +40,7 @@ import VideoGuideline from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 import ImageGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/ImageGuideLine"
 import VideoGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 import ViewProjectDetails from "views/admin/profile/components/ViewProjectDetails"
+import EditImageGuidelineUser from 'views/admin/EditUser/ImageGuideline.jsx/EditGuideline';
 const routes = [
   {
     name: 'Main Dashboard',
@@ -49,6 +50,15 @@ const routes = [
     component: <MainDashboard />,
     showInSidebar: true,
   },
+          {
+    name: 'Edit Guidelines',
+    layout: '/admin',
+    path: '/edit_guideline_user/:guideline_id',
+    icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
+    component: <EditImageGuidelineUser />,
+    showInSidebar:false,
+  },
+
   // {
   //   name: 'Products',
   //   layout: '/admin',

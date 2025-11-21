@@ -16,11 +16,12 @@ import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { useColorMode } from "@chakra-ui/react";
 export default function UsersTable({ type = 'user' }) {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === "dark";
   // Get initial page from URL
   const query = new URLSearchParams(location.search);
   const initialPage = parseInt(query.get('page')) || 1;
@@ -89,6 +90,9 @@ export default function UsersTable({ type = 'user' }) {
       text: 'This action cannot be undone!',
       icon: 'warning',
       showCancelButton: true,
+          background: isDark ? "#14225C" : "#FFFFFF",
+          color: isDark ? "#FFFFFF" : "#000000",
+          confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, delete it!',
@@ -98,11 +102,26 @@ export default function UsersTable({ type = 'user' }) {
           await axiosInstance.delete('/factory_development/delete/', {
             data: { user_id: id },
           });
-          Swal.fire('Deleted!', 'The account has been deleted.', 'success');
+             Swal.fire({
+          title: "Deleted!",
+          text: "The account has been deleted.",
+          icon: "success",
+
+          background: isDark ? "#14225C" : "#FFFFFF",
+          color: isDark ? "#FFFFFF" : "#000000",
+          confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
+        });
           fetchUsers();
         } catch (err) {
           console.error('Delete error:', err);
-          Swal.fire('Error!', 'Failed to delete the account.', 'error');
+          Swal.fire({
+  title: "Error!",
+  text: "Failed to delete the account.",
+  icon: "error",
+  background: isDark ? "#14225C" : "#FFFFFF",
+  color: isDark ? "#FFFFFF" : "#000000",
+  confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
+});
         }
       }
     });
@@ -117,6 +136,9 @@ export default function UsersTable({ type = 'user' }) {
         <input type="email" id="email" class="swal2-input" placeholder="Email">
         <input type="password" id="password" class="swal2-input" placeholder="Password">
       `,
+       background: isDark ? "#1A202C" : "#FFFFFF",
+          color: isDark ? "#FFFFFF" : "#000000",
+          confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
       confirmButtonText: 'Add',
       showCancelButton: true,
       preConfirm: () => {
@@ -164,15 +186,17 @@ export default function UsersTable({ type = 'user' }) {
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           {type === 'user' ? 'Users Table' : 'Admins Table'}
         </Text>
-        <Button size="sm" colorScheme="blue" onClick={handleAddUser}>
+        {/* <Button size="sm" colorScheme="blue" onClick={handleAddUser}>
           + Add {type === 'user' ? 'User' : 'Admin'}
-        </Button>
+        </Button> */}
       </Flex>
 
       {/* Search */}
       <Input
         placeholder={`Search ${type === 'user' ? 'users' : 'admins'} by username or email...`}
         mb={4}
+        color={textColor}
+        _placeholder={{ color: textColor }}
         value={globalFilter}
         onChange={(e) => {
           setGlobalFilter(e.target.value);
@@ -186,8 +210,12 @@ export default function UsersTable({ type = 'user' }) {
           <thead>
             <tr>
               <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
-                Username / Email
+                Username / UserId
               </th>
+               <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
+                Email
+              </th>
+              
               <th style={{ textAlign: 'left', padding: '10px', borderBottom: `2px solid ${borderColor}` }}>
                 Created
               </th>
@@ -199,7 +227,7 @@ export default function UsersTable({ type = 'user' }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '20px' }}>
                   <Text>Loading...</Text>
                 </td>
               </tr>
@@ -214,10 +242,15 @@ export default function UsersTable({ type = 'user' }) {
                           {row.username}
                         </Text>
                         <Text fontSize="xs" color="gray.500">
-                          {row.email}
+                          {row.user_id}
                         </Text>
                       </Flex>
                     </Flex>
+                  </td>
+                    <td style={{ padding: '10px' }}>
+                    <Text fontSize="sm" color={textColor}>
+                      {row.email}
+                    </Text>
                   </td>
                   <td style={{ padding: '10px' }}>
                     <Text fontSize="xs" color="gray.500">
@@ -246,7 +279,7 @@ export default function UsersTable({ type = 'user' }) {
               ))
             ) : (
               <tr>
-                <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>
+                <td colSpan="12" style={{ textAlign: 'center', padding: '20px' }}>
                   <Text>No records found.</Text>
                 </td>
               </tr>

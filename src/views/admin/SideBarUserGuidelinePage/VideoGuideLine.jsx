@@ -41,7 +41,7 @@ export default function VideoGuidelineTable() {
 
   const textColor = useColorModeValue('gray.800', 'whiteAlpha.900');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
-  const cardBg = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('white', 'navy.800');
   const navigate = useNavigate();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -203,32 +203,32 @@ export default function VideoGuidelineTable() {
           );
         },
       }),
-      // columnHelper.display({
-      //   id: 'actions',
-      //   header: 'Actions',
-      //   cell: (info) => {
-      //     const row = info.row.original;
-      //     return (
-      //       <Flex gap={2}>
-      //         <IconButton
-      //           aria-label="Edit"
-      //           icon={<EditIcon />}
-      //           size="xs"
-      //           variant="outline"
-      //           onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
-      //         />
-      //         <IconButton
-      //           aria-label="Delete"
-      //           icon={<DeleteIcon />}
-      //           size="xs"
-      //           colorScheme="red"
-      //           variant="outline"
-      //           onClick={() => handleDelete(row.guideline_id)}
-      //         />
-      //       </Flex>
-      //     );
-      //   },
-      // }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'Actions',
+        cell: (info) => {
+          const row = info.row.original;
+          return (
+            <Flex gap={2}>
+              <IconButton
+                aria-label="Edit"
+                icon={<EditIcon />}
+                size="xs"
+                variant="outline"
+                onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
+              />
+              <IconButton
+                aria-label="Delete"
+                icon={<DeleteIcon />}
+                size="xs"
+                colorScheme="red"
+                variant="outline"
+                onClick={() => handleDelete(row.guideline_id)}
+              />
+            </Flex>
+          );
+        },
+      }),
     ],
     [navigate]
   );
@@ -256,6 +256,7 @@ export default function VideoGuidelineTable() {
         mb={4}
         value={globalFilter}
         onChange={(e) => setGlobalFilter(e.target.value)}
+        
       />
 
       {loading ? (

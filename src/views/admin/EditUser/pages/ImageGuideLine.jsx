@@ -14,13 +14,13 @@ import {
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
 
-const ImageGuideline = () => {
+const ImageGuideline = (userId) => {
   const [guidelines, setGuidelines] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedValues, setSelectedValues] = useState({});
   const toast = useToast();
 
-  const cardBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "#14225C");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const inputBg = useColorModeValue("gray.50", "gray.700");
   const inputColor = useColorModeValue("gray.800", "white");

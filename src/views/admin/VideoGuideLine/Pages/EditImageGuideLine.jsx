@@ -21,12 +21,18 @@ import axiosInstance from "utils/AxiosInstance";
 import { useNavigate, useParams } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
 import { useLocation } from "react-router-dom";
+import { IconButton } from "@chakra-ui/react";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+
 export default function EditVideoGuideline() {
+  
+
   const { guideline_id } = useParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [choices, setChoices] = useState({});
   const { colorMode } = useColorMode();
+  const isDark = colorMode === "dark";
   const navigate = useNavigate();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -48,7 +54,7 @@ export default function EditVideoGuideline() {
     is_default: false,
   });
 
-  const cardBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "navy.800");
   const textColor = useColorModeValue("gray.800", "white");
 
   const safeEntries = (obj) => (obj && typeof obj === "object" ? Object.entries(obj) : []);
@@ -115,6 +121,7 @@ export default function EditVideoGuideline() {
       const { data } = await axiosInstance.post("/factory_development_update_video_guideline/", payload);
 
       if (data.status === "success") {
+
         showAlert("success", "Updated", "Video guideline updated successfully.", colorMode);
      
       } else {
@@ -139,6 +146,10 @@ export default function EditVideoGuideline() {
   return (
     <Box py={20} minH="100vh" display="flex" justifyContent="center">
       <Box bg={cardBg} borderRadius="2xl" shadow="2xl" p={[6, 10]} w="100%" maxW="1000px">
+         <HStack mb={4} cursor="pointer" onClick={() => navigate(-1)}>
+              <ArrowBackIcon boxSize={6} color="blue.500" />
+              <Text fontSize="md" color="blue.500">Back</Text>
+            </HStack>
         <Heading size="lg" mb={8} color="blue.500" textAlign="center">
           Edit Video Guideline
         </Heading>

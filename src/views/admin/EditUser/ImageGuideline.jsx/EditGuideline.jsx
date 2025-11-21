@@ -36,8 +36,6 @@ export default function EditImageGuideline() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-
-const isDark = colorMode === "dark";
   const cardBg = useColorModeValue("white", "navy.700");
   const textColor = useColorModeValue("black", "white");
   const textcolor = useColorModeValue("black","white")
@@ -59,7 +57,7 @@ const isDark = colorMode === "dark";
         const [choicesRes, guidelineRes] = await Promise.all([
           axiosInstance.get("/get_image_guideline_choices"),
           axiosInstance.post("/factory_development_get_image_guideline/", {
-            user_id:activeUserId,
+            user_id:userId,
             guideline_id,
           }),
         ]);
@@ -148,9 +146,6 @@ const handleUpdate = async () => {
         title: "Select User Required",
         text: "Please select a user before updating the guideline.",
         confirmButtonColor: "#3085d6",
-          background: isDark ? "#14225C" : "#fff",
-    color: isDark ? "#fff" : "#000",
-
       });
       return;
     }
@@ -163,8 +158,8 @@ const handleUpdate = async () => {
      
       guideline_id,
       user_id:
-        activeUserId,
-        ...form
+        userId,
+        ...form,
     };
 
     console.log("📝 Update Payload:", payload);
@@ -182,20 +177,14 @@ const handleUpdate = async () => {
         text: "Your image guideline has been updated successfully!",
         timer: 3000,
         showConfirmButton: false,
-          background: isDark ? "#14225C" : "#fff",
-    color: isDark ? "#fff" : "#000",
       });
-      setTimeout(() => {
-        navigate(-1)
-      },2000 );
+       navigate(-1)
     } else {
       Swal.fire({
         icon: "error",
         title: "Update Failed",
         text: data.message || "Something went wrong. Please try again.",
         confirmButtonColor: "#d33",
-          background: isDark ? "#14225C" : "#fff",
-    color: isDark ? "#fff" : "#000",
       });
     }
   } catch (error) {
@@ -213,8 +202,6 @@ const handleUpdate = async () => {
       title: "Update Failed",
       text: backendMessage,
       confirmButtonColor: "#d33",
-        background: isDark ? "#14225C" : "#fff",
-    color: isDark ? "#fff" : "#000",
     });
   } finally {
     setSubmitting(false);

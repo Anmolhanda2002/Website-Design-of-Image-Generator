@@ -17,6 +17,7 @@ import {
   VStack,
   HStack,
   Badge,
+  useColorModeValue
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
 import NoImage from "assets/NoImage.jpg";
@@ -31,7 +32,10 @@ const BulkSessions = ({ userId }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total_pages: 1 });
-
+const bgColor = useColorModeValue("gray.50", "gray.800");
+const borderColor = useColorModeValue("gray.200", "gray.600");
+const titleColor = useColorModeValue("gray.900", "white");
+const textColor = useColorModeValue("gray.700", "gray.300");
   // Fetch sessions
   const fetchSessions = async (pageNumber = 1) => {
     setLoading(true);
@@ -101,6 +105,7 @@ const BulkSessions = ({ userId }) => {
   }, [handleScroll]);
 
   const handleCardClick = (session) => {
+    console.log(session)
     setSelectedSession(session);
     setModalOpen(true);
   };
@@ -204,6 +209,65 @@ const BulkSessions = ({ userId }) => {
             <ModalCloseButton />
             <ModalBody>
               <VStack spacing={4} align="stretch">
+              {/* 🔹 Session Summary */}
+{selectedSession && (
+  <Box
+    p={4}
+    mb={3}
+    borderWidth="1px"
+    borderRadius="lg"
+    bg={bgColor}
+    borderColor={borderColor}
+  >
+    <Text fontSize="lg" fontWeight="bold" mb={2} color={titleColor}>
+      Session Summary
+    </Text>
+
+    <VStack align="start" spacing={2} fontSize="sm" color={textColor}>
+      <Text><strong>Session ID:</strong> {selectedSession.session_id}</Text>
+
+      <HStack>
+        <Text><strong>Status:</strong></Text>
+        <Badge
+          colorScheme={
+            selectedSession.session_summary?.status === "completed"
+              ? "green"
+              : selectedSession.session_summary?.status === "failed"
+              ? "red"
+              : "yellow"
+          }
+        >
+          {selectedSession.session_summary?.status || "unknown"}
+        </Badge>
+      </HStack>
+
+      <Text>
+        <strong>Total Requested:</strong> {selectedSession.session_summary?.total_requested || "—"}
+      </Text>
+      <Text>
+        <strong>Completed:</strong> {selectedSession.session_summary?.completed || "—"}
+      </Text>
+      <Text>
+        <strong>Failed:</strong> {selectedSession.session_summary?.failed || "—"}
+      </Text>
+      <Text>
+        <strong>Success Rate:</strong> {selectedSession.session_summary?.success_rate || "—"}
+      </Text>
+      <Text>
+        <strong>Created At:</strong> {selectedSession.session_summary?.created_at || "—"}
+      </Text>
+
+      {selectedSession.session_summary?.completed_at && (
+        <Text>
+          <strong>Completed At:</strong> {selectedSession.session_summary.completed_at}
+        </Text>
+      )}
+    </VStack>
+  </Box>
+)}
+
+
+
                 {selectedSession.shots && selectedSession.shots.length > 0 ? (
                   selectedSession.shots.map((shot) => {
                     const shotFailed = shot.status?.toLowerCase() === "failed";
@@ -272,6 +336,7 @@ const BulkSessions = ({ userId }) => {
               maxW="90vw"
               objectFit="contain"
             />
+            
           </ModalContent>
         </Modal>
       )}

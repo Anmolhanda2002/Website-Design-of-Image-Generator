@@ -21,6 +21,9 @@ import axiosInstance from "utils/AxiosInstance";
 import { useNavigate } from "react-router-dom";
 import { showAlert } from "utils/AlertHelper";
 import { useParams } from "react-router-dom";
+import { IconButton } from "@chakra-ui/react";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+
 import Swal from "sweetalert2";
 export default function VideoGuidelineForm({userId}) {
   const [loading, setLoading] = useState(true);
@@ -28,6 +31,8 @@ export default function VideoGuidelineForm({userId}) {
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
 const {id} = useParams()
+  const textcolor = useColorModeValue("black","white")
+const isDark = colorMode === "dark";
   const [form, setForm] = useState({
     guideline_name: "",
     pace: "",
@@ -45,7 +50,7 @@ const {id} = useParams()
     is_default: false,
   });
 
-  const cardBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "#111c44");
   const textColor = useColorModeValue("gray.800", "white");
 
   // Fetch dropdown options
@@ -105,6 +110,8 @@ const handleSubmit = async () => {
         text: data.message || "Your video guideline has been saved successfully.",
         timer: 2000,
         showConfirmButton: false,
+          background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
       });
 
       // Reset form after success
@@ -133,6 +140,8 @@ const handleSubmit = async () => {
         title: "Failed to Create Guideline",
         text: data.message || "Unexpected server response.",
         confirmButtonColor: "#d33",
+          background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
       });
     }
   } catch (error) {
@@ -144,6 +153,8 @@ const handleSubmit = async () => {
         error.response?.data?.message ||
         "Something went wrong. Please try again later.",
       confirmButtonColor: "#d33",
+        background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
     });
   }
 };
@@ -166,6 +177,10 @@ const handleSubmit = async () => {
         w="100%"
         maxW="1000px"
       >
+            <HStack mb={4} cursor="pointer" onClick={() => navigate(-1)}>
+        <ArrowBackIcon boxSize={6} color="blue.500" />
+        <Text fontSize="md" color="blue.500">Back</Text>
+      </HStack>
         <Heading size="lg" mb={8} color="blue.500" textAlign="center">
           Create Video Guideline
         </Heading>
@@ -183,6 +198,8 @@ const handleSubmit = async () => {
               name="guideline_name"
               value={form.guideline_name}
               onChange={handleChange}
+              _placeholder={{color:textcolor}}
+
             />
             <FormControl display="flex" alignItems="center">
               <FormLabel htmlFor="is_default" mb="0">
@@ -211,6 +228,12 @@ const handleSubmit = async () => {
               name="pace"
               value={form.pace}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.pace_choices).map(([key, val]) => (
                 <option key={val} value={val}>
@@ -224,6 +247,12 @@ const handleSubmit = async () => {
               name="aspect_ratio"
               value={form.aspect_ratio}
               onChange={handleChange}
+               sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.aspect_ratio_choices).map(([key, val]) => (
                 <option key={val} value={val}>
@@ -237,6 +266,12 @@ const handleSubmit = async () => {
               name="video_style"
               value={form.video_style}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.video_style_choices).map(([key, val]) => (
                 <option key={val} value={val}>
@@ -250,6 +285,12 @@ const handleSubmit = async () => {
               name="special_effects_or_transition"
               value={form.special_effects_or_transition}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.special_effects_or_transition_choices).map(
                 ([key, val]) => (
@@ -265,6 +306,12 @@ const handleSubmit = async () => {
               name="camera_motion"
               value={form.camera_motion}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.camera_motion_choices).map(
                 ([key, val]) => (
@@ -280,6 +327,12 @@ const handleSubmit = async () => {
               name="location_of_overlay"
               value={form.location_of_overlay}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.location_of_overlay_choices).map(
                 ([key, val]) => (
@@ -304,6 +357,12 @@ const handleSubmit = async () => {
               name="video_provider"
               value={form.video_provider}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.video_provider_choices).map(
                 ([key, val]) => (
@@ -319,6 +378,7 @@ const handleSubmit = async () => {
               name="video_provider_key"
               value={form.video_provider_key}
               onChange={handleChange}
+                              _placeholder={{color:textcolor}}
             />
 
             <Select
@@ -326,6 +386,12 @@ const handleSubmit = async () => {
               name="prompt_llm"
               value={form.prompt_llm}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.prompt_llm_choices).map(([key, val]) => (
                 <option key={val} value={val}>
@@ -339,6 +405,7 @@ const handleSubmit = async () => {
               name="prompt_llm_key"
               value={form.prompt_llm_key}
               onChange={handleChange}
+ _placeholder={{color:textcolor}}
             />
 
             <Select
@@ -346,6 +413,12 @@ const handleSubmit = async () => {
               name="vision_llm"
               value={form.vision_llm}
               onChange={handleChange}
+                             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {Object.entries(choices.vision_llm_choices).map(([key, val]) => (
                 <option key={val} value={val}>
@@ -359,6 +432,7 @@ const handleSubmit = async () => {
               name="vision_llm_key"
               value={form.vision_llm_key}
               onChange={handleChange}
+               _placeholder={{color:textcolor}}
             />
           </Grid>
         </VStack>

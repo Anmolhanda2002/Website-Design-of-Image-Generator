@@ -20,6 +20,8 @@ import {
 } from "@chakra-ui/react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
+import { IconButton } from "@chakra-ui/react";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 
 // Child components
 import PersonalInfo from "./pages/PersonalInfo";
@@ -31,7 +33,7 @@ const EditUser = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const cardBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "#111c44");
   const textColor = useColorModeValue("gray.800", "white");
   const subTextColor = useColorModeValue("gray.500", "gray.400");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -43,6 +45,7 @@ const EditUser = () => {
     first_name: "",
     last_name: "",
     email: "",
+    user_id:""
   });
 
   const [profilePic] = useState("https://i.pravatar.cc/150?img=11");
@@ -61,6 +64,7 @@ const EditUser = () => {
             first_name: user.first_name || "",
             last_name: user.last_name || "",
             email: user.email || "",
+            user_id:user.user_id || ""
           });
           setIsApproved(user.is_approved || false);
         } else {
@@ -214,6 +218,15 @@ const handleLoginAsUser = async () => {
 
   return (
     <Flex direction="column" align="center" mt={{ base: 20, md: 20 }} minH="100vh">
+          <Box w="100%" maxW="1000px" mb={4}>
+        <IconButton
+          icon={<ArrowBackIcon />}
+          aria-label="Go Back"
+          onClick={() => navigate(-1)}
+          variant="ghost"
+          fontSize="20px"
+        />
+      </Box>
       {/* Profile Card */}
       <Box
         w="100%"
@@ -237,7 +250,7 @@ const handleLoginAsUser = async () => {
                 {formData.username || "User"}
               </Heading>
               <Text fontSize="sm" color={subTextColor}>
-                {formData.email}
+                {formData.user_id}
               </Text>
               <Badge
                 colorScheme={isApproved ? "green" : "red"}

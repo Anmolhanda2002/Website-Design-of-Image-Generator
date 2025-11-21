@@ -173,6 +173,12 @@ const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selecte
           setGeneratedVideo(videoData);
           setProcessing(false);
         }
+        else if(videoData?.status === "failed"){
+           clearInterval(interval);
+          toast({ title: "Video Failed", status: "false" });
+           setProcessing(false);
+           return ;
+        }
       } catch (err) {
         console.error("Polling error:", err);
       }

@@ -18,10 +18,11 @@ export function SidebarBrand() {
   style={{
     fontSize: "25px",
     fontWeight: "bold",
-    color: "#1A2340",
+    
     margin: "25px",
     letterSpacing: "-0.5px"
   }}
+  color={logoColor}
 >
   PROJECT <span style={{ fontWeight: "normal" }}>NAME</span>
 </h1>

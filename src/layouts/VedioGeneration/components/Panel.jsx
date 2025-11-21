@@ -47,7 +47,7 @@ export default function Panel({
     selectedUser, bulkImageData, setBulkImageData,
 }) {
     const panelBg = useColorModeValue("white", "gray.800");
-
+const textcolor = useColorModeValue("black", "white");
     console.log(bulkImageData)
     // We keep this simple logger, no need for transition
     const handleChange = (field, value) => {
@@ -416,6 +416,7 @@ case "Bulk Image":
     mt={2}
   >
     <option value="top">Top</option>
+     <option value="bottom">Bottom</option>
     {/* <option value="jeans">Jeans</option>
     <option value="tshirt">T-Shirt</option>
     <option value="kurti">Kurti</option>

@@ -1,0 +1,21 @@
+  background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
+
+import { useColorMode } from "@chakra-ui/react";
+    const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
+
+  const textcolor = useColorModeValue("black","white")
+
+_placeholder={{color:textcolor}}
+
+
+import { useColorMode } from "@chakra-ui/react";
+const { colorMode } = useColorMode();
+
+ sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}

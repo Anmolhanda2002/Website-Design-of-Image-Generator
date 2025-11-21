@@ -2,11 +2,11 @@ import './assets/css/App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider, Spinner, Center } from '@chakra-ui/react';
 import initialTheme from './theme/theme';
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense,useEffect } from 'react';
 import { UserProvider } from "./contexts/UserContext";
 import CreateNnewPassword from 'views/auth/forgetpassword/Create_new_password';
 import { SelectedUserProvider } from 'utils/SelectUserContext';
-
+import {  useColorMode } from "@chakra-ui/react";
 // Lazy load layouts and pages
 const AuthLayout = lazy(() => import('./layouts/auth'));
 const AdminLayout = lazy(() => import('./layouts/admin'));
@@ -17,11 +17,24 @@ const NotFound = lazy(() => import('views/404Page'));
 export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
+
+
+  function ThemeWrapper({ children }) {
+  const { colorMode } = useColorMode();
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", colorMode);
+  }, [colorMode]);
+
+  return children;
+}
+
   return (
     <UserProvider>
     <SelectedUserProvider>
       <ChakraProvider theme={currentTheme}>
         {/* ✅ Wrap all lazy routes with Suspense */}
+        <ThemeWrapper>
         <Suspense
           fallback={
             <Center h="100vh">
@@ -48,6 +61,7 @@ export default function Main() {
             <Route path="/" element={<Navigate to="/admin" replace />} />
           </Routes>
         </Suspense>
+        </ThemeWrapper>
       </ChakraProvider>
       </SelectedUserProvider>
     </UserProvider>

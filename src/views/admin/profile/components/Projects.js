@@ -49,16 +49,13 @@ const handleClick = (projectId) => {
               cursor="pointer"
               onClick={() => handleClick(p.project_id)}
               transition="all 0.2s"
+               borderRadius="50px" 
               _hover={{ transform: "scale(1.03)", boxShadow: cardShadow }}
             >
               <Project
                 image={p.image_urls?.[0]}
                 title={p.project_name}
-                subtitle={
-                  <Text fontSize="sm" color="gray.500">
-                    Created on {formatDate(p.created_at)}
-                  </Text>
-                }
+                subtitle={`Created on ${formatDate(p.created_at)}`}
               />
             </Box>
           ))}

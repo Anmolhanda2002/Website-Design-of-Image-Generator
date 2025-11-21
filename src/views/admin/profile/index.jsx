@@ -169,7 +169,8 @@ export default function Overview() {
 
     return buttons;
   };
-
+    const textcolor = useColorModeValue("black","white")
+const bg=useColorModeValue("gray.100", "navy.900")
   return (
     <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
       <Grid templateColumns="1fr" mb="20px">
@@ -180,8 +181,10 @@ export default function Overview() {
               placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              bg={useColorModeValue("gray.100", "navy.900")}
+              bg={bg}
               borderRadius="full"
+              color={textcolor}
+_placeholder={{color:textcolor}}
             />
             <InputRightElement>
               <SearchIcon color="gray.400" />

@@ -27,8 +27,10 @@ import Swal from 'sweetalert2';
 import Card from 'components/card/Card';
 import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate, useParams } from 'react-router-dom';
-
+import { useColorMode } from "@chakra-ui/react";
 export default function GuidelineTable({userId}) {
+const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
 
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageSize, setPageSize] = useState(10);
@@ -37,10 +39,10 @@ export default function GuidelineTable({userId}) {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const textColor = useColorModeValue('gray.800', 'white');
+  const textColor = useColorModeValue('black', 'white');
   const subText = useColorModeValue('gray.500', 'gray.400');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const cardBg = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('white', '#111c44');
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const navigate = useNavigate();
@@ -70,8 +72,10 @@ export default function GuidelineTable({userId}) {
 
   const columnHelper = createColumnHelper();
 
+
+  console.log("asdf",userId)
 const handlegoeditpage = (guidlelineid)=>{
-  navigate(`/admin/edit_guideline/${guidlelineid}?user_id=${userId}`);
+  navigate(`/admin/edit_guideline_user/${guidlelineid}?user_id=${userId}`);
 }
 
 
@@ -85,6 +89,8 @@ const handlegoeditpage = (guidlelineid)=>{
       confirmButtonColor: '#3182CE',
       cancelButtonColor: '#E53E3E',
       confirmButtonText: 'Yes, delete it!',
+       background: isDark ? "#1A202C" : "#FFFFFF",
+          color: isDark ? "#FFFFFF" : "#000000",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
@@ -93,11 +99,29 @@ const handlegoeditpage = (guidlelineid)=>{
          user_id:userIdParam,
             guideline_id: id,
           });
-          Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+          Swal.fire({
+  title: "Deleted!",
+  text: "The guideline has been deleted.",
+  icon: "success",
+
+  // THEME COLORS
+  background: isDark ? "#14225C" : "#FFFFFF",
+  color: isDark ? "#FFFFFF" : "#000000",
+  confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
+});
           fetchGuidelines();
         } catch (err) {
           console.error(err);
-          Swal.fire('Error!', 'Failed to delete guideline.', 'error');
+          Swal.fire({
+  title: "Error!",
+  text: "Failed to delete guideline.",
+  icon: "error",
+
+  // THEME COLORS
+  background: isDark ? "#14225C" : "#FFFFFF",
+  color: isDark ? "#FFFFFF" : "#000000",
+  confirmButtonColor: isDark ? "#2B6CB0" : "#3085d6",
+});
         }
       }
     });
@@ -111,11 +135,24 @@ const handlegoeditpage = (guidlelineid)=>{
        user_id:userId,
         guideline_id: id,
       });
-      Swal.fire('Activated!', 'The guideline is now active.', 'success');
+Swal.fire({
+  title: "Activated!",
+  text: "The guideline is now active.",
+  icon: "success",
+  background: isDark ? "#14225C" : "#FFFFFF",
+  color: isDark ? "#FFFFFF" : "#000000",
+});
+
       fetchGuidelines();
     } catch (err) {
       console.error(err);
-      Swal.fire('Error!', 'Failed to activate guideline.', 'error');
+      Swal.fire({
+  title: "Error!",
+  text: "Failed to activate guideline.",
+  icon: "error",
+  background: isDark ? "#14225C" : "#FFFFFF",
+  color: isDark ? "#FFFFFF" : "#000000",
+});
     }
   };
 
@@ -240,6 +277,8 @@ const handlegoeditpage = (guidlelineid)=>{
         placeholder="Search guidelines..."
         mb={5}
         value={globalFilter}
+        color={textColor}
+        _placeholder={{color:textColor}}
         onChange={(e) => setGlobalFilter(e.target.value)}
       />
 

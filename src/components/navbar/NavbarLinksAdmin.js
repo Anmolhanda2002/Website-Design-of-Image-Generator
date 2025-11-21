@@ -29,21 +29,40 @@ import { SidebarResponsive } from "components/sidebar/Sidebar";
 import { useSelectedUser } from "utils/SelectUserContext";
 export default function HeaderLinks({ secondary }) {
   const navigate = useNavigate();
-  
-  const toast = useToast();
-  const { colorMode, toggleColorMode } = useColorMode();
+
+const toast = useToast();
+const { colorMode, toggleColorMode } = useColorMode();
 const { selectedUser, setSelectedUser } = useSelectedUser();
+  
+
   // === Colors & Styles ===
-  const menuBg = useColorModeValue("white", "navy.800");
+  // const menuBg = useColorModeValue("white", "navy.800");
   const textColor = useColorModeValue("gray.800", "white");
   const navbarIcon = useColorModeValue("gray.600", "gray.300");
   const borderColor = useColorModeValue("gray.200", "gray.600");
-  const hoverBg = useColorModeValue("gray.100", "gray.700");
-  const shadow = useColorModeValue(
-    "0 2px 8px rgba(0,0,0,0.05)",
-    "0 2px 8px rgba(255,255,255,0.08)"
-  );
+  const menuBg = useColorModeValue("white", "#0F1C4D");
+const hoverBg = useColorModeValue("gray.100", "#1A2A6C");
+// const textColor = useColorModeValue("gray.800", "white");
+// const borderColor = useColorModeValue("gray.200", "rgba(255,255,255,0.12)");
+const menuItemColor = useColorModeValue("gray.700", "gray.200");
+const logoutColor = useColorModeValue("red.500", "red.300");
+const shadow = useColorModeValue("md", "dark-lg");
 
+  // const hoverBg = useColorModeValue("gray.100", "gray.700");
+  // const shadow = useColorModeValue(
+  //   "0 2px 8px rgba(0,0,0,0.05)",
+  //   "0 2px 8px rgba(255,255,255,0.08)"
+  // );
+
+// const menuBg = useColorModeValue("white", "#0F1C4D");
+// const hoverBg = useColorModeValue("gray.100", "#1A2A6C");
+const selectedBg = useColorModeValue("gray.200", "#24357A");
+const inputBg = useColorModeValue("gray.50", "#0B1437");
+const inputBorder = useColorModeValue("gray.200", "#1A2A6C");
+const inputColor = useColorModeValue("gray.800", "white");
+const placeholderColor = useColorModeValue("gray.500", "gray.300");
+const iconColor = useColorModeValue("gray.500", "gray.400");
+const bg=useColorModeValue("gray.50", "#14225C")
   // === State ===
   const [user, setUser] = useState(null);
   const [allowedRoutes, setAllowedRoutes] = useState([]);
@@ -52,7 +71,8 @@ const { selectedUser, setSelectedUser } = useSelectedUser();
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownLoading, setDropdownLoading] = useState(false);
-
+// const selectedBg = useColorModeValue("gray.200", "gray.700");
+// const hoverBg = useColorModeValue("gray.100", "gray.600");
   // === Selected user ===
   // const [selectedUser, setSelectedUser] = useState(() => {
   //   const storedUser = JSON.parse(localStorage.getItem("selected_user"));
@@ -160,7 +180,13 @@ const handleLogout = async () => {
   );
   startTransition(() => navigate("/auth/sign-in", { replace: true }));
 };
-  if (loading) return null;
+if (loading) {
+  return (
+    <Flex align="center" justify="center" w="100%">
+      <Spinner size="sm" />
+    </Flex>
+  );
+}
 
   // === UI ===
   return (
@@ -180,10 +206,7 @@ const handleLogout = async () => {
       <Flex align="center" gap={3}>
         <NavbarClock />
         <SidebarResponsive routes={allowedRoutes} />
-      </Flex>
-
-      {/* CENTER SECTION */}
-      {secondary && (
+              {secondary && (
         <Flex
           align="center"
           bg={hoverBg}
@@ -214,65 +237,77 @@ const handleLogout = async () => {
             >
               {selectedUser ? selectedUser.username : "Own"}
             </MenuButton>
-            <MenuList
-              p={3}
-              borderRadius="md"
-              bg={menuBg}
-              boxShadow={shadow}
-              minW="200px"
-              maxH="260px"
-              overflowY="auto"
-            >
-              <InputGroup mb={2}>
-                <InputLeftElement pointerEvents="none">
-                  <SearchIcon color="gray.400" />
-                </InputLeftElement>
-                <Input
-                  placeholder="Search users..."
-                  size="sm"
-                  value={searchTerm}
-                  onChange={handleSearch}
-                />
-              </InputGroup>
+          <MenuList
+  p={3}
+  borderRadius="md"
+  bg={menuBg}
+  boxShadow="lg"
+  minW="200px"
+  maxH="260px"
+  overflowY="auto"
+  sx={{
+    "::-webkit-scrollbar": {
+      width: "0px",
+      height: "0px",
+    },
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+  }}
+>
+<InputGroup mb={2}>
+  <InputLeftElement pointerEvents="none">
+    <SearchIcon color={iconColor} />
+  </InputLeftElement>
 
-              <MenuItem
-                onClick={() => handleSelectUser(null)}
-                borderRadius="md"
-                _hover={{ bg: hoverBg }}
-                fontWeight={!selectedUser ? "600" : "normal"}
-              >
-                Own
-              </MenuItem>
+  <Input
+    placeholder="Search users..."
+    size="sm"
+    value={searchTerm}
+    onChange={handleSearch}
+    bg={inputBg}
+    borderColor={inputBorder}
+    color={inputColor}
+    _placeholder={{ color: placeholderColor }}
+    _focus={{ borderColor: selectedBg }}
+  />
+</InputGroup>
 
-              {dropdownLoading ? (
-                <Flex justify="center" align="center" py={2}>
-                  <Spinner size="sm" />
-                </Flex>
-              ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((u) => (
-                  <MenuItem
-                    key={u.user_id}
-                    onClick={() => handleSelectUser(u)}
-                    borderRadius="md"
-                    _hover={{ bg: hoverBg }}
-                    fontWeight={
-                      selectedUser?.user_id === u.user_id ? "600" : "normal"
-                    }
-                  >
-                    {u.username}
-                  </MenuItem>
-                ))
-              ) : (
-                <Text
-                  fontSize="sm"
-                  color="gray.500"
-                  textAlign="center"
-                  py={2}
-                >
-                  No users found
-                </Text>
-              )}
-            </MenuList>
+
+  <MenuItem
+    onClick={() => handleSelectUser(null)}
+    borderRadius="md"
+    bg={!selectedUser ? selectedBg : "transparent"}
+    _hover={{ bg: hoverBg }}
+    fontWeight={!selectedUser ? "600" : "normal"}
+  >
+    Own
+  </MenuItem>
+
+  {dropdownLoading ? (
+    <Flex justify="center" align="center" py={2}>
+      <Spinner size="sm" />
+    </Flex>
+  ) : filteredUsers.length > 0 ? (
+    filteredUsers.map((u) => (
+      <MenuItem
+        key={u.user_id}
+        onClick={() => handleSelectUser(u)}
+        borderRadius="md"
+        bg={selectedUser?.user_id === u.user_id ? selectedBg : "transparent"}
+        _hover={{
+          bg: selectedUser?.user_id === u.user_id ? selectedBg : hoverBg,
+        }}
+        fontWeight={selectedUser?.user_id === u.user_id ? "600" : "normal"}
+      >
+        {u.username}
+      </MenuItem>
+    ))
+  ) : (
+    <Text fontSize="sm" color="gray.500" textAlign="center" py={2}>
+      No users found
+    </Text>
+  )}
+</MenuList>
           </Menu>
         )}
 
@@ -292,42 +327,72 @@ const handleLogout = async () => {
         </Button>
 
         {/* User Avatar */}
-        <Menu>
-          <MenuButton>
-            <Avatar
-              name={user?.username || "User"}
-              size="sm"
-              bg="blue.600"
-              color="white"
-              cursor="pointer"
-            />
-          </MenuButton>
-          <MenuList
-            border="none"
-            borderRadius="lg"
-            boxShadow={shadow}
-            bg={menuBg}
-            p={2}
-          >
-            <Box
-              px={3}
-              py={2}
-              borderBottom="1px solid"
-              borderColor={borderColor}
-            >
-              <Text fontWeight="600" color={textColor}>
-                👋 {user?.username || "User"}
-              </Text>
-            </Box>
-            <MenuItem onClick={() => navigate("/admin/profile-setting")}>
-              Profile Settings
-            </MenuItem>
-            <MenuItem color="red.400" onClick={handleLogout}>
-              Log out
-            </MenuItem>
-          </MenuList>
-        </Menu>
+     <Menu>
+  <MenuButton
+    as={Button}
+    bg="transparent"
+    p={0}
+    _hover={{ bg: "transparent" }}
+    _active={{ bg: "transparent" }}
+  >
+    <Avatar
+      name={user?.username || "User"}
+      size="sm"
+      bg="blue.600"
+      color="white"
+      cursor="pointer"
+    />
+  </MenuButton>
+
+  <MenuList
+    border="none"
+    borderRadius="lg"
+    boxShadow={shadow}
+    bg={menuBg}
+    p={0}
+    minW="200px"
+    overflow="hidden"
+  >
+    {/* Header */}
+    <Box
+      px={4}
+      py={3}
+      borderBottom="1px solid"
+      borderColor={borderColor}
+      bg={bg}
+    >
+      <Text fontWeight="600" color={textColor} fontSize="sm">
+        👋 {user?.username || "User"}
+      </Text>
+    </Box>
+
+    {/* Menu Items */}
+    <MenuItem
+      onClick={() => navigate("/admin/profile-setting")}
+      bg="transparent"
+      color={menuItemColor}
+      _hover={{ bg: hoverBg }}
+    >
+      Profile Settings
+    </MenuItem>
+
+    <MenuItem
+      color={logoutColor}
+      bg="transparent"
+      fontWeight="500"
+      _hover={{ bg: bg }}
+      onClick={handleLogout}
+    >
+      Log out
+    </MenuItem>
+  </MenuList>
+</Menu>
+
       </Flex>
+      </Flex>
+
+      {/* CENTER SECTION */}
+
     </Flex>
   );
 }
