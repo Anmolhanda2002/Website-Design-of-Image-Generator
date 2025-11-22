@@ -30,7 +30,7 @@ import {
   useReactTable,
   getPaginationRowModel,
 } from '@tanstack/react-table';
-
+import { useColorMode } from "@chakra-ui/react";
 export default function VideoGuidelineTable() {
   const [guidelines, setGuidelines] = useState([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -38,6 +38,8 @@ export default function VideoGuidelineTable() {
   const [pageSize, setPageSize] = useState(10);
   const [pageIndex, setPageIndex] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+    const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
 
   const textColor = useColorModeValue('gray.800', 'whiteAlpha.900');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
@@ -119,6 +121,9 @@ export default function VideoGuidelineTable() {
     return () => clearTimeout(searchTimeoutRef.current);
   }, [globalFilter, fetchGuidelines]);
 
+
+
+  
   // ✅ Delete Guideline
   const handleDelete = async (id) => {
     const confirm = await Swal.fire({
@@ -129,6 +134,8 @@ export default function VideoGuidelineTable() {
       confirmButtonColor: '#3182ce',
       cancelButtonColor: '#e53e3e',
       confirmButtonText: 'Yes, delete it!',
+        background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
     });
 
     if (!confirm.isConfirmed) return;
@@ -138,11 +145,26 @@ export default function VideoGuidelineTable() {
         guideline_id: id,
         user_id: selectedUser?.user_id,
       });
-      Swal.fire('Deleted!', 'The guideline has been deleted.', 'success');
+    Swal.fire({
+  title: "Deleted!",
+  text: "The guideline has been deleted.",
+  icon: "success",
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+});
+
       fetchGuidelines(globalFilter);
     } catch (err) {
       console.error(err);
-      Swal.fire('Error!', 'Failed to delete the guideline.', 'error');
+      Swal.fire({
+  title: "Error!",
+  text: "Failed to delete the guideline.",
+  icon: "error",
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#4A90E2" : "#3085d6",
+});
+
     }
   };
 
@@ -153,17 +175,33 @@ export default function VideoGuidelineTable() {
         user_id: selectedUser?.user_id,
         guideline_id: id,
       });
-      Swal.fire('Success!', 'This guideline is now set as default.', 'success');
+      Swal.fire({
+  title: "Success!",
+  text: "This guideline is now set as default.",
+  icon: "success",
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#4A90E2" : "#3085d6",
+});
+
       fetchGuidelines(globalFilter);
     } catch (err) {
       console.error(err);
-      Swal.fire('Error!', 'Failed to set the guideline as default.', 'error');
+    Swal.fire({
+  title: "Error!",
+  text: "Failed to set the guideline as default.",
+  icon: "error",
+  background: isDark ? "#14225C" : "#fff",
+  color: isDark ? "#fff" : "#000",
+  confirmButtonColor: isDark ? "#4A90E2" : "#d33",
+});
+
     }
   };
 
   // ✅ Add new guideline
   const handleAddGuideline = () => {
-    navigate('/admin/add/videoguidelines');
+    navigate('/admin/add/videoguidelinemain');
   };
 
   // ✅ Table setup
@@ -215,7 +253,7 @@ export default function VideoGuidelineTable() {
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() => navigate(`/admin/edit/videoguideline/${row.guideline_id}`)}
+                onClick={() => navigate(`/admin/edit/videoguidelinemain/${row.guideline_id}`)}
               />
               <IconButton
                 aria-label="Delete"
@@ -241,6 +279,8 @@ export default function VideoGuidelineTable() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
+
+    const textcolor = useColorModeValue("black","white")
   // ✅ UI
   return (
     <Card w="100%" p={5} mt="100px" bg={cardBg} boxShadow="md" borderRadius="xl">
@@ -248,7 +288,9 @@ export default function VideoGuidelineTable() {
         <Text fontSize="2xl" fontWeight="bold" color={textColor}>
           Video Guidelines
         </Text>
-
+  <Button  size="sm" colorScheme="blue" onClick={handleAddGuideline} w={{ base: '100%', md: 'auto' }}>
+          + Add Guideline
+        </Button>
       </Flex>
 
       <Input
@@ -256,7 +298,8 @@ export default function VideoGuidelineTable() {
         mb={4}
         value={globalFilter}
         onChange={(e) => setGlobalFilter(e.target.value)}
-        
+color={textcolor}
+_placeholder={{color:textcolor}}
       />
 
       {loading ? (

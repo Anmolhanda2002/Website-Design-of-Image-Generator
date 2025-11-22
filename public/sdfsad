@@ -8,7 +8,7 @@ const isDark = colorMode === "dark";
   const textcolor = useColorModeValue("black","white")
 
 _placeholder={{color:textcolor}}
-
+color={textcolor}
 
 import { useColorMode } from "@chakra-ui/react";
 const { colorMode } = useColorMode();

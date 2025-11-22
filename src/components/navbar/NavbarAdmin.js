@@ -7,47 +7,66 @@ import {
   Flex,
   Link,
   Text,
-  useColorModeValue
+  useColorModeValue,
 } from "@chakra-ui/react";
 import PropTypes from "prop-types";
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link as RouterLink } from "react-router-dom";
 import AdminNavbarLinks from "components/navbar/NavbarLinksAdmin";
+import routes from "routes.js";
 
 export default function AdminNavbar(props) {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    const changeNavbar = () => {
-      setScrolled(window.scrollY > 1);
-    };
+    const changeNavbar = () => setScrolled(window.scrollY > 1);
     window.addEventListener("scroll", changeNavbar);
     return () => window.removeEventListener("scroll", changeNavbar);
   }, []);
 
   const { secondary, message } = props;
 
-  // Extract path segments
-  const pathSegments = location.pathname.split("/").filter(Boolean);
-  let brandText =
-    pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : "Dashboard";
+  const getRouteName = (pathname) => {
+    const cleanPath = pathname
+      .replace(/\/admin/, "")
+      .replace(/\/auth/, "")
+      .replace(/\/videocreate/, "");
 
-  // Optional: mapping for better names
-  const nameMap = {
-    default: "Dashboard",
-    users: "Users",
-    settings: "Settings",
+    const matchRoute = routes.find((route) =>
+      cleanPath.startsWith(route.path.split("/:")[0])
+    );
+
+    return matchRoute ? matchRoute.name : "Dashboard";
   };
-  brandText = nameMap[brandText] || brandText;
 
-  // Chakra color tokens
+  const generateBreadcrumbs = () => {
+    const pathParts = location.pathname.split("/").filter(Boolean);
+
+    let linkPath = "";
+    return pathParts.map((part, index) => {
+      linkPath += "/" + part;
+      const name = getRouteName(linkPath);
+
+      return (
+        <BreadcrumbItem key={index}>
+          <BreadcrumbLink
+            as={RouterLink}
+            to={linkPath}
+            textTransform="capitalize"
+          >
+            {name}
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+      );
+    });
+  };
+
+  const brandText = getRouteName(location.pathname);
+
   let mainText = useColorModeValue("navy.700", "white");
-  let secondaryText = useColorModeValue("gray.700", "white");
-  let navbarBg = useColorModeValue(
-    "rgba(244, 247, 254, 0.8)",
-    "rgba(11,20,55,0.8)"
-  );
+  let secondaryText = useColorModeValue("gray.600", "gray.300");
+  let navbarBg = useColorModeValue("rgba(244,247,254,0.8)", "rgba(11,20,55,0.8)");
 
   return (
     <Box
@@ -68,7 +87,7 @@ export default function AdminNavbar(props) {
         base: "calc(100vw - 6%)",
         md: "calc(100vw - 8%)",
         xl: "calc(100vw - 350px)",
-        "2xl": "calc(100vw - 365px)"
+        "2xl": "calc(100vw - 365px)",
       }}
       px={{ sm: "15px", md: "10px" }}
       py="8px"
@@ -78,37 +97,31 @@ export default function AdminNavbar(props) {
         flexDirection={{ sm: "column", md: "row" }}
         alignItems="center"
       >
-        {/* Left: Breadcrumb + Title */}
         <Box mb={{ sm: "8px", md: "0px" }}>
-          <Breadcrumb>
-            <BreadcrumbItem color={secondaryText} fontSize="sm">
-              <BreadcrumbLink color={secondaryText}>Home</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem color={secondaryText} fontSize="sm">
-              <BreadcrumbLink
-                color={secondaryText}
-                textTransform="capitalize"
-              >
-                {brandText}
+          {/* Breadcrumb */}
+          <Breadcrumb color={secondaryText} fontSize="sm">
+            {/* <BreadcrumbItem>
+              <BreadcrumbLink as={RouterLink} to="/admin/default">
+                Home
               </BreadcrumbLink>
-            </BreadcrumbItem>
+            </BreadcrumbItem> */}
+            {generateBreadcrumbs()}
           </Breadcrumb>
 
+          {/* Page Heading */}
           <Link
             color={mainText}
             href="#"
-            bg="inherit"
             fontWeight="bold"
-            fontSize={{ base: "24px", md: "30px" }} // responsive
+            fontSize={{ base: "24px", md: "30px" }}
             textTransform="capitalize"
             _hover={{ color: mainText }}
-            _focus={{ boxShadow: "none" }}
           >
             {brandText}
           </Link>
         </Box>
 
-        {/* Right: Navbar Links */}
+        {/* Right Side */}
         <Box ms="auto" w={{ sm: "100%", md: "unset" }}>
           <AdminNavbarLinks
             onOpen={props.onOpen}

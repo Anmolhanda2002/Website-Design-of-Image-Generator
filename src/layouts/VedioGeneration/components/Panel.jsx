@@ -22,7 +22,7 @@ import { useState, useEffect, startTransition } from "react";
 import axiosInstance from "utils/AxiosInstance";
 import { MdAccessTime, MdMovieEdit } from "react-icons/md";
 import { MdCrop169, MdCropPortrait, MdCropSquare } from "react-icons/md";
-
+import { useColorMode } from "@chakra-ui/react";
 export default function Panel({
     activeTab,
     model,
@@ -48,7 +48,11 @@ export default function Panel({
 }) {
     const panelBg = useColorModeValue("white", "gray.800");
 const textcolor = useColorModeValue("black", "white");
+const file = useColorModeValue("white","gray.700")
+
+    const { colorMode } = useColorMode();
     console.log(bulkImageData)
+
     // We keep this simple logger, no need for transition
     const handleChange = (field, value) => {
         console.log(`[${activeTab}] ${field}:`, value);
@@ -325,6 +329,8 @@ case "Bulk Image":
         <Input
           placeholder="Enter guideline name..."
           value={searchTerm}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) => {
             const value = e.target.value;
             startTransition(() => setSearchTerm(value));
@@ -350,6 +356,14 @@ case "Bulk Image":
               }))
             }
             mt={2}
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+
+  
           >
             {guidelines.length > 0 ? (
               guidelines.map((g) => (
@@ -366,7 +380,12 @@ case "Bulk Image":
       <Box mt={4}>
   <Text fontWeight="bold">Upload File Type</Text>
   <Select
-    
+     sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
     value={bulkImageData.file_type}
     onChange={(e) =>
       setBulkImageData((prev) => ({
@@ -394,6 +413,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="studio_shots">Studio Shots</option>
           {/* <option value="lifestyle_shots">Lifestyle Shots</option>
@@ -414,6 +439,12 @@ case "Bulk Image":
       }))
     }
     mt={2}
+     sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
   >
     <option value="top">Top</option>
      <option value="bottom">Bottom</option>
@@ -435,6 +466,8 @@ case "Bulk Image":
         <Input
           placeholder="Product name"
           value={bulkImageData.product_name}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) =>
             setBulkImageData((prev) => ({
               ...prev,
@@ -545,6 +578,12 @@ case "Bulk Image":
       }))
     }
     mt={2}
+     sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
   >
     <option value="123">123</option>
   </Select>
@@ -564,6 +603,8 @@ case "Bulk Image":
         <Input
           placeholder="Enter guideline name..."
           value={searchTerm}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) => {
             const value = e.target.value;
             startTransition(() => setSearchTerm(value));
@@ -589,6 +630,12 @@ case "Bulk Image":
               }))
             }
             mt={2}
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
           >
             {guidelines.length > 0 ? (
               guidelines.map((g) => (
@@ -620,6 +667,12 @@ case "Bulk Image":
               }))
             }
             mt={2}
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
           >
             {useCases.length > 0 ? (
               useCases.map(({ label, value }) => (
@@ -652,6 +705,12 @@ case "Bulk Image":
             }));
           }}
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="enable">Enable</option>
           <option value="disable">Disable</option>
@@ -666,6 +725,8 @@ case "Bulk Image":
             <Input
               type="number"
               placeholder="Width in px"
+              _placeholder={{color:textcolor}}
+color={textcolor}
               value={imageCreationSettings.targetWidth}
               onChange={(e) =>
                 setImageCreationSettings((prev) => ({
@@ -682,6 +743,8 @@ case "Bulk Image":
             <Input
               type="number"
               placeholder="Height in px"
+              _placeholder={{color:textcolor}}
+color={textcolor}
               value={imageCreationSettings.targetHeight}
               onChange={(e) =>
                 setImageCreationSettings((prev) => ({
@@ -708,6 +771,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="maintain_aspect">Maintain Aspect</option>
           <option value="crop">Crop</option>
@@ -723,6 +792,8 @@ case "Bulk Image":
           min="1"
           max="100"
           placeholder="85"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={imageCreationSettings.quality}
           onChange={(e) =>
             setImageCreationSettings((prev) => ({
@@ -744,6 +815,8 @@ case "Bulk Image":
         <Input
           type="number"
           placeholder="Enter width in px"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={resizeImageSettings.targetWidth}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
@@ -761,6 +834,8 @@ case "Bulk Image":
         <Input
           type="number"
           placeholder="Enter height in px"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={resizeImageSettings.targetHeight}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
@@ -785,6 +860,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="maintain_aspect">Maintain Aspect</option>
           <option value="crop">Crop</option>
@@ -800,6 +881,8 @@ case "Bulk Image":
           min="1"
           max="100"
           placeholder="85"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={resizeImageSettings.quality}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
@@ -822,6 +905,8 @@ case "Bulk Image":
         <Input
           placeholder="Enter layover text (e.g. Limited Time Offer!)"
           value={imageToVideoSettings.layover_text || ""}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) =>
             setImageToVideoSettings((prev) => ({
               ...prev,
@@ -838,6 +923,8 @@ case "Bulk Image":
         <Input
           placeholder="Enter project name"
           value={imageToVideoSettings.project_name || ""}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) =>
             setImageToVideoSettings((prev) => ({
               ...prev,
@@ -853,6 +940,8 @@ case "Bulk Image":
   <Input
     placeholder="Type project name..."
     value={projectSearch}
+    _placeholder={{color:textcolor}}
+color={textcolor}
     onChange={(e) => {
       const value = e.target.value;
       setProjectSearch(value);
@@ -876,6 +965,12 @@ case "Bulk Image":
     }
     mt={3}
     isDisabled={loadingProjects || projects.length === 0}
+     sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
   >
     {projects.map((p) => (
       <option key={p.project_id} value={p.project_id}>
@@ -898,6 +993,8 @@ case "Bulk Image":
         <Input
           placeholder="e.g. sale, discount, ad"
           value={imageToVideoSettings.tags || ""}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           onChange={(e) =>
             setImageToVideoSettings((prev) => ({
               ...prev,
@@ -921,6 +1018,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           {Object.entries(
             sector_choices.reduce((acc, item) => {
@@ -985,6 +1088,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           {Object.entries(M_key).map(([key, val]) => (
             <option key={key} value={val}>
@@ -1007,6 +1116,12 @@ case "Bulk Image":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="cloudinary">Cloudinary</option>
           <option value="processed">Processed</option>
@@ -1111,6 +1226,12 @@ case "Bulk Image":
             }));
           }}
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="true">True</option>
           <option value="false">False</option>
@@ -1123,6 +1244,8 @@ case "Bulk Image":
               <Input
                 type="number"
                 placeholder="Width in px"
+                _placeholder={{color:textcolor}}
+color={textcolor}
                 value={imageToVideoSettings.resize_width || ""}
                 onChange={(e) =>
                   setImageToVideoSettings((prev) => ({
@@ -1139,6 +1262,8 @@ case "Bulk Image":
               <Input
                 type="number"
                 placeholder="Height in px"
+                _placeholder={{color:textcolor}}
+color={textcolor}
                 value={imageToVideoSettings.resize_height || ""}
                 onChange={(e) =>
                   setImageToVideoSettings((prev) => ({
@@ -1162,6 +1287,8 @@ case "Bulk Image":
                             <Text fontWeight="bold">Trim Start (seconds)</Text>
                             <Input
                                 type="number" placeholder="Start time"
+                                _placeholder={{color:textcolor}}
+color={textcolor}
                                 onChange={(e) => startTransition(() => setMergeData((prev) => ({ ...prev, trim_start: e.target.value })))} // ✅ Wrapped in startTransition
                                 mt={2}
                             />
@@ -1171,6 +1298,8 @@ case "Bulk Image":
                             <Text fontWeight="bold">Trim End (seconds)</Text>
                             <Input
                                 type="number" placeholder="End time"
+                                _placeholder={{color:textcolor}}
+color={textcolor}
                                 onChange={(e) => startTransition(() => setMergeData((prev) => ({ ...prev, trim_end: e.target.value })))} // ✅ Wrapped in startTransition
                                 mt={2}
                             />
@@ -1200,6 +1329,8 @@ case "Caption Segment":
         <Input
           type="number"
           placeholder="Enter segment number"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={captionData.segment_number || ""}
           onChange={(e) =>
             setCaptionData((prev) => ({
@@ -1216,6 +1347,8 @@ case "Caption Segment":
         <Text fontWeight="bold">Caption Text</Text>
         <Input
           placeholder="Enter caption text"
+          _placeholder={{color:textcolor}}
+color={textcolor}
           value={captionData.text || ""}
           onChange={(e) =>
             setCaptionData((prev) => ({ ...prev, text: e.target.value }))
@@ -1231,6 +1364,8 @@ case "Caption Segment":
           <Input
             type="number"
             placeholder="e.g. 0.25"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             value={captionData.start_time || ""}
             onChange={(e) =>
               setCaptionData((prev) => ({
@@ -1248,6 +1383,8 @@ case "Caption Segment":
           <Input
             type="number"
             placeholder="e.g. 4.0"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             value={captionData.end_time || ""}
             onChange={(e) =>
               setCaptionData((prev) => ({
@@ -1267,6 +1404,8 @@ case "Caption Segment":
           <Input
             type="number"
             placeholder="e.g. 52"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             value={captionData.font_size || ""}
             onChange={(e) =>
               setCaptionData((prev) => ({
@@ -1282,6 +1421,8 @@ case "Caption Segment":
           <Text fontWeight="bold">Font Color</Text>
           <Input
             type="color"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             value={captionData.font_color || "#ffffff"}
             onChange={(e) =>
               setCaptionData((prev) => ({
@@ -1300,6 +1441,8 @@ case "Caption Segment":
           <Text fontWeight="bold">Background Color</Text>
           <Input
             type="color"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             value={captionData.background_color || "#000000"}
             onChange={(e) =>
               setCaptionData((prev) => ({
@@ -1316,6 +1459,8 @@ case "Caption Segment":
           <Input
             type="number"
             step="0.1"
+            _placeholder={{color:textcolor}}
+color={textcolor}
             min="0"
             max="1"
             placeholder="e.g. 0.9"
@@ -1339,6 +1484,8 @@ case "Caption Segment":
           <Input
             placeholder="e.g. 5%"
             value={captionData.x || ""}
+            _placeholder={{color:textcolor}}
+color={textcolor}
             onChange={(e) =>
               setCaptionData((prev) => ({ ...prev, x: e.target.value }))
             }
@@ -1351,6 +1498,8 @@ case "Caption Segment":
           <Input
             placeholder="e.g. 10%"
             value={captionData.y || ""}
+            _placeholder={{color:textcolor}}
+color={textcolor}
             onChange={(e) =>
               setCaptionData((prev) => ({ ...prev, y: e.target.value }))
             }
@@ -1369,6 +1518,12 @@ case "Caption Segment":
             setCaptionData((prev) => ({ ...prev, animation: e.target.value }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="none">None</option>
           <option value="fade">Fade</option>
@@ -1391,6 +1546,12 @@ case "Caption Segment":
             }))
           }
           mt={2}
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="slow">Slow</option>
           <option value="normal">Normal</option>
@@ -1407,6 +1568,8 @@ case "Caption Segment":
                         <Box>
                             <Text fontWeight="bold">User ID</Text>
                             <Input
+                            _placeholder={{color:textcolor}}
+color={textcolor}
                                 type="text" placeholder="Enter User ID" value={MergeData.user_id || ""}
                                 onChange={(e) => startTransition(() => setMergeData({ ...MergeData, user_id: e.target.value }))} // ✅ Wrapped in startTransition
                                 mt={2}
@@ -1419,6 +1582,8 @@ case "Caption Segment":
                         <Box>
                             <Text fontWeight="bold">Edit ID</Text>
                             <Input
+                            _placeholder={{color:textcolor}}
+color={textcolor}
                                 type="text" placeholder="Enter Edit ID" value={MergeData.edit_id || ""}
                                 onChange={(e) => startTransition(() => setMergeData({ ...MergeData, edit_id: e.target.value }))} // ✅ Wrapped in startTransition
                                 mt={2}
@@ -1429,6 +1594,8 @@ case "Caption Segment":
                         <Box>
                             <Text fontWeight="bold">Brand Outro Video URL</Text>
                             <Input
+                            _placeholder={{color:textcolor}}
+color={textcolor}
                                 type="text" placeholder="Enter Brand Outro Video URL" value={MergeData.brand_outro_video_url || ""}
                                 onChange={(e) => startTransition(() => setMergeData({ ...MergeData, brand_outro_video_url: e.target.value }))} // ✅ Wrapped in startTransition
                                 mt={2}
@@ -1444,7 +1611,9 @@ case "Caption Segment":
           type="file"
           accept="video/*"
           onChange={handleVideoUpload}
-          bg="white"
+          bg={file}
+          _placeholder={{color:textcolor}}
+color={textcolor}
           p={1}
         />
 
@@ -1472,6 +1641,12 @@ case "Caption Segment":
                                     })
                                 }
                                 mt={2}
+                                 sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
                             >
                                 <option value="false">False</option>
                                 <option value="true">True</option>
@@ -1484,6 +1659,8 @@ case "Caption Segment":
                                 <Box>
                                     <Text fontWeight="bold">Merge ID</Text>
                                     <Input
+                                    _placeholder={{color:textcolor}}
+color={textcolor}
                                         type="text" placeholder="Enter Merge ID" value={MergeData.mearg_id || ""}
                                         onChange={(e) => startTransition(() => setMergeData({ ...MergeData, mearg_id: e.target.value }))} // ✅ Wrapped in startTransition
                                         mt={2}
@@ -1493,6 +1670,8 @@ case "Caption Segment":
                                 <Box>
                                     <Text fontWeight="bold">Height (px)</Text>
                                     <Input
+                                    _placeholder={{color:textcolor}}
+color={textcolor}
                                         type="number" placeholder="1080" value={MergeData.height || ""}
                                         onChange={(e) => startTransition(() => setMergeData({ ...MergeData, height: e.target.value }))} // ✅ Wrapped in startTransition
                                         mt={2}
@@ -1502,6 +1681,8 @@ case "Caption Segment":
                                 <Box>
                                     <Text fontWeight="bold">Width (px)</Text>
                                     <Input
+                                    _placeholder={{color:textcolor}}
+color={textcolor}
                                         type="number" placeholder="1920" value={MergeData.width || ""}
                                         onChange={(e) => startTransition(() => setMergeData({ ...MergeData, width: e.target.value }))} // ✅ Wrapped in startTransition
                                         mt={2}

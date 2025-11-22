@@ -10,8 +10,9 @@ import {
   MdSettings,
   MdImage,
   MdSmartDisplay,
+MdVideoSettings
 } from 'react-icons/md';
-
+import { RiImageEditFill } from "react-icons/ri";
 // Admin Imports
 import MainDashboard from 'views/admin/default';
 import NFTMarketplace from 'views/admin/marketplace';
@@ -41,6 +42,8 @@ import ImageGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/ImageGui
 import VideoGuidelineSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuideLine"
 import ViewProjectDetails from "views/admin/profile/components/ViewProjectDetails"
 import EditImageGuidelineUser from 'views/admin/EditUser/ImageGuideline.jsx/EditGuideline';
+import VideoGuidelineAddSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuidelineAdd.jsx"
+import VideoGuidelineEditSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuidelineEdit.jsx"
 const routes = [
   {
     name: 'Main Dashboard',
@@ -111,6 +114,22 @@ const routes = [
     component: <EditUser/>,
     showInSidebar: false, // hidden from sidebar
   },
+      {
+    name: 'Edit Video Guideline',
+    layout: '/admin',
+    path: '/edit/videoguidelinemain/:guideline_id',
+    icon: <Icon as={MdSettings} w="20px" h="20px" color="inherit" />,
+    component: <VideoGuidelineEditSidebar/>,
+    showInSidebar: false, // hidden from sidebar
+  },
+        {
+    name: 'Add Video Guideline',
+    layout: '/admin',
+    path: '/add/videoguidelinemain',
+    icon: <Icon as={MdSettings} w="20px" h="20px" color="inherit" />,
+    component: <VideoGuidelineAddSidebar/>,
+    showInSidebar: false, // hidden from sidebar
+  },
   {
     name: 'Profile Setting',
     layout: '/admin',
@@ -141,7 +160,7 @@ const routes = [
     name: 'Image Guideline',
     layout: '/admin',
     path: '/image_guideline_user',
-    icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
+    icon: <Icon as={RiImageEditFill} w="20px" h="20px" color="inherit" />,
     component: <ImageGuidelineSidebar />,
     showInSidebar: true,
     roles: ['Administrator','Manager','Standard User'],
@@ -150,7 +169,7 @@ const routes = [
     name: 'Video Guideline',
     layout: '/admin',
     path: '/video_guideline_user',
-    icon: <Icon as={MdVideoLibrary} w="20px" h="20px" color="inherit" />,
+    icon: <Icon as={MdVideoSettings} w="20px" h="20px" color="inherit" />,
     component: <VideoGuidelineSidebar />,
     showInSidebar: true,
     roles: ['Administrator','Manager','Standard User'],
@@ -225,7 +244,7 @@ const routes = [
         {
     name: 'Edit Guidelines',
     layout: '/admin',
-    path: '/edit/videoguidelines/:guideline_id',
+    path: '/edit/videoguideline/:guideline_id',
     icon: <Icon as={MdLock} w="20px" h="20px" color="inherit" />,
     component: <EditVideoGuideLine />,
     showInSidebar:false,
