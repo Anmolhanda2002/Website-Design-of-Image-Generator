@@ -51,12 +51,12 @@ const textcolor = useColorModeValue("black", "white");
 const file = useColorModeValue("white","gray.700")
 
     const { colorMode } = useColorMode();
-    console.log(bulkImageData)
+    // console.log(bulkImageData)
 
     // We keep this simple logger, no need for transition
-    const handleChange = (field, value) => {
-        console.log(`[${activeTab}] ${field}:`, value);
-    };
+    // const handleChange = (field, value) => {
+    //     console.log(`[${activeTab}] ${field}:`, value);
+    // };
 
     const [searchTerm, setSearchTerm] = useState("");
     const [guidelines, setGuidelines] = useState([]);
@@ -66,10 +66,11 @@ const [loadingUseCase, setLoadingUseCase] = useState(false);
 const [projects, setProjects] = useState([]);
 const [projectSearch, setProjectSearch] = useState("");
 const [loadingProjects, setLoadingProjects] = useState(false);
+ const [lifestyleIds, setLifestyleIds] = useState([]);
     const toast = useToast();
    // ✅ get context
   const prevUserIdRef = useRef(null);
-console.log(selectedUser)
+// console.log(selectedUser)
     const [dropdownData, setDropdownData] = useState({
         video_dimensions_choices: {},
         sector_choices: [],
@@ -229,7 +230,21 @@ useEffect(() => {
   }, 400);
 }, [searchTerm]);
 
+ useEffect(() => {
+    // ✔ Only run when active tab is "image_to_video"
+    if (activeTab !== "Image to Video") return;
 
+    if (!selectedUser?.user_id) return;
+
+    axiosInstance
+      .get(`/get_lifestyle_ids/?user_id=${selectedUser.user_id}`)
+      .then((res) => {
+        setLifestyleIds(res.data.lifestyle_ids || []);
+      })
+      .catch((err) => {
+        console.error("Error fetching lifestyle IDs", err);
+      });
+  }, [activeTab, selectedUser]);
 
 
 
@@ -934,7 +949,44 @@ color={textcolor}
           mt={2}
         />
       </Box>
+
+{/* lifestyleid is select  */}
+<box>
+<Text fontWeight="bold">Select Lifestyle Id</Text>
+<Select
+  placeholder="Select Lifestyle ID"
+  value={imageToVideoSettings?.lifestyle_id || ""}
+  onChange={(e) => {
+    const selectedValue = e.target.value;
+
+    setImageToVideoSettings((prev) => ({
+      ...prev,
+      lifestyle_id: selectedValue,
+      setlifestyleid: selectedValue ? true : false,
+    }));
+  }}
+  mt={4}
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+>
+  {lifestyleIds.map((id) => (
+    <option key={id} value={id}>
+      {id}
+    </option>
+  ))}
+</Select>
+
+
+</box>
 {/* 🔍 Project Search & Select */}
+
+
+
+
 <Box>
   <Text fontWeight="bold">Search Project</Text>
   <Input
@@ -1139,6 +1191,7 @@ color={textcolor}
             { label: "15s", icon: MdAccessTime },
           ].map((item) => {
             const isSelected = imageToVideoSettings.duration === item.label;
+            console.log(isSelected)
             return (
               <Flex
                 key={item.label}

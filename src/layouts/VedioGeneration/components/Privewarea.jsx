@@ -15,6 +15,7 @@ import { AddIcon, ArrowUpIcon,CloseIcon  } from "@chakra-ui/icons";
 import axiosInstance from "utils/AxiosInstance";
 import Swal from "sweetalert2";
 import { ViewIcon } from "@chakra-ui/icons";
+import { CheckIcon, } from "@chakra-ui/icons";
 export default function PreviewArea({
   text,
   setText,
@@ -48,7 +49,9 @@ export default function PreviewArea({
   const [submitting, setSubmitting] = useState(false);
   const [progressMap, setProgressMap] = useState({}); // Track progress per image
 const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-
+const [compositions, setCompositions] = useState([]); 
+const [selectedCompositions, setSelectedCompositions] = useState([]);
+const [backgroundMessage, setBackgroundMessage] = useState("");
 // in which make the variable  step 1
   // const [generatedImage, setGeneratedImage] = useState("");
   // const [resizedImage, setResizedImage] = useState("");
@@ -198,13 +201,13 @@ const id = Date.now() + Math.random();
     file: null, // no upload file needed
   };
 
-  console.log("newImage",newImage)
+  // console.log("newImage",newImage)
 setImages([newImage]);
 setlastimagetovideo(true)
 
 // Auto-select it if needed
 // setSelectedImage(newImage.url)
-  console.log(images)  // load image into Image-to-Video images[]
+  // console.log(images)  // load image into Image-to-Video images[]
   setActiveTab("Image to Video"); // switch tab
 };
 
@@ -330,7 +333,7 @@ else if (activeTab === "Image to Video") {
     "PROD-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
   const product_ID = generateUniqueId().slice(0, 50); // ensure < 50 chars
-  const customer_ID = `CRM-${selectedUser}`;
+  const customer_ID = `CRM-${selectedUser?.user_id}`;
 
   setVideoStatus("processing");
 
@@ -444,6 +447,159 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
   }
 };
 
+const [submittingCompositions, setSubmittingCompositions] = useState(false);
+
+
+useEffect(() => {
+  if (!imageToVideoSettings?.lifestyle_id || !selectedUser?.user_id) return;
+
+  setSubmittingCompositions(true);
+
+  axiosInstance
+    .get(
+      `/get_lifestyle_compositions/?lifestyle_id=${imageToVideoSettings.lifestyle_id}&user_id=${selectedUser.user_id}`
+    )
+    .then((res) => {
+      const comps = res.data.compositions || {};
+      const formatted = Object.keys(comps).map((key) => ({
+        id: comps[key].composition_id,
+        url: comps[key].image_url,
+      }));
+      setCompositions(formatted);
+    })
+    .catch((err) => {
+      console.log("Composition fetch error:", err);
+      setCompositions([]); // ensure empty UI fallback
+    })
+    .finally(() => setSubmittingCompositions(false));
+}, [imageToVideoSettings?.lifestyle_id, selectedUser?.user_id]);
+;
+
+const toggleComposition = (id) => {
+  setSelectedCompositions(prev =>
+    prev.includes(id)
+      ? prev.filter(x => x !== id)
+      : [...prev, id]
+  );
+};
+
+const handleSubmitLifestyleVideo = async () => {
+  if (selectedCompositions.length === 0) {
+    toast({
+      title: "No Images Selected!",
+      description: "Please select at least one image to create a video.",
+      status: "warning",
+      duration: 4000,
+      isClosable: true,
+      position: "top-right",
+    });
+    return;
+  }
+
+  const payload = {
+    user_id: selectedUser.user_id,
+    lifestyle_id: imageToVideoSettings.lifestyle_id,
+    composition_ids: selectedCompositions,
+    ...imageToVideoSettings,
+  };
+
+  setSubmitting(true);
+
+  try {
+    const res = await axiosInstance.post(
+      "/factory_videos_from_lifestyle_shots/",
+      payload
+    );
+
+    const data = res?.data?.data;
+    const total = data?.total_images || 0;
+    const success = data?.successful_requests || 0;
+    const failed = data?.failed_requests || 0;
+
+    // 🛑 Case 1 — All Failed
+    if (success === 0) {
+      toast({
+        title: "❌ Video Creation Failed",
+        description:
+          "All selected images did not match our quality rules.\nTry different images or guidelines.",
+        status: "error",
+        duration: 6000,
+        isClosable: true,
+        position: "top-right",
+      });
+
+      setVideoStatus("failed");
+      setGeneratedVideo(null);
+      // setBackgroundMessage(
+      //   "❌ No videos could be processed. Select different scene compositions and try again."
+      // );
+      setSubmitting(false);
+      return;
+    }
+
+    // ⚠️ Case 2 — Partially Success
+    if (failed > 0 && success > 0) {
+      toast({
+        title: "⚠️ Some Videos Couldn't Be Made",
+        description: `🎬 ${success}/${total} are being created.\n❌ ${failed} images were not valid for video.`,
+        status: "warning",
+        duration: 6000,
+        isClosable: true,
+        position: "top-right",
+      });
+
+      setBackgroundMessage(
+        `🎬 Your request is accepted!\n${success} video(s) are now processing in the background.\n\nNote: ${failed} image(s) were skipped due to validation rules.`
+      );
+    }
+
+    // 🎉 Case 3 — All Good
+    if (success === total) {
+      toast({
+        title: "🎉 Video Creation Started!",
+        description: "Your videos are being created in background.",
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+        position: "top-right",
+      });
+
+      setBackgroundMessage(
+        `🎬 Great! All selected images are processing into videos.\nYou can check Video Assets after some time.`
+      );
+    }
+
+    // Common Successful Flow
+    setVideoStatus("background-processing");
+    setGeneratedVideo(null);
+
+  } catch (err) {
+    toast({
+      title: "🚫 Something Went Wrong",
+      description:
+        err?.response?.data?.message ||
+        "We couldn't start video creation. Please try again.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "top-right",
+    });
+
+    setVideoStatus("failed");
+    setGeneratedVideo(null);
+    setBackgroundMessage(
+      "❌ Video request failed. Please try again in a few minutes."
+    );
+  }
+
+  setSubmitting(false);
+};
+
+
+
+
+
+
 
   const handleViewDetails = () => {
     if (!resizeDetails) return;
@@ -473,7 +629,7 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
 
 
 
-console.log(images)
+// console.log(images)
 
   return (
 <Flex
@@ -526,9 +682,19 @@ console.log(images)
           filter="blur(12px)"
           opacity={0.9}
         />
-        <Text color="gray.500" fontWeight="medium">
-          ⏳ Processing your {activeTab === "Image to Video" ? "video" : "image"}...
-        </Text>
+<Text
+  color="gray.500"
+  fontSize="md"
+  fontWeight="medium"
+  textAlign="center"
+  whiteSpace="pre-line"
+>
+  {backgroundMessage ||
+    `⏳ Processing your ${
+      activeTab === "Image to Video" ? "video" : "image"
+    }...`}
+</Text>
+
       </Box>
     ) : generatedVideo ? (
       // 🎬 Video preview
@@ -683,17 +849,83 @@ console.log(images)
     </Flex>
   ) : activeTab === "Image to Video" ? (
     // 🎥 Image to Video Section
-    <Flex
-      direction="column"
-      bg={panelBg}
-      borderRadius="lg"
-      border="1px solid"
-      borderColor={borderColor}
-      boxShadow="sm"
-      p={3}
-      gap={3}
-    >
-      {/* Text Input */}
+ <Flex
+  direction="column"
+  bg={panelBg}
+  borderRadius="lg"
+  border="1px solid"
+  borderColor={borderColor}
+  boxShadow="sm"
+  p={3}
+  gap={3}
+>
+  {/* If Lifestyle based UI is Active */}
+  {imageToVideoSettings?.lifestyle_id ? (
+    <>
+      <Text fontSize="sm" fontWeight="600" color="gray.300">
+        Select compositions for video
+      </Text>
+
+      <Flex wrap="wrap" gap={3}>
+        {submittingCompositions ? (
+          <Spinner size="sm" />
+        ) : compositions?.length > 0 ? (
+          compositions.map((item) => (
+            <Box
+              key={item.id}
+              position="relative"
+              cursor="pointer"
+              onClick={() => toggleComposition(item.id)}
+            >
+              <Image
+                src={item.url}
+                alt="composition-thumbnail"
+                boxSize="80px"
+                objectFit="cover"
+                borderRadius="md"
+                border={
+                  selectedCompositions.includes(item.id)
+                    ? "2px solid #00D26A"
+                    : "2px solid transparent"
+                }
+                transition="0.2s"
+                _hover={{ transform: "scale(1.05)" }}
+              />
+
+              {selectedCompositions.includes(item.id) && (
+                <CheckIcon
+                  position="absolute"
+                  top="2px"
+                  right="2px"
+                  color="green.400"
+                  bg="white"
+                  borderRadius="full"
+                  boxSize={4}
+                  p="1px"
+                />
+              )}
+            </Box>
+          ))
+        ) : (
+          <Text fontSize="sm" color="gray.400">
+            No images found for this lifestyle
+          </Text>
+        )}
+      </Flex>
+
+      <Button
+        mt={3}
+        colorScheme="green"
+        size="sm"
+        isDisabled={selectedCompositions.length === 0 || submitting}
+        onClick={handleSubmitLifestyleVideo}
+      >
+        {submitting ? <Spinner size="sm" /> : "Generate Video"}
+      </Button>
+    </>
+  ) : (
+    <>
+      {/* Normal Prompt + Upload UI */}
       <Textarea
         placeholder="Enter video prompt or instructions..."
         value={text}
@@ -704,13 +936,8 @@ console.log(images)
         borderColor={borderColor}
         fontSize="sm"
         p={2}
-        _focus={{
-          borderColor: "blue.400",
-          boxShadow: "0 0 0 1px #4299E1",
-        }}
       />
 
-      {/* Upload + Send */}
       <Flex justify="space-between" align="center" gap={2}>
         <label htmlFor="file-upload-video">
           <IconButton
@@ -725,6 +952,7 @@ console.log(images)
             isDisabled={uploading}
           />
         </label>
+
         <input
           id="file-upload-video"
           type="file"
@@ -734,67 +962,47 @@ console.log(images)
           onChange={handleImageChange}
         />
 
-        {/* Image Previews */}
         <Box
           flex="1"
           h="60px"
-          overflowX="auto"
           display="flex"
           alignItems="center"
           gap={2}
+          overflowX="auto"
           borderRadius="md"
           p={1}
-          sx={{
-            "&::-webkit-scrollbar": { height: "4px" },
-            "&::-webkit-scrollbar-thumb": {
-              background: {bgColor},
-              borderRadius: "2px",
-            },
-          }}
         >
-          {images.map((img) => (
-  <Box key={img.id} position="relative">
-    <Image
-      src={img.url}
-      alt="preview"
-      boxSize="50px"
-      objectFit="cover"
-      borderRadius="sm"
-      border="1px solid"
-      borderColor={borderColor}
-    />
+          {images.length > 0 ? (
+            images.map((img) => (
+              <Box key={img.id} position="relative">
+                <Image
+                  src={img.url}
+                  alt="preview"
+                  boxSize="50px"
+                  objectFit="cover"
+                  borderRadius="sm"
+                />
 
- <IconButton
-  icon={<CloseIcon boxSize={2} />}
-  w="14px"
-  h="14px"
-  minW="14px"
-  position="absolute"
-  top="0"
-  right="0"
-  bg="red.500"
-  color="white"
-  borderRadius="full"
-  onClick={() => handleRemoveImage(img.id)}
-/>
-
-    {progressMap[img.id] !== undefined && (
-      <Progress
-        size="xs"
-        value={progressMap[img.id]}
-        position="absolute"
-        bottom="0"
-        left="0"
-        width="100%"
-        borderRadius="0 0 2px 2px"
-      />
-    )}
-  </Box>
-))}
-
+                <IconButton
+                  icon={<CloseIcon boxSize={2} />}
+                  w="14px"
+                  h="14px"
+                  minW="14px"
+                  position="absolute"
+                  top="0"
+                  right="0"
+                  bg="red.500"
+                  color="white"
+                  borderRadius="full"
+                  onClick={() => handleRemoveImage(img.id)}
+                />
+              </Box>
+            ))
+          ) : (
+            <Text fontSize="xs" color="gray.500">No image found</Text>
+          )}
         </Box>
 
-        {/* Send Button */}
         <IconButton
           icon={submitting ? <Spinner size="sm" /> : <ArrowUpIcon />}
           aria-label="Generate Video"
@@ -804,36 +1012,14 @@ console.log(images)
           size="sm"
           _hover={{ bg: "green.600" }}
           onClick={handleSubmit}
-          isDisabled={submitting || uploading}
+          isDisabled={submitting || uploading || images.length === 0}
         />
       </Flex>
+    </>
+  )}
+</Flex>
 
-      {/* 🎬 Response Field */}
-      {videoStatus ? (
-        <Text
-          fontSize="sm"
-          color={
-            videoStatus === "completed"
-              ? "green.400"
-              : videoStatus === "processing"
-              ? "orange.400"
-              : "red.400"
-          }
-        >
-          {videoStatus === "completed"
-            ? ""
-            : videoStatus === "processing"
-            ? ""
-            : `❌ ${videoStatus}`}
-        </Text>
-      ) : (
-        !generatedVideo && (
-          <Text fontSize="sm" color="gray.500">
-            
-          </Text>
-        )
-      )}
-    </Flex>
+
   ) : (
     // 🖼️ Default Section
     <Flex

@@ -28,9 +28,12 @@ import axiosInstance from "utils/AxiosInstance";
 import BulkImageCreation from "./BulkImageCreation";
 import LifeStyleCreation from "./LifeStyleCreation";
   import { useColorMode } from "@chakra-ui/react";
+  import { Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
+import { ChevronDownIcon } from "@chakra-ui/icons";
+import { useNavigate } from "react-router-dom";
 const AssetsPage = () => {
   const toast = useToast();
-
+const navigate = useNavigate();
 const { colorMode } = useColorMode();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -137,6 +140,45 @@ const { colorMode } = useColorMode();
     }
   }, [activeUserId, activeSearch, selectedOption, fetchAssets]);
 
+
+
+
+const getImageFromItem = (item) => {
+  return (
+    item?.image_url ||
+    item?.generated_image_url ||
+    item?.resized_image_url ||
+    item?.image_urls?.[0] ||
+    item?.original_image_url ||
+    item?.resized_image || // your scene_composition key
+    null
+  );
+};
+
+const handleNavigation = (type, item) => {
+  const imageUrl = getImageFromItem(item);
+
+  navigate("/videocreate/createvideo", {
+    state: {
+      activeTab:
+        type === "imageToVideo"
+          ? "Image to Video"
+          : type === "imageCreation"
+          ? "Image Creation"
+          : "Resize Image",
+
+      selectedItem: {
+        ...item,
+        imageUrl: imageUrl,
+      },
+
+      editpage: true,
+      option: selectedOption,
+    },
+  });
+};
+
+
   useEffect(() => {
     if (selectedOption === "1") {
       const handleScroll = () => {
@@ -215,6 +257,9 @@ const renderDetails = (item) => {
     ],
     "5": [],
   };
+
+
+
 
   return (
     <VStack align="start" spacing={2} mt={4} w="100%">
@@ -427,6 +472,43 @@ const renderDetails = (item) => {
                   objectFit="contain"
                   borderRadius="xl"
                 />
+                <Menu>
+  <MenuButton
+    as={Button}
+    rightIcon={<ChevronDownIcon />}
+    colorScheme="blue"
+    mt={4}
+    w="200px"
+    borderRadius="full"
+  >
+    Edit
+  </MenuButton>
+
+  <MenuList
+    bg={colorMode === "dark" ? "#14225C" : "#fff"}
+    color={colorMode === "dark" ? "#fff" : "#000"}
+    borderRadius="lg"
+  >
+    <MenuItem
+      onClick={() => handleNavigation("imageToVideo", selectedItem)}
+    >
+      Image to Video
+    </MenuItem>
+
+    <MenuItem
+      onClick={() => handleNavigation("imageCreation", selectedItem)}
+    >
+      Image Creation
+    </MenuItem>
+
+    <MenuItem
+      onClick={() => handleNavigation("resizeImage", selectedItem)}
+    >
+      Resize Image
+    </MenuItem>
+  </MenuList>
+</Menu>
+
 
                 {renderDetails(selectedItem)}
               </Flex>

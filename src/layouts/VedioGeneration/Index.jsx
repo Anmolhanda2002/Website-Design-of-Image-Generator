@@ -42,7 +42,7 @@ import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
 import MergeVideo from "./components/MergeData/MergeVideo";
 import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
 import BulkImageCreation from "./components/BulkImage/BulkImageCreation";
-
+import { useLocation } from "react-router-dom";
 // --- Initial State Definitions for Reset (Must be outside the component) ---
 const initialImageCreationSettings = {
     guidelineId: "", targetMethod: "disable", targetWidth: "", 
@@ -56,8 +56,8 @@ const initialImageToVideoSettings = {
     customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
     tags: "", sector: "", goal: "", key_instructions: "", consumer_message: "", 
     M_key: "", resize: false, resize_width: "", resize_height: "", 
-    duration: "8s", aspect_ratio: "16:9",
-     video_type: "", project_id:""
+    duration: "5s", aspect_ratio: "16:9",
+     video_type: "", project_id:"",lifestyle_id:"",setlifestyleid:false
 };
 const initialCaptionData = {
     edit_id: "", segment_number: "", text: "", start_time: "", end_time: "", 
@@ -106,7 +106,15 @@ export default function PixVerseLayout() {
   const [allUsers, setAllUsers] = useState([]);
   const [userss, setUser] = useState(null);
   const [lastimagetovideo,setlastimagetovideo]=useState(false)
-  
+  const selectedBg = useColorModeValue("gray.200", "#24357A");
+  const inputBg = useColorModeValue("gray.50", "#0B1437");
+  const inputBorder = useColorModeValue("gray.200", "#1A2A6C");
+  const inputColor = useColorModeValue("gray.800", "white");
+  const placeholderColor = useColorModeValue("gray.500", "gray.300");
+  const iconColor = useColorModeValue("gray.500", "gray.400");
+  const bg=useColorModeValue("gray.50", "#14225C")
+
+  console.log(initialImageToVideoSettings.setlifestyleid)
     useEffect(() => {
       if (isManager) return;
       const fetchUsers = async () => {
@@ -178,7 +186,7 @@ useEffect(() => {
     // UI/Style States
     const bgColor = useColorModeValue("gray.200", "gray.700");
     const color =useColorModeValue("white", "gray.800")
-    const navbarBg = useColorModeValue("white", "gray.800");
+    const navbarBg = useColorModeValue("white", "navy.900");
     
     // Tool States (Inputs, Outputs, Settings)
     const [model, setModel] = useState("V5");
@@ -205,7 +213,7 @@ useEffect(() => {
     const [MergeData, setMergeData] = useState(initialMergeData);
 const [resetTrigger, setResetTrigger] = useState(0);
 const [BulkData,setBulkData]=useState(initialBulkImageData);
-console.log(BulkData)
+// console.log(BulkData)
   const [generatedImage, setGeneratedImage] = useState("");
   const [resizedImage, setResizedImage] = useState("");
   const [generatedVideo, setGeneratedVideo] = useState(null);
@@ -213,6 +221,11 @@ const handleTabChange = (tab) => {
   setActiveTab(tab);
   setResetTrigger((prev) => prev + 1); // 👈 change this to trigger reset
 };
+
+
+
+
+
 
 
   const menuBg = useColorModeValue("white", "navy.800");
@@ -227,6 +240,15 @@ const handleTabChange = (tab) => {
     // ------------------------------------------------------------------
     // 1. Core Logic: Function to reset all relevant states
     // ------------------------------------------------------------------
+const location = useLocation();
+
+
+const locationState = location.state || {};
+const { selectedItem, editpage, option, activeTab: activeTabs } = locationState;
+
+
+console.log("selectedOption",option)
+
 
     const resetAllData = () => {
         // Reset core data/UI state
@@ -279,6 +301,18 @@ const handleSetActiveTab = (tabName) => {
 useEffect(() => {
   resetAllData();
 }, [activeTab]);
+
+
+
+
+console.log("hello",activeTabs,selectedItem,editpage)
+
+
+
+
+
+
+
     // ------------------------------------------------------------------
 
 
@@ -427,6 +461,44 @@ const handleSearch = (e) => {
 };
 
 
+
+useEffect(() => {
+  if (!editpage || !activeTabs) return;
+
+  // Always sync UI tab 
+  setActiveTab(activeTabs);
+
+  setlastimagetovideo(true);
+
+  const item = selectedItem;
+
+  // CASE 1 — multiple images
+  if (Array.isArray(item?.image_urls)) {
+    const formatted = item.image_urls.map((img, index) => ({
+      id: index,
+      url: typeof img === "string" ? img : img.url,
+    }));
+
+    setImages(formatted);
+    return;
+  }
+
+  // CASE 2 — single image for ANY tab
+  const singleUrl =
+    item?.imageUrl ||                      // universal key
+    item?.generated_image_url ||
+    item?.resized_image ||
+    item?.image_url ||
+    item?.original_image_url ||
+    item?.url;
+
+  if (singleUrl) {
+    setImages([{ id: Date.now(), url: singleUrl }]);
+  }
+}, [activeTabs, editpage, selectedItem]);
+
+
+
     // ---------- JSX ----------
     return (
         <Flex direction="column" h="100vh" overflow="hidden">
@@ -491,6 +563,11 @@ const handleSearch = (e) => {
               size="sm"
               value={searchTerm}
               onChange={handleSearch}
+                  bg={inputBg}
+    borderColor={inputBorder}
+    color={inputColor}
+    _placeholder={{ color: placeholderColor }}
+    _focus={{ borderColor: selectedBg }}
             />
           </InputGroup>
 
@@ -501,6 +578,8 @@ const handleSearch = (e) => {
             fontWeight={
               !selectedUser || selectedUser?.user_id === user.user_id ? "600" : "normal"
             }
+                bg={!selectedUser ? selectedBg : "transparent"}
+  
           >
             Own
           </MenuItem>
@@ -515,10 +594,15 @@ const handleSearch = (e) => {
                 key={u.user_id}
                 onClick={() => handleSelectUser(u)}
                 borderRadius="md"
-                _hover={{ bg: hoverBg }}
+             
                 fontWeight={
                   selectedUser?.user_id === u.user_id ? "600" : "normal"
                 }
+                bg={selectedUser?.user_id === u.user_id ? selectedBg : "transparent"}
+        _hover={{
+          bg: selectedUser?.user_id === u.user_id ? selectedBg : hoverBg,
+        }}
+    
               >
                 {u.username}
               </MenuItem>
@@ -571,7 +655,7 @@ const handleSearch = (e) => {
                             sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
                         >
                         {activeTab === "Bulk Image" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData} setImages={setImages} setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>)}
-                            {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} />)}
+                            {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} setActiveTab={setActiveTab} setImages={setImages} setlastimagetovideo={setlastimagetovideo}/>)}
                             {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
                             {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
                             {activeTab === "Merge Video" && (<MergeVideo selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />)}
@@ -613,7 +697,7 @@ const handleSearch = (e) => {
                             flex="1" bg={bgColor} overflowY="auto" mt={"-50"}
                             sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
                         >
-                            <EditVedioComponent selectedUser={selectedUser}  previewData={previewData} setActiveTab={handleSetActiveTab} setclone={setclone} setclonecreationid={setclonecreationid} /> {/* ✅ Uses the reset handler */}
+                            <EditVedioComponent selectedUser={selectedUser}  previewData={previewData}setActiveTab={setActiveTab} setImages={setImages} setlastimagetovideo={setlastimagetovideo}  setclone={setclone} setclonecreationid={setclonecreationid} /> {/* ✅ Uses the reset handler */}
                         </Box>
                     ) : activeTab === "Caption Segment" ? (
                         <Flex flex="1" overflow="hidden">

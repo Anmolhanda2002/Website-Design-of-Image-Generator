@@ -59,6 +59,7 @@ export default function EditImageGuideline() {
           axiosInstance.post("/factory_development_get_image_guideline/", {
             user_id:userId,
             guideline_id,
+            // is_true:is_active
           }),
         ]);
 

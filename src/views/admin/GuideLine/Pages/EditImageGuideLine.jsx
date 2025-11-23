@@ -37,6 +37,8 @@ export default function EditImageGuideline() {
   const [submitting, setSubmitting] = useState(false);
 
 
+const { is_active } = location.state || {};
+console.log("asdf",is_active)
 const isDark = colorMode === "dark";
   const cardBg = useColorModeValue("white", "navy.700");
   const textColor = useColorModeValue("black", "white");
@@ -61,6 +63,7 @@ const isDark = colorMode === "dark";
           axiosInstance.post("/factory_development_get_image_guideline/", {
             user_id:activeUserId,
             guideline_id,
+            is_true:is_active
           }),
         ]);
 

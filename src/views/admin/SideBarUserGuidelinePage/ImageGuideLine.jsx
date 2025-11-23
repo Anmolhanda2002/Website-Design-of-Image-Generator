@@ -233,7 +233,14 @@ Swal.fire({
                 icon={<EditIcon />}
                 size="xs"
                 variant="outline"
-                onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
+                // onClick={() => navigate(`/admin/edit_guideline/${row.guideline_id}`)}
+                 onClick={() =>
+    navigate(`/admin/edit_guideline/${row.guideline_id}`, {
+      state: {
+        is_active: row.is_active // 👈 sending true/false
+      }
+    })
+  }
               />
               <IconButton
                 aria-label="Delete"
@@ -356,15 +363,20 @@ Swal.fire({
                         </Button>
                       )}
                       <Flex gap={2}>
-                        <IconButton
-                          aria-label="Edit"
-                          icon={<EditIcon />}
-                          size="xs"
-                          variant="outline"
-                          onClick={() =>
-                            navigate(`/admin/edit_guideline/${item.guideline_id}`)
-                          }
-                        />
+                     <IconButton
+  aria-label="Edit"
+  icon={<EditIcon />}
+  size="xs"
+  variant="outline"
+  onClick={() =>
+    navigate(`/admin/edit_guideline/${item.guideline_id}`, {
+      state: {
+        is_active: item.is_active // 👈 sending true/false
+      }
+    })
+  }
+/>
+
                         <IconButton
                           aria-label="Delete"
                           icon={<DeleteIcon />}

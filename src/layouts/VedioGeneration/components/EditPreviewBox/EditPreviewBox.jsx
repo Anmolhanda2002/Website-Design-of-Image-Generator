@@ -28,10 +28,11 @@ import {
 import { SearchIcon } from "@chakra-ui/icons";
 import { FaPlayCircle } from "react-icons/fa";
 import axiosInstance from "utils/AxiosInstance";
+import { AiOutlineConsoleSql } from "react-icons/ai";
 
 const POLL_INTERVAL = 10000;
 
-const VideoSelectorPage = ({ setActiveTab, setclone, setclonecreationid, selectedUser }) => {
+const VideoSelectorPage = ({ setActiveTab, setlastimagetovideo,setImages,setclone, setclonecreationid, selectedUser }) => {
   const toast = useToast();
 
   // ✅ Chakra color values computed once
@@ -190,6 +191,7 @@ const handleQC = async (action) => {
   const creationId =
     generatedVideo?.creation_id || previewVideoData?.creation_id;
 
+    console.log(previewVideoData)
   if (!creationId) {
     toast({ title: "No creation ID found", status: "error" });
     return;
@@ -201,33 +203,68 @@ const handleQC = async (action) => {
       manual_qc: action,
       user_id: selectedUser?.user_id,
     };
+
     await axiosInstance.post(`/manual_qc_video/`, payload);
+
+    // COMMON RESET FUNCTION
+    const resetState = () => {
+      setGeneratedVideo(null);
+      setProcessing(false);
+      setSelected([]);
+      setIsPreviewOpen(false);
+    };
 
     if (action === "accept") {
       toast({
         title: "Video accepted successfully ✅",
         status: "success",
+        duration: 3000,
+        position: "top-right",
       });
-      setGeneratedVideo(null);
-      setSelected([]);
-      setProcessing(false);
-      setIsPreviewOpen(false);
-    } else if (action === "recreate") {
-      toast({
-        title: "Video sent for recreation 🔄 — please select new clips",
-        status: "info",
-      });
-      setGeneratedVideo(null);
-      setProcessing(false);
-      setSelected([]);
-      setIsPreviewOpen(false);
-      fetchVideos(1, searchTerm); // refresh list
+
+      resetState();
     }
+
+    else if (action === "recreate") {
+  toast({
+    title: "Sent for recreation 🔄 — Please select new clips",
+    status: "info",
+    duration: 3000,
+    position: "top-right",
+  });
+
+  const sourceVideoData = generatedVideo || previewVideoData;
+  const imageUrls = sourceVideoData?.image_urls || [];
+
+  if (imageUrls.length > 0) {
+    const formattedImages = imageUrls.map((url, index) => ({
+      id: `${Date.now()}-${index}`,
+      url,
+    }));
+    setImages(formattedImages);
+    console.log("🖼 Set Images from API:", formattedImages);
+  } else {
+    console.warn("⚠️ No image URLs available for recreate flow");
+  }
+
+  setlastimagetovideo(true);
+  setActiveTab("Image to Video");
+
+  resetState();
+  fetchVideos(1, searchTerm);
+}
+
   } catch (err) {
     console.error("QC error:", err);
-    toast({ title: "Error submitting QC", status: "error" });
+    toast({
+      title: "Error submitting QC 🚫",
+      status: "error",
+      duration: 3000,
+      position: "top-right",
+    });
   }
 };
+
 
 
   // ✅ Video Preview Handler
@@ -546,7 +583,7 @@ const openPreview = useCallback((e, video) => {
                   <Button colorScheme="green" onClick={() => handleQC("accept")}>
                     Accept
                   </Button>
-                  <Button colorScheme="red" onClick={() => handleQC("recreate")}>
+                  <Button colorScheme="red" onClick={() => handleQC("recreate",previewVideo)}>
                     Recreate
                   </Button>
                 </Flex>

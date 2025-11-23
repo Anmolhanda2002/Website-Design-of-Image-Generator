@@ -8,6 +8,7 @@ import CreateNnewPassword from 'views/auth/forgetpassword/Create_new_password';
 import { SelectedUserProvider } from 'utils/SelectUserContext';
 import {  useColorMode } from "@chakra-ui/react";
 // Lazy load layouts and pages
+import Swal from "sweetalert2";
 const AuthLayout = lazy(() => import('./layouts/auth'));
 const AdminLayout = lazy(() => import('./layouts/admin'));
 const VideoLayout = lazy(() => import('./layouts/VedioGeneration/Index.jsx'));
@@ -17,7 +18,8 @@ const NotFound = lazy(() => import('views/404Page'));
 export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
 
-
+const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
 
   function ThemeWrapper({ children }) {
   const { colorMode } = useColorMode();
@@ -28,6 +30,64 @@ export default function Main() {
 
   return children;
 }
+
+
+useEffect(() => {
+  let hasShownOffline = false;
+  let hasShownOnline = true; // 💡 assume initially online
+
+  const showOfflineAlert = () => {
+    Swal.fire({
+      title: "No Internet!",
+      text: "Please check your connection.",
+      icon: "warning",
+      allowOutsideClick: false,
+      background: isDark ? "#14225C" : "#fff",
+      color: isDark ? "#fff" : "#000",
+      confirmButtonColor: isDark ? "#4A6CFF" : "#3085d6",
+    });
+  };
+
+  const showOnlineAlert = () => {
+    Swal.fire({
+      title: "Back Online!",
+      text: "Internet restored.",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+      background: isDark ? "#14225C" : "#fff",
+      color: isDark ? "#fff" : "#000",
+    });
+  };
+
+  const handleConnectionChange = () => {
+    if (!navigator.onLine) {
+      if (!hasShownOffline) {
+        showOfflineAlert();
+        hasShownOffline = true;
+        hasShownOnline = false;
+      }
+    } else {
+      if (!hasShownOnline) {
+        showOnlineAlert();
+        hasShownOnline = true;
+        hasShownOffline = false;
+      }
+    }
+  };
+
+  // Initial check
+  handleConnectionChange();
+
+  window.addEventListener("online", handleConnectionChange);
+  window.addEventListener("offline", handleConnectionChange);
+
+  return () => {
+    window.removeEventListener("online", handleConnectionChange);
+    window.removeEventListener("offline", handleConnectionChange);
+  };
+}, [isDark]);
+
 
   return (
     <UserProvider>
