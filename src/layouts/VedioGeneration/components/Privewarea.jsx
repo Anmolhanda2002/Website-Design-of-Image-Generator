@@ -762,91 +762,104 @@ const handleSubmitLifestyleVideo = async () => {
   {/* Input + Images */}
   {activeTab === "Resize Image" ? (
     // 🔹 Resize Image Section
-    <Flex
-      direction="column"
-      bg={panelBg}
-      borderRadius="lg"
-      border="1px solid"
-      borderColor={borderColor}
-      boxShadow="sm"
-      p={3}
-      gap={3}
-    >
-      <Textarea
-        placeholder="Write something..."
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={2}
-        resize="none"
-        bg={bgColor}
-        borderColor={borderColor}
-        fontSize="sm"
-        p={2}
-        _focus={{
-          borderColor: "blue.400",
-          boxShadow: "0 0 0 1px #4299E1",
-        }}
+ <Flex
+  direction="column"
+  bg={panelBg}
+  borderRadius="lg"
+  border="1px solid"
+  borderColor={borderColor}
+  boxShadow="sm"
+  p={3}
+  gap={3}
+>
+  <Textarea
+    placeholder="Write something..."
+    value={text}
+    onChange={(e) => setText(e.target.value)}
+    rows={2}
+    resize="none"
+    bg={bgColor}
+    borderColor={borderColor}
+    fontSize="sm"
+    p={2}
+    _focus={{
+      borderColor: "blue.400",
+      boxShadow: "0 0 0 1px #4299E1",
+    }}
+  />
+
+  <Flex align="center" gap={3}>
+    {/* Upload Button */}
+    <label htmlFor="file-upload-single">
+      <IconButton
+        as="span"
+        icon={uploading ? <Spinner size="sm" /> : <AddIcon />}
+        aria-label="Upload"
+        bg="blue.500"
+        color="white"
+        borderRadius="md"
+        size="sm"
+        _hover={{ bg: "blue.600" }}
+        isDisabled={uploading}
       />
+    </label>
 
-      <Flex justify="space-between" align="center" gap={2}>
-        <label htmlFor="file-upload-single">
-          <IconButton
-            as="span"
-            icon={uploading ? <Spinner size="sm" /> : <AddIcon />}
-            aria-label="Upload"
-            bg="blue.500"
-            color="white"
-            borderRadius="md"
-            size="sm"
-            _hover={{ bg: "blue.600" }}
-            isDisabled={uploading}
-          />
-        </label>
-        <input
-          id="file-upload-single"
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={handleImageChangeSingle}
+    <input
+      id="file-upload-single"
+      type="file"
+      accept="image/*"
+      style={{ display: "none" }}
+      onChange={handleImageChangeSingle}
+    />
+
+    {/* ⬅️ Image now appears directly after the + button */}
+    {images[0] && (
+      <Box position="relative">
+        <Image
+          src={images[0].url}
+          alt="preview"
+          boxSize="50px"
+          objectFit="cover"
+          borderRadius="sm"
+          border="1px solid"
+          borderColor={borderColor}
         />
 
-        <Box flex="1" h="60px" display="flex" alignItems="center" justifyContent="center">
-          {images[0] && (
-            <Image
-              src={images[0].url}
-              alt="preview"
-              boxSize="50px"
-              objectFit="cover"
-              borderRadius="sm"
-              border="1px solid"
-              borderColor={borderColor}
-            />
-          )}
-        </Box>
-
-{(generatedImage || resizedImage) && activeTab !== "Image to Video" && (
-  <Button
-    mt={3}
-    colorScheme="blue"
-    size="sm"
-    onClick={() => handleUseInImageToVideo(resizedImage || generatedImage)}
-  >
-    Use this image in Image to Video
-  </Button>
-)}
         <IconButton
-          icon={submitting ? <Spinner size="sm" /> : <ArrowUpIcon />}
-          aria-label="Send"
-          bg="green.500"
+          icon={<CloseIcon boxSize={2} />}
+          w="14px"
+          h="14px"
+          minW="14px"
+          position="absolute"
+          top="-4px"
+          right="-4px"
+          bg="red.500"
           color="white"
-          borderRadius="md"
-          size="sm"
-          _hover={{ bg: "green.600" }}
-          onClick={handleSubmit}
-          isDisabled={submitting || uploading}
+          borderRadius="full"
+          onClick={() => handleRemoveImage(images[0].id)}
         />
-      </Flex>
-    </Flex>
+      </Box>
+    )}
+
+    {/* Push Send button to the right */}
+    <Flex flex="1" />
+
+    <IconButton
+      icon={submitting ? <Spinner size="sm" /> : <ArrowUpIcon />}
+      aria-label="Send"
+      bg="green.500"
+      color="white"
+      borderRadius="md"
+      size="sm"
+      ml="auto"
+      _hover={{ bg: "green.600" }}
+      onClick={handleSubmit}
+      isDisabled={submitting || uploading}
+    />
+  </Flex>
+</Flex>
+
+
   ) : activeTab === "Image to Video" ? (
     // 🎥 Image to Video Section
  <Flex
