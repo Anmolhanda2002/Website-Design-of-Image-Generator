@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { FiUpload, FiSend } from "react-icons/fi";
 import axiosInstance from "utils/AxiosInstance";
-
+import Swal from "sweetalert2";
 const BulkImageCreation = ({
   selectedUser,
   bulkImageData,
@@ -314,52 +314,104 @@ const BulkImageCreation = ({
   /* ------------------------------------------
       LIFESTYLE API (shared for both modes)
   ------------------------------------------- */
-  const handleGenerateLifestyle = async () => {
-    if (!selectedImage) {
-      toast({ title: "Select an image first", status: "warning" });
-      return;
-    }
+ const handleGenerateLifestyle = async () => {
+  if (!selectedImage) {
+    toast({ title: "Select an image first", status: "warning" });
+    return;
+  }
 
-    setLifestyleLoading(true);
+  const shotName = shotMapping[selectedImage];
+  if (!shotName) {
+    toast({ title: "No matching shot name found", status: "error" });
+    return;
+  }
 
-    const shotName = shotMapping[selectedImage];
+  // Fetch guidelines from API before popup
+  let guidelineOptions = "<option value=''>Default (Current Guideline)</option>";
 
-    if (!shotName) {
-      toast({ title: "No matching shot name found", status: "error" });
-      setLifestyleLoading(false);
-      return;
-    }
+  try {
+        const user = JSON.parse(localStorage.getItem("user"));
+          const selected = JSON.parse(localStorage.getItem("selected_user"));
+          const userId = selected?.user_id || user?.user_id;
+    
+          const guidelineRes = await axiosInstance.get("/list_active_image_guidelines/", {
+            params: {
+              name: "",
+              user_id: userId,
+              limit: 50,
+              page: 1,
+            },
+          });
+    const guidelineList = Array.isArray(guidelineRes.data?.results)
+          ? guidelineRes.data.results
+          : Array.isArray(guidelineRes.data)
+          ? guidelineRes.data
+          : [];
 
-    const body = {
-      user_id: selectedUser?.user_id,
-      session_id: sessionId,
-      source_shot: shotName,
-      model: 123,
-      image_guideline_id: bulkImageData.image_guideline_id,
-    };
+    guidelineList.forEach((gd) => {
+      guidelineOptions += `<option value="${gd.guideline_id}">${gd.name}</option>`;
+    });
+  } catch (error) {
+    console.error("Failed loading guidelines", error);
+  }
 
-    try {
-      const res = await axiosInstance.post(
-        "/factory_generate_bulk_lifestyle_shots/",
-        body
-      );
+  // Popup with dropdown
+  const { value: selectedGuideline } = await Swal.fire({
+    title: "Change Guideline",
+    html: `
+      <select id="guidelineDropdown" class="swal2-select">
+        ${guidelineOptions}
+      </select>
+    `,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "OK",
+    cancelButtonText: "Cancel",
+    preConfirm: () => {
+      const select = document.getElementById("guidelineDropdown");
+      return select.value;
+    },
+  });
 
-      const data = res.data.data;
-      const lifestyleUrls = Object.values(data.image_urls).filter((url) => url !== null);
+  setLifestyleLoading(true);
 
-      setLifestyleImages(lifestyleUrls);
-      setPreviewImages(lifestyleUrls);
-      setSelectedImage(lifestyleUrls[0]);
+  const guidelineToSend =
+    selectedGuideline && selectedGuideline !== ""
+      ? selectedGuideline // user-selected guideline
+      : bulkImageData?.image_guideline_id; // default one
 
-      setIsLifestyleDone(true);
-
-      toast({ title: "Lifestyle Generated!", status: "success" });
-    } catch (err) {
-      toast({ title: "Lifestyle Generation Failed", status: "error" });
-    } finally {
-      setLifestyleLoading(false);
-    }
+  const body = {
+    user_id: selectedUser?.user_id,
+    session_id: sessionId,
+    source_shot: shotName,
+    model: 123,
+    image_guideline_id: guidelineToSend,
   };
+
+  try {
+    const res = await axiosInstance.post(
+      "/factory_generate_bulk_lifestyle_shots/",
+      body
+    );
+
+    const data = res.data.data;
+    const lifestyleUrls = Object.values(data.image_urls).filter((url) => url);
+
+    setLifestyleImages(lifestyleUrls);
+    setPreviewImages(lifestyleUrls);
+    setSelectedImage(lifestyleUrls[0]);
+
+    setIsLifestyleDone(true);
+
+    // Swal.fire("Success!", "Lifestyle Generated Successfully!", "success");
+  } catch (err) {
+    console.log(err);
+    Swal.fire("Failed!", err?.response?.data?.message, "error");
+  } finally {
+    setLifestyleLoading(false);
+  }
+};
+
 
   /* ------------------------------------------
       CLEAR ALL

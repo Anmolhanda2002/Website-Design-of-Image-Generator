@@ -463,6 +463,9 @@ color={textcolor}
   >
     <option value="top">Top</option>
      <option value="bottom">Bottom</option>
+      <option value="ethnic">Ethnic</option>
+       <option value="dress">Dress</option>
+       <option value="innerwear">Innerwear</option>
     {/* <option value="jeans">Jeans</option>
     <option value="tshirt">T-Shirt</option>
     <option value="kurti">Kurti</option>

@@ -511,7 +511,9 @@ const handleSubmitLifestyleVideo = async () => {
       payload
     );
 
+    const apiMessage = res?.data?.message || "";     // <<--- API message
     const data = res?.data?.data;
+
     const total = data?.total_images || 0;
     const success = data?.successful_requests || 0;
     const failed = data?.failed_requests || 0;
@@ -519,9 +521,8 @@ const handleSubmitLifestyleVideo = async () => {
     // 🛑 Case 1 — All Failed
     if (success === 0) {
       toast({
-        title: "❌ Video Creation Failed",
-        description:
-          "All selected images did not match our quality rules.\nTry different images or guidelines.",
+        title: "❌ Failed",
+        description: apiMessage,
         status: "error",
         duration: 6000,
         isClosable: true,
@@ -530,9 +531,6 @@ const handleSubmitLifestyleVideo = async () => {
 
       setVideoStatus("failed");
       setGeneratedVideo(null);
-      // setBackgroundMessage(
-      //   "❌ No videos could be processed. Select different scene compositions and try again."
-      // );
       setSubmitting(false);
       return;
     }
@@ -540,45 +538,41 @@ const handleSubmitLifestyleVideo = async () => {
     // ⚠️ Case 2 — Partially Success
     if (failed > 0 && success > 0) {
       toast({
-        title: "⚠️ Some Videos Couldn't Be Made",
-        description: `🎬 ${success}/${total} are being created.\n❌ ${failed} images were not valid for video.`,
+        title: "⚠️ Partial Success",
+        description: apiMessage,
         status: "warning",
         duration: 6000,
         isClosable: true,
         position: "top-right",
       });
 
-      setBackgroundMessage(
-        `🎬 Your request is accepted!\n${success} video(s) are now processing in the background.\n\nNote: ${failed} image(s) were skipped due to validation rules.`
-      );
+      setBackgroundMessage(apiMessage);
     }
 
-    // 🎉 Case 3 — All Good
+    // 🎉 Case 3 — All Success
     if (success === total) {
       toast({
-        title: "🎉 Video Creation Started!",
-        description: "Your videos are being created in background.",
+        title: "🎉 Success",
+        description: apiMessage,
         status: "success",
         duration: 4000,
         isClosable: true,
         position: "top-right",
       });
 
-      setBackgroundMessage(
-        `🎬 Great! All selected images are processing into videos.\nYou can check Video Assets after some time.`
-      );
+      setBackgroundMessage(apiMessage);
     }
 
-    // Common Successful Flow
+    // Common successful flow
     setVideoStatus("background-processing");
     setGeneratedVideo(null);
 
   } catch (err) {
+    const apiError = err?.response?.data?.message || "We couldn't start video creation.";
+
     toast({
       title: "🚫 Something Went Wrong",
-      description:
-        err?.response?.data?.message ||
-        "We couldn't start video creation. Please try again.",
+      description: apiError,
       status: "error",
       duration: 5000,
       isClosable: true,
@@ -587,13 +581,12 @@ const handleSubmitLifestyleVideo = async () => {
 
     setVideoStatus("failed");
     setGeneratedVideo(null);
-    setBackgroundMessage(
-      "❌ Video request failed. Please try again in a few minutes."
-    );
+    setBackgroundMessage(apiError);
   }
 
   setSubmitting(false);
 };
+
 
 
 
@@ -930,7 +923,7 @@ const handleSubmitLifestyleVideo = async () => {
         mt={3}
         colorScheme="green"
         size="sm"
-        isDisabled={selectedCompositions.length === 0 || submitting}
+        // isDisabled={selectedCompositions.length === 0 || submitting}
         onClick={handleSubmitLifestyleVideo}
       >
         {submitting ? <Spinner size="sm" /> : "Generate Video"}
