@@ -315,7 +315,7 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
               colorScheme="blue"
               onClick={handleAddMusicSubmit}
               isLoading={submitting}
-              isDisabled={!selectedJob}
+              
             >
               Add Music Again
             </Button>

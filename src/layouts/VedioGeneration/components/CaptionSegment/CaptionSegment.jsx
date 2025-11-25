@@ -231,7 +231,7 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
           onClick={handleSubmit}
           isLoading={isSubmitting}
           loadingText="Submitting..."
-          isDisabled={!selectedVideo}
+          // isDisabled={!selectedVideo}
           leftIcon={isSubmitting ? undefined : <MdSend size={18} />}
         >
           Submit Captions

@@ -307,7 +307,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
           colorScheme="blue"
           isLoading={submitting}
           onClick={handleMergeSubmit}
-          isDisabled={!selectedVideo || polling}
+          isDisabled={ polling}
         >
           Start Merge
         </Button>
