@@ -297,7 +297,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   );
 
   return (
-    <Flex direction="column" w="100%" p={6} h="100vh">
+    <Flex direction="column" w="100%" p={6} h="100vh" mb={10}>
       <Flex justify="space-between" align="center">
         <Text fontSize="2xl" fontWeight="bold">
           Captioned Videos
@@ -313,7 +313,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         </Button>
       </Flex>
 
-      <Box mt={4} flex="1" overflowY="auto" pr={2}>
+      <Box mt={4} flex="1" mb={10} pr={2}>
         {loading ? (
           <Flex h="65vh" justify="center" align="center">
             <Spinner size="xl" />
