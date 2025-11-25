@@ -17,9 +17,12 @@ const NotFound = lazy(() => import('views/404Page'));
 
 export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
-
-const { colorMode } = useColorMode();
-const isDark = colorMode === "dark";
+  const [themes,setthemes]=useState("")
+  useEffect(()=>{
+    const theme = localStorage.getItem("chakra-ui-color-mode")
+setthemes(theme)
+    console.log("theme",theme)
+  })
 
   function ThemeWrapper({ children }) {
   const { colorMode } = useColorMode();
@@ -32,10 +35,16 @@ const isDark = colorMode === "dark";
 }
 
 
+const { colorMode } = useColorMode();
+const isDark = themes == "dark";
+console.log(currentTheme)
+
+
+
 useEffect(() => {
   let hasShownOffline = false;
   let hasShownOnline = true; // 💡 assume initially online
-
+ console.log(isDark)
   const showOfflineAlert = () => {
     Swal.fire({
       title: "No Internet!",

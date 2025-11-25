@@ -496,6 +496,17 @@ const handleSubmitLifestyleVideo = async () => {
     return;
   }
 
+  // Start loading
+  setSubmitting(true);
+  setIsPreviewLoading(true);
+
+  // Reset visuals
+  setGeneratedVideo(null);
+  setGeneratedImage(null);
+  setResizedImage(null);
+  setBackgroundMessage(null);
+  setVideoStatus(null);
+
   const payload = {
     user_id: selectedUser.user_id,
     lifestyle_id: imageToVideoSettings.lifestyle_id,
@@ -503,15 +514,13 @@ const handleSubmitLifestyleVideo = async () => {
     ...imageToVideoSettings,
   };
 
-  setSubmitting(true);
-
   try {
     const res = await axiosInstance.post(
       "/factory_videos_from_lifestyle_shots/",
       payload
     );
 
-    const apiMessage = res?.data?.message || "";     // <<--- API message
+    const apiMessage = res?.data?.message || "";
     const data = res?.data?.data;
 
     const total = data?.total_images || 0;
@@ -530,7 +539,7 @@ const handleSubmitLifestyleVideo = async () => {
       });
 
       setVideoStatus("failed");
-      setGeneratedVideo(null);
+      setBackgroundMessage(apiMessage);
       setSubmitting(false);
       return;
     }
@@ -563,12 +572,21 @@ const handleSubmitLifestyleVideo = async () => {
       setBackgroundMessage(apiMessage);
     }
 
-    // Common successful flow
+    // ⭐ Common Successful Flow — VIDEO PROCESSING NOW IN BACKGROUND
     setVideoStatus("background-processing");
+
+    // Show the new UI message in preview
+    setBackgroundMessage(
+      "Your video is processing in the background.\nIt may take some time.\nOnce ready, you can check it in Assets."
+    );
+
     setGeneratedVideo(null);
+    setIsPreviewLoading(false);
 
   } catch (err) {
-    const apiError = err?.response?.data?.message || "We couldn't start video creation.";
+    const apiError =
+      err?.response?.data?.message ||
+      "We couldn't start video creation.";
 
     toast({
       title: "🚫 Something Went Wrong",
@@ -580,12 +598,12 @@ const handleSubmitLifestyleVideo = async () => {
     });
 
     setVideoStatus("failed");
-    setGeneratedVideo(null);
     setBackgroundMessage(apiError);
   }
 
   setSubmitting(false);
 };
+
 
 
 
@@ -649,7 +667,11 @@ const handleSubmitLifestyleVideo = async () => {
     p={4}
   >
     {/* 🌀 Shimmer Loader */}
-    {isPreviewLoading || (videoStatus === "processing" && !generatedVideo && !generatedImage && !resizedImage) ? (
+    {isPreviewLoading ||
+    (videoStatus === "processing" &&
+      !generatedVideo &&
+      !generatedImage &&
+      !resizedImage) ? (
       <Box
         w="100%"
         h="100%"
@@ -675,19 +697,19 @@ const handleSubmitLifestyleVideo = async () => {
           filter="blur(12px)"
           opacity={0.9}
         />
-<Text
-  color="gray.500"
-  fontSize="md"
-  fontWeight="medium"
-  textAlign="center"
-  whiteSpace="pre-line"
->
-  {backgroundMessage ||
-    `⏳ Processing your ${
-      activeTab === "Image to Video" ? "video" : "image"
-    }...`}
-</Text>
 
+        <Text
+          color="gray.500"
+          fontSize="md"
+          fontWeight="medium"
+          textAlign="center"
+          whiteSpace="pre-line"
+        >
+          {backgroundMessage ||
+            `⏳ Processing your ${
+              activeTab === "Image to Video" ? "video" : "image"
+            }...`}
+        </Text>
       </Box>
     ) : generatedVideo ? (
       // 🎬 Video preview
@@ -705,6 +727,7 @@ const handleSubmitLifestyleVideo = async () => {
             display: "block",
           }}
         />
+
         {videoStatus !== "completed" && (
           <Text
             position="absolute"
@@ -717,13 +740,11 @@ const handleSubmitLifestyleVideo = async () => {
             py={1}
             borderRadius="md"
             fontSize="sm"
-          >
-           
-          </Text>
+          ></Text>
         )}
       </Box>
     ) : resizedImage || generatedImage ? (
-      // 🖼️ Image preview (with fade-in)
+      // 🖼️ Image preview
       <Box position="relative" w="100%" textAlign="center">
         <Box
           as="img"
@@ -741,13 +762,28 @@ const handleSubmitLifestyleVideo = async () => {
           onLoad={(e) => (e.target.style.opacity = 1)}
         />
       </Box>
+    ) : videoStatus === "background-processing" ? (
+      // ⭐ NEW message for background processing
+      <Flex
+        direction="column"
+        align="center"
+        textAlign="center"
+        p={4}
+        gap={2}
+      >
+        {/* <Spinner size="md" color="green.300" /> */}
+        <Text color="gray.400" fontSize="md" whiteSpace="pre-line">
+          Your video is processing in the background.{"\n"}
+          It may take some time.{"\n"}
+          Once ready, you can check it in **Assets**.
+        </Text>
+      </Flex>
     ) : (
-      <Text color="gray.500" fontSize="md">
-        🎬 Preview Area
-      </Text>
+      <Text color="gray.500" fontSize="md">🎬 Preview Area</Text>
     )}
   </Flex>
 </Box>
+
 
 
 

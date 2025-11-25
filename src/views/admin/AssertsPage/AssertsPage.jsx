@@ -31,6 +31,7 @@ import LifeStyleCreation from "./LifeStyleCreation";
   import { Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
+import MusicVideo  from "./MusicPage"
 const AssetsPage = () => {
   const toast = useToast();
 const navigate = useNavigate();
@@ -324,6 +325,7 @@ const renderDetails = (item) => {
             <option value="4">Assets Page</option>
             <option value="5">Bulk Image Creation</option>
             <option value="6">LifeStyle Creation</option>
+            <option value="7">Music Video</option>
           </Select>
 
           <InputGroup maxW={{ base: "100%", sm: "200px", md: "200px" }}>
@@ -348,7 +350,9 @@ const renderDetails = (item) => {
         <BulkImageCreation userId={activeUserId} />
       ) : selectedOption === "6" ? (
         <LifeStyleCreation userId={activeUserId} />
-      ) : (
+      )  : selectedOption === "7" ? (
+        <MusicVideo userId={activeUserId} />
+      ): (
         <>
           {assets.length === 0 && !loading ? (
             <Flex direction="column" align="center" justify="center" mt={10}>

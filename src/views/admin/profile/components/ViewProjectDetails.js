@@ -259,11 +259,11 @@ const navigate = useNavigate();
                   <Text fontWeight="bold" mb={2}>
                     Video Preview
                   </Text>
-                  {creation.processed_video_url ? (
+                  {creation.cloudinary_video_url ? (
                     <AspectRatio ratio={16 / 9}>
                       <video
                         controls
-                        src={creation.processed_video_url}
+                        src={creation.cloudinary_video_url}
                         style={{
                           borderRadius: "10px",
                           width: "100%",

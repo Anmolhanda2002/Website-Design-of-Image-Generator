@@ -56,7 +56,7 @@ const initialImageToVideoSettings = {
     customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
     tags: "", sector: "", goal: "", key_instructions: "", consumer_message: "", 
     M_key: "", resize: false, resize_width: "", resize_height: "", 
-    duration: "5s", aspect_ratio: "16:9",
+    duration: "5", aspect_ratio: "16:9",
      video_type: "", project_id:"",lifestyle_id:"",setlifestyleid:false
 };
 const initialCaptionData = {
@@ -69,6 +69,11 @@ const initialMergeData = {
     brand_outro_video_url: "", custom_resize: false, mearg_id: "", 
     height: "", width: "",
 };
+
+
+const initialMergeMusicData = {
+  merge_id:"",user_id:"",brand_music_url:"",brand_outro_music:""
+}
 
 const initialBulkImageData = {
   user_id: "",
@@ -113,6 +118,20 @@ export default function PixVerseLayout() {
   const placeholderColor = useColorModeValue("gray.500", "gray.300");
   const iconColor = useColorModeValue("gray.500", "gray.400");
   const bg=useColorModeValue("gray.50", "#14225C")
+  
+
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const user = localStorage.getItem("user");
+
+    if (!token || !user) {
+      localStorage.clear(); // remove any partial data
+      navigate("/auth/sign-in");
+    }
+  }, []);
+
+
 
   console.log(initialImageToVideoSettings.setlifestyleid)
     useEffect(() => {
@@ -213,7 +232,9 @@ useEffect(() => {
     const [MergeData, setMergeData] = useState(initialMergeData);
 const [resetTrigger, setResetTrigger] = useState(0);
 const [BulkData,setBulkData]=useState(initialBulkImageData);
+const [MusicData ,SetMusicData]=useState(initialMergeMusicData)
 // console.log(BulkData)
+
   const [generatedImage, setGeneratedImage] = useState("");
   const [resizedImage, setResizedImage] = useState("");
   const [generatedVideo, setGeneratedVideo] = useState(null);
@@ -659,7 +680,7 @@ useEffect(() => {
                             {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
                             {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
                             {activeTab === "Merge Video" && (<MergeVideo selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />)}
-                            {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} />}
+                            {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} MusicData={MusicData} SetMusicData={SetMusicData} />}
                         </Box>
                     ) : (
                         // Default Panel/Preview Layout for other tabs
@@ -719,12 +740,22 @@ useEffect(() => {
                                 <Panel selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
                             </Box>
                             {/* Preview Area */}
-                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
                                 <MergeVideo selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
                             </Box>
                         </Flex>
                     ) : activeTab === "Add Music" ? (
-                        <AddMusic selectedUser={selectedUser} />
+                                           <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel selectedUser={selectedUser}  MusicData={MusicData} SetMusicData={SetMusicData} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                                 <AddMusic selectedUser={selectedUser} MusicData={MusicData} SetMusicData={SetMusicData} />
+                            </Box>
+                        </Flex>
+                       
                     ) : 
                      activeTab === "Bulk Image" ? (
                                               <Flex flex="1" overflow="auto">
