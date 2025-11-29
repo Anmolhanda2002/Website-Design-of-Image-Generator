@@ -16,6 +16,7 @@ import {
   HStack,
   VStack,
   Tag,
+  Button
 } from "@chakra-ui/react";
 import { useParams, useLocation } from "react-router-dom";
 import axiosInstance from "utils/AxiosInstance";
@@ -87,6 +88,19 @@ const navigate = useNavigate();
         return "gray";
     }
   };
+
+const handleNavigation = (img) => {
+  navigate("/videocreate/createvideo", {
+    state: {
+      selectedItem: {
+        imageUrl: img,
+      },
+      activeTab: "Image to Video",   // ⭐ SEND TAB NAME
+      editpage: true,
+    },
+  });
+};
+
 
   return (
     <Box bg={bgColor} minH="100vh" py={10}>
@@ -168,6 +182,7 @@ const navigate = useNavigate();
                 </Text>
               )}
             </VStack>
+
           </VStack>
 
           {/* ✅ Owner Info */}
@@ -200,21 +215,35 @@ const navigate = useNavigate();
           Project Assets
         </Heading>
         {project.project_assets?.length ? (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={10}>
-            {project.project_assets.map((img, i) => (
-              <Box
-                key={i}
-                borderRadius="xl"
-                overflow="hidden"
-                boxShadow="md"
-                _hover={{ transform: "scale(1.02)", transition: "0.3s" }}
-              >
-                <AspectRatio ratio={16 / 9}>
-                  <Image src={img} alt={`Asset ${i + 1}`} objectFit="cover" />
-                </AspectRatio>
-              </Box>
-            ))}
-          </SimpleGrid>
+    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={10}>
+  {project.project_assets.map((img, i) => (
+    <Box
+      key={i}
+      borderRadius="xl"
+      overflow="hidden"
+      boxShadow="md"
+      position="relative"
+      _hover={{ transform: "scale(1.02)", transition: "0.3s" }}
+    >
+      <AspectRatio ratio={16 / 9}>
+        <Image src={img} alt={`Asset ${i + 1}`} objectFit="cover" />
+      </AspectRatio>
+
+      {/* ⭐ BUTTON ON EACH IMAGE */}
+      <Button
+        position="absolute"
+        bottom="3"
+        right="3"
+        size="sm"
+        colorScheme="blue"
+        onClick={() => handleNavigation(img)}
+      >
+        Re-Create
+      </Button>
+    </Box>
+  ))}
+</SimpleGrid>
+
         ) : (
           <Text color="gray.500" mb={10}>
             No assets available.

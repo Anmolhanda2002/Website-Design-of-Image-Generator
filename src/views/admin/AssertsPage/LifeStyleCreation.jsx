@@ -400,7 +400,69 @@ const LifestyleShots = ({ userId }) => {
                 </SimpleGrid>
 
                 {selectedImage && (
+
                   <Flex gap={3} pt={3}>
+                  {selectedImage && (
+  <Modal
+    isOpen={!!selectedImage}
+    onClose={() => setSelectedImage(null)}
+    size="4xl"
+    motionPreset="none"
+  >
+    <ModalOverlay bg="rgba(0,0,0,0.85)" />
+    <ModalContent bg="gray.900" color="white" p={4} borderRadius="lg">
+      <ModalCloseButton color="white" />
+
+      <ModalBody>
+        <VStack spacing={5}>
+
+          {/* BIG IMAGE PREVIEW */}
+          <Image
+            src={selectedImage.image_url}
+            maxH="70vh"
+            objectFit="contain"
+            borderRadius="md"
+          />
+
+          {/* ACTION BUTTONS */}
+          <HStack spacing={4} pt={4}>
+            <Button
+              colorScheme="blue"
+              onClick={() => handleNavigation("imageToVideo", selectedImage)}
+            >
+              Create Video
+            </Button>
+
+            <Button
+              colorScheme="purple"
+              onClick={() => handleNavigation("imageCreation", selectedImage)}
+            >
+              Image Creation
+            </Button>
+
+            <Button
+              colorScheme="yellow"
+              onClick={() => handleNavigation("resize", selectedImage)}
+            >
+              Resize Image
+            </Button>
+<Button colorScheme="blue" onClick={openEditModal}>
+                      Edit
+                    </Button>
+            <Button
+              colorScheme="green"
+              onClick={() => handleDownload(selectedImage.image_url)}
+            >
+              Download
+            </Button>
+          </HStack>
+
+        </VStack>
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+)}
+
                     <Button colorScheme="blue" onClick={openEditModal}>
                       Edit
                     </Button>

@@ -13,6 +13,8 @@ import {
 import { FiUpload, FiSend } from "react-icons/fi";
 import axiosInstance from "utils/AxiosInstance";
 import Swal from "sweetalert2";
+import { useColorMode } from "@chakra-ui/react";
+
 const BulkImageCreation = ({
   selectedUser,
   bulkImageData,
@@ -38,7 +40,8 @@ const [isLoading, setIsLoading] = useState(false);
   // NEW STATES
   const [isFirstApiDone, setIsFirstApiDone] = useState(false);
   const [isLifestyleDone, setIsLifestyleDone] = useState(false);
-
+    const { colorMode } = useColorMode();
+const isDark = colorMode === "dark";
   // Background notice state — used when CSV submit returns status: true but no immediate images
   const [backgroundNotice, setBackgroundNotice] = useState(null);
 
@@ -123,72 +126,87 @@ const [isLoading, setIsLoading] = useState(false);
   /* ------------------------------------------
       IMAGE SUBMIT API
   ------------------------------------------- */
-  const handleSubmitImage = async () => {
-    try {
-      setIsProcessing(true);
-      setLifestyleImages([]);
-      setPreviewImages([]);
-      setBackgroundNotice(null);
-      setsubmitloading(true);
+const handleSubmitImage = async () => {
+  try {
+    setIsProcessing(true);
+    setLifestyleImages([]);
+    setPreviewImages([]);
+    setBackgroundNotice(null);
+    setsubmitloading(true);
 
-      const updatedData = {
-        ...bulkImageData,
-        model: Number(bulkImageData.model),
-        user_id: selectedUser?.user_id,
-        customer_id: `CRM-${selectedUser?.user_id}`,
-        product_id: generateShortUUID(),
+    const userId = selectedUser?.user_id;
+
+    const baseBody = {
+      user_id: userId,
+      model: Number(bulkImageData.model),
+      image_guideline_id: bulkImageData.image_guideline_id,
+      customer_id: `CRM-${userId}`,
+      product_id: generateShortUUID(),
+      product_name: bulkImageData.product_name,
+      product_type: bulkImageData.product_type,
+      shot_type: "studio_shots",
+      product_images: bulkImageData.product_images,
+    };
+
+    // ------------------------------------------
+    // 🔥 MODEL 456 → ADD model_config
+    // ------------------------------------------
+    if (bulkImageData.model === 456) {
+      baseBody.model_config = {
+        image_size: bulkImageData.image_size,
+        aspect_ratio: bulkImageData.aspect_ratio,
+        thinking_level: bulkImageData.thinking_level,
+        search_enabled: bulkImageData.search_enabled,
       };
-
-      const res = await axiosInstance.post(
-        "/factory_bulk_generate_product_shots/",
-        updatedData
-      );
-
-      const apiData = res?.data?.data;
-
-      if (!apiData) {
-        // if server returns status true but no data, show a notice
-        if (res?.data?.status === true) {
-          setBackgroundNotice(
-            res?.data?.message ||
-              "Processing started in background. Results will appear here when ready."
-          );
-        } else {
-          toast({ title: "Submit failed", status: "error" });
-        }
-        return;
-      }
-
-      // same processing as before
-      setSessionId(apiData.session_id);
-
-      const finalImages = Array.from(
-        new Set([
-          apiData.base_shot?.image_url,
-          ...((apiData.generated_shots || []).map((shot) => shot.image_url) || []),
-        ].filter(Boolean))
-      );
-
-      const mapping = {};
-      (apiData.generated_shots || []).forEach((s) => {
-        mapping[s.image_url] = s.shot_name;
-      });
-
-      setShotMapping(mapping);
-      setPreviewImages(finalImages);
-      setSelectedImage(finalImages[0]);
-
-      setIsFirstApiDone(true);
-      setIsLifestyleDone(false);
-
-      toast({ title: "Submitted Successfully", status: "success" });
-    } catch (err) {
-      toast({ title: "Submit Failed", status: "error" });
-    } finally {
-      setIsProcessing(false);
-      setsubmitloading(false);
     }
-  };
+
+    console.log("FINAL BODY SENT:", baseBody);
+
+    const res = await axiosInstance.post(
+      "/factory_bulk_generate_product_shots/",
+      baseBody
+    );
+
+    const apiData = res?.data?.data;
+
+    if (!apiData) {
+      setBackgroundNotice(
+        res?.data?.message ||
+          "Processing started in background. Results will appear here."
+      );
+      return;
+    }
+
+    setSessionId(apiData.session_id);
+
+    const finalImages = Array.from(
+      new Set([
+        apiData.base_shot?.image_url,
+        ...((apiData.generated_shots || []).map((s) => s.image_url) || []),
+      ].filter(Boolean))
+    );
+
+    const mapping = {};
+    apiData.generated_shots?.forEach((s) => {
+      mapping[s.image_url] = s.shot_name;
+    });
+
+    setShotMapping(mapping);
+    setPreviewImages(finalImages);
+    setSelectedImage(finalImages[0]);
+
+    setIsFirstApiDone(true);
+    setIsLifestyleDone(false);
+
+    toast({ title: "Submitted Successfully", status: "success" });
+  } catch (err) {
+    toast({ title: "Submit Failed", status: "error" });
+  } finally {
+    setIsProcessing(false);
+    setsubmitloading(false);
+  }
+};
+
 
 
   const handleImageSelect = (url) => {
@@ -336,7 +354,9 @@ setpreviewdata([])
   /* ------------------------------------------
       LIFESTYLE API (shared for both modes)
   ------------------------------------------- */
- const handleGenerateLifestyle = async () => {
+let lifestyleController = null;
+
+const handleGenerateLifestyle = async () => {
   if (!selectedImage) {
     toast({ title: "Select an image first", status: "warning" });
     return;
@@ -348,91 +368,209 @@ setpreviewdata([])
     return;
   }
 
-  // Fetch guidelines from API before popup
-  let guidelineOptions = "<option value=''>Default (Current Guideline)</option>";
+  // Detect App Theme (Chakra's color mode)
+  const isDark = colorMode === "dark";
+
+  // Common Swal Style for Dark/Light Mode
+  const swalStyles = `
+    .swal2-popup {
+      background: ${isDark ? "#14225C" : "#fff"} !important;
+      color: ${isDark ? "#fff" : "#000"} !important;
+      border-radius: 12px;
+    }
+
+    .swal2-title {
+      color: ${isDark ? "#fff" : "#000"} !important;
+    }
+
+    .swal2-html-container {
+      color: ${isDark ? "#fff" : "#000"} !important;
+    }
+
+    select, input {
+      background: ${isDark ? "#2D3748;" : "#fff"} !important;
+      color: ${isDark ? "#fff" : "#000"} !important;
+      border: 1px solid ${isDark ? "#2D3748;" : "#ccc"} !important;
+      border-radius: 6px;
+      padding: 6px;
+    }
+
+    .swal2-confirm {
+      background-color: ${isDark ? "#4d6bff" : "#1a66ff"} !important;
+      color: white !important;
+      border-radius: 6px !important;
+    }
+
+    .swal2-cancel {
+      background-color: ${isDark ? "#333" : "#d3d3d3"} !important;
+      color: ${isDark ? "#fff" : "#000"} !important;
+      border-radius: 6px !important;
+    }
+  `;
+
+  // Inject Dark/Light Mode Styles into HTML Head
+  const styleTag = document.createElement("style");
+  styleTag.innerHTML = swalStyles;
+  document.head.appendChild(styleTag);
+
+  // ===================================================
+  // LOAD GUIDELINES
+  // ===================================================
+  let guidelineOptions = `<option value="">Default (Current Guideline)</option>`;
 
   try {
-        const user = JSON.parse(localStorage.getItem("user"));
-          const selected = JSON.parse(localStorage.getItem("selected_user"));
-          const userId = selected?.user_id || user?.user_id;
-    
-          const guidelineRes = await axiosInstance.get("/list_active_image_guidelines/", {
-            params: {
-              name: "",
-              user_id: userId,
-              limit: 50,
-              page: 1,
-            },
-          });
-    const guidelineList = Array.isArray(guidelineRes.data?.results)
-          ? guidelineRes.data.results
-          : Array.isArray(guidelineRes.data)
-          ? guidelineRes.data
-          : [];
+    const user = JSON.parse(localStorage.getItem("user"));
+    const selected = JSON.parse(localStorage.getItem("selected_user"));
+    const userId = selected?.user_id || user?.user_id;
 
-    guidelineList.forEach((gd) => {
+    const guidelineRes = await axiosInstance.get(
+      "/list_active_image_guidelines/",
+      { params: { name: "", user_id: userId, limit: 50, page: 1 } }
+    );
+
+    (guidelineRes.data?.results || []).forEach((gd) => {
       guidelineOptions += `<option value="${gd.guideline_id}">${gd.name}</option>`;
     });
-  } catch (error) {
-    console.error("Failed loading guidelines", error);
+  } catch (e) {
+    console.log("Error loading guidelines:", e);
   }
 
-  // Popup with dropdown
-  const { value: selectedGuideline } = await Swal.fire({
-    title: "Change Guideline",
+  // ===================================================
+  // STEP 1 POPUP
+  // ===================================================
+  const firstPopup = await Swal.fire({
+    title: "Lifestyle Settings",
     html: `
-      <select id="guidelineDropdown" class="swal2-select">
-        ${guidelineOptions}
-      </select>
+      <div style="width:100%; max-width:350px; margin:auto;">
+
+        <label style="font-weight:600; margin-bottom:6px;">Guideline</label>
+        <select id="guideline" style="width:100%; height:38px;">
+          ${guidelineOptions}
+        </select>
+
+        <br/><br/>
+
+        <label style="font-weight:600; margin-bottom:6px;">Model</label>
+        <select id="model" style="width:100%; height:38px;">
+          <option value="123">Model 123 (Default)</option>
+          <option value="456">Model 456</option>
+        </select>
+
+      </div>
     `,
-    icon: "question",
+    width: 520,
+    customClass: { popup: "no-scroll-popup" },
+    background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
     showCancelButton: true,
-    confirmButtonText: "OK",
-    cancelButtonText: "Cancel",
-    preConfirm: () => {
-      const select = document.getElementById("guidelineDropdown");
-      return select.value;
-    },
+    confirmButtonText: "Next",
   });
 
-  setLifestyleLoading(true);
+  if (!firstPopup.value) return;
 
-  const guidelineToSend =
-    selectedGuideline && selectedGuideline !== ""
-      ? selectedGuideline // user-selected guideline
-      : bulkImageData?.image_guideline_id; // default one
+  const guideline = document.getElementById("guideline").value;
+  const model = Number(document.getElementById("model").value);
 
+  // ===================================================
+  // STEP 2 POPUP (MODEL 456)
+  // ===================================================
+  let extraConfig = null;
+
+  if (model === 456) {
+    const secondPopup = await Swal.fire({
+      title: "Model 456 Settings",
+      html: `
+        <div style="width:100%; max-width:350px; margin:auto;">
+
+          <label style="font-weight:600;">Image Size</label>
+          <select id="imageSize" style="width:100%; height:38px;">
+            <option value="4K">4K</option>
+            <option value="2K">2K</option>
+            <option value="1080p">1080p</option>
+          </select>
+
+          <br/><br/>
+
+          <label style="font-weight:600;">Aspect Ratio</label>
+          <select id="aspect" style="width:100%; height:38px;">
+            <option value="9:16">9:16</option>
+            <option value="16:9">16:9</option>
+            <option value="1:1">1:1</option>
+          </select>
+
+        </div>
+      `,
+      width: 520,
+      background: isDark ? "#14225C" : "#fff",
+      color: isDark ? "#fff" : "#000",
+      showCancelButton: true,
+      confirmButtonText: "Generate",
+    });
+
+    if (!secondPopup.value) return;
+
+    extraConfig = {
+      image_size: document.getElementById("imageSize").value,
+      aspect_ratio: document.getElementById("aspect").value,
+    };
+  }
+
+  // ===================================================
+  // FINAL API BODY
+  // ===================================================
   const body = {
     user_id: selectedUser?.user_id,
     session_id: sessionId,
     source_shot: shotName,
-    model: 123,
-    image_guideline_id: guidelineToSend,
+    model,
+    image_guideline_id: guideline || bulkImageData?.image_guideline_id,
+    ...(model === 456
+      ? {
+          model_config: {
+            ...extraConfig,
+            search_enabled: true,
+            media_resolution: "media_resolution_high",
+          },
+        }
+      : {}),
   };
 
   try {
+    if (lifestyleController) lifestyleController.abort();
+    lifestyleController = new AbortController();
+    setLifestyleLoading(true);
+
     const res = await axiosInstance.post(
       "/factory_generate_bulk_lifestyle_shots/",
-      body
+      body,
+      { signal: lifestyleController.signal }
     );
 
     const data = res.data.data;
-    const lifestyleUrls = Object.values(data.image_urls).filter((url) => url);
+    const lifestyleUrls = Object.values(data.image_urls).filter(Boolean);
 
     setLifestyleImages(lifestyleUrls);
     setPreviewImages(lifestyleUrls);
     setSelectedImage(lifestyleUrls[0]);
-setpreviewdata(data)
+    setpreviewdata(data);
     setIsLifestyleDone(true);
-
-    // Swal.fire("Success!", "Lifestyle Generated Successfully!", "success");
   } catch (err) {
-    console.log(err);
-    Swal.fire("Failed!", err?.response?.data?.message, "error");
+    if (err.name !== "CanceledError") {
+      Swal.fire("Failed", err?.response?.data?.message, "error");
+    }
   } finally {
     setLifestyleLoading(false);
   }
 };
+
+
+
+
+
+
+
+
+
 
 
 
@@ -449,7 +587,7 @@ setpreviewdata(data)
 
     setIsFirstApiDone(false);
     setIsLifestyleDone(false);
-
+setLifestyleLoading(false);
     setBulkImageData((prev) => ({
       ...prev,
       product_images: { front: "", back: "" },
@@ -503,22 +641,29 @@ const handleEdit = async () => {
     return;
   }
 
-  const selectedImageData = previewdata.generated_variations.find(
-    (item) => item.image_url === selectedImage
-  );
+  // --- IMPORTANT ---
+  // Find the selected variation by URL
+  const selectedImageData =
+    previewdata.generated_variations.find(
+      (item) => item.image_url === selectedImage
+    ) ||
+    previewdata.generated_variations.find(
+      (item) => item.edited_image_url === selectedImage
+    );
 
   if (!selectedImageData) {
-    Swal.fire("Error", "Selected image not found in variations", "error");
+    Swal.fire("Error", "Selected image data missing", "error");
     return;
   }
 
-  // Open Swal modal for prompt & model selection
+  // Swal ask user for edit prompt
   const { value: editData } = await Swal.fire({
     title: "Edit Lifestyle Image",
     html: `
       <div style="display:flex; flex-direction:column; gap:10px; text-align:left;">
         <label style="font-weight:bold;">Prompt</label>
         <textarea id="editPrompt" class="swal2-textarea" rows="4" placeholder="Enter edit instructions"></textarea>
+
         <label style="font-weight:bold;">Model</label>
         <select id="editModel" class="swal2-select">
           <option value="123">123 - Nano Banana</option>
@@ -532,45 +677,60 @@ const handleEdit = async () => {
     preConfirm: () => {
       const prompt = document.getElementById("editPrompt").value.trim();
       const model = Number(document.getElementById("editModel").value);
-      if (!prompt) Swal.showValidationMessage("Prompt cannot be empty");
+      if (!prompt) {
+        Swal.showValidationMessage("Prompt cannot be empty");
+        return false;
+      }
       return { prompt, model };
-    },
-    didOpen: () => {
-      // Optional: Focus the textarea when modal opens
-      document.getElementById("editPrompt")?.focus();
     },
   });
 
-  if (!editData) return; // Cancel clicked
+  if (!editData) return;
+
+  // Loading Swal
+  Swal.fire({
+    title: "Processing...",
+    html: "Editing image... This may take 2–3 minutes.",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
 
   try {
-    // Show Swal loading while API is called
-    Swal.fire({
-      title: "Processing...",
-      html: "Please wait while the image is being edited.",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-
+    // Sending API request
     const body = {
       user_id: selectedUser?.user_id,
       lifestyle_id: previewdata.lifestyle_id,
-      composition_id: selectedImageData.composition_id,
+
+      // IMPORTANT: If edited_composition_id exists → use that for next edit
+      composition_id:
+        selectedImageData.edited_composition_id ||
+        selectedImageData.composition_id,
+
       prompt: editData.prompt,
       model: editData.model || 789,
     };
 
-    const res = await axiosInstance.post("/factory_edit_lifestyle_composition/", body);
+    const res = await axiosInstance.post(
+      "/factory_edit_lifestyle_composition/",
+      body
+    );
+
     const editedImageUrl = res.data?.data?.edited_image_url;
+    const editedCompositionId = res.data?.data?.edited_composition_id;
+    const originalCompositionId = res.data?.data?.original_composition_id;
 
-    if (!editedImageUrl) throw new Error("No edited image returned from API");
+    if (!editedImageUrl || !editedCompositionId) {
+      Swal.close();
+      Swal.fire("Error", "Invalid API response", "error");
+      return;
+    }
 
-    Swal.close(); // Close loading
+    Swal.close();
 
-    // Show preview of edited image
+    // Preview Swal
     const { isConfirmed } = await Swal.fire({
       title: "Edited Image Preview",
-      html: `<img src="${editedImageUrl}" style="width:100%; border-radius:8px;" />`,
+      html: `<img src="${editedImageUrl}" style="width:100%;border-radius:8px;" />`,
       showCancelButton: true,
       confirmButtonText: "Use this Image",
       cancelButtonText: "Cancel",
@@ -578,22 +738,39 @@ const handleEdit = async () => {
 
     if (!isConfirmed) return;
 
-    // Update preview images and selection
-    setPreviewImages((prev) =>
-      prev.map((img) => (img === selectedImage ? editedImageUrl : img))
-    );
+    // Add this new edited image as NEW VARIATION ✔
+    setpreviewdata((prev) => ({
+      ...prev,
+      generated_variations: [
+        ...prev.generated_variations,
+        {
+          image_url: editedImageUrl,
+          composition_id: editedCompositionId,
+          original_composition_id: originalCompositionId,
+          is_edited: true,
+        },
+      ],
+    }));
+
+    // Add to preview list
+    setPreviewImages((prev) => [...prev, editedImageUrl]);
+
+    // Select the new edited image
     setSelectedImage(editedImageUrl);
 
-    // Optionally regenerate bulk images
-    await handleGenerateBulkImages();
-
-    Swal.fire("Success!", "Edited image applied successfully", "success");
+    Swal.fire("Success!", "Image edited successfully!", "success");
   } catch (err) {
     Swal.close();
-    console.error(err);
-    Swal.fire("Error", err?.response?.data?.message || err.message || "Failed to edit image", "error");
+    Swal.fire(
+      "Error",
+      err?.response?.data?.message ||
+        err.message ||
+        "Failed to edit image",
+      "error"
+    );
   }
 };
+
 
 
 // Generate bulk lifestyle images
@@ -674,8 +851,9 @@ const handleGenerateBulkImages = async () => {
           >
             <Spinner size="lg" />
             <Text mt={3} fontSize="18px" fontWeight="600" color={textColor}>
-              Generating Product Shots...
-            </Text>
+  Your product shots are being generated. This may take 2–3 minutes.
+</Text>
+
           </Flex>
         )}
 
@@ -692,9 +870,9 @@ const handleGenerateBulkImages = async () => {
             align="center"
           >
             <Spinner size="md" />
-            <Text ml={3} color={textColor}>
-              Generating lifestyle...
-            </Text>
+           <Text ml={3} color={textColor}>
+  Creating lifestyle visuals… Estimated time: 2–3 minutes.
+</Text>
           </Flex>
         )}
 

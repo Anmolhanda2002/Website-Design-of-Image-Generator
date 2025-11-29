@@ -21,7 +21,7 @@ export default function Main() {
   useEffect(()=>{
     const theme = localStorage.getItem("chakra-ui-color-mode")
 setthemes(theme)
-    console.log("theme",theme)
+    // console.log("theme",theme)
   })
 
   function ThemeWrapper({ children }) {
@@ -37,14 +37,14 @@ setthemes(theme)
 
 const { colorMode } = useColorMode();
 const isDark = themes == "dark";
-console.log(currentTheme)
+// console.log(currentTheme)
 
 
 
 useEffect(() => {
   let hasShownOffline = false;
   let hasShownOnline = true; // 💡 assume initially online
- console.log(isDark)
+//  console.log(isDark)
   const showOfflineAlert = () => {
     Swal.fire({
       title: "No Internet!",

@@ -21,9 +21,11 @@ import {
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
 import NoImage from "assets/NoImage.jpg";
-
+import { useNavigate } from "react-router-dom";
+import { FiDownload } from "react-icons/fi";
 const BulkSessions = ({ userId }) => {
   const toast = useToast();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -115,6 +117,53 @@ const textColor = useColorModeValue("gray.700", "gray.300");
     setImageModalOpen(true);
   };
 
+
+
+  const getImageFromItem = (item) => {
+  return (
+    item?.image_url ||
+    item?.imageUrl ||
+    item?.generated_image_url ||
+    item?.resized_image ||
+    item?.original_image_url ||
+    item?.url ||
+    ""
+  );
+};
+
+// 🔹 FINAL NAVIGATION FUNCTION (3 TYPES)
+const handleNavigation = (type, item) => {
+  const imageUrl = getImageFromItem(item);
+
+  navigate("/videocreate/createvideo", {
+    state: {
+      activeTab:
+        type === "imageToVideo"
+          ? "Image to Video"
+          : type === "imageCreation"
+          ? "Image Creation"
+          : "Resize Image",
+
+      selectedItem: {
+        ...item,
+        imageUrl: imageUrl,
+      },
+
+      editpage: true,
+      option: type,
+    },
+  });
+};
+
+// 🔹 DOWNLOAD FUNCTION
+const handleDownload = (url) => {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "image.jpg";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
   return (
     <Box p={5}>
       <Text fontSize="2xl" fontWeight="bold" mb={5}>
@@ -272,38 +321,94 @@ const textColor = useColorModeValue("gray.700", "gray.300");
                   selectedSession.shots.map((shot) => {
                     const shotFailed = shot.status?.toLowerCase() === "failed";
                     return (
-                      <Box
-                        key={shot.composition_id}
-                        borderWidth="1px"
-                        borderRadius="md"
-                        overflow="hidden"
-                        cursor="pointer"
-                        onClick={() => handleImageClick(shot.image_url && !shotFailed ? shot.image_url : NoImage)}
-                      >
-                        <Image
-                          src={shot.image_url && !shotFailed ? shot.image_url : NoImage}
-                          alt={shot.display_name || "No Image"}
-                          fallback={<Skeleton height="250px" />}
-                          height="250px"
-                          width="100%"
-                          objectFit="contain"
-                        />
-                        <Box p={2}>
-                          <Text fontWeight="semibold">{shot.display_name || "No Name"}</Text>
-                          <HStack spacing={2} mt={1}>
-                            <Badge
-                              colorScheme={shotFailed ? "red" : shot.status === "completed" ? "green" : "yellow"}
-                            >
-                              {shot.status || "unknown"}
-                            </Badge>
-                            {shot.error && (
-                              <Text fontSize="sm" color="red.500">
-                                Error: {shot.error}
-                              </Text>
-                            )}
-                          </HStack>
-                        </Box>
-                      </Box>
+                    <Box
+  key={shot.composition_id}
+  borderWidth="1px"
+  borderRadius="md"
+  overflow="hidden"
+>
+  <Image
+    src={shot.image_url && !shotFailed ? shot.image_url : NoImage}
+    alt={shot.display_name || "No Image"}
+    fallback={<Skeleton height="250px" />}
+    height="250px"
+    width="100%"
+    objectFit="contain"
+    onClick={() => handleImageClick(shot.image_url)}
+    cursor="pointer"
+  />
+
+  <Box p={3}>
+    <Text fontWeight="semibold" mb={2}>
+      {shot.display_name || "No Name"}
+    </Text>
+
+    <HStack spacing={2} mb={3}>
+      <Badge
+        colorScheme={shotFailed ? "red" : shot.status === "completed" ? "green" : "yellow"}
+      >
+        {shot.status || "unknown"}
+      </Badge>
+      {shot.error && (
+        <Text fontSize="sm" color="red.500">
+          Error: {shot.error}
+        </Text>
+      )}
+    </HStack>
+
+    {/* ⭐ Three Editing Buttons */}
+    <Flex gap={2} mb={2} wrap="wrap">
+      <Text
+        px={3}
+        py={1}
+        borderRadius="md"
+        bg="blue.500"
+        color="white"
+        fontSize="sm"
+        cursor="pointer"
+        onClick={() => handleNavigation("imageToVideo", shot)}
+      >
+        Edit: Image to Video
+      </Text>
+
+      <Text
+        px={3}
+        py={1}
+        borderRadius="md"
+        bg="green.500"
+        color="white"
+        fontSize="sm"
+        cursor="pointer"
+        onClick={() => handleNavigation("imageCreation", shot)}
+      >
+        Edit: Image Creation
+      </Text>
+
+      <Text
+        px={3}
+        py={1}
+        borderRadius="md"
+        bg="purple.500"
+        color="white"
+        fontSize="sm"
+        cursor="pointer"
+        onClick={() => handleNavigation("resizeImage", shot)}
+      >
+        Edit: Resize Image
+      </Text>
+    </Flex>
+
+    {/* ⭐ Download Icon */}
+    <Flex justify="flex-end">
+      <FiDownload
+        size={22}
+        style={{ cursor: "pointer" }}
+        onClick={() => handleDownload(shot.image_url)}
+      />
+    </Flex>
+  </Box>
+</Box>
+
                     );
                   })
                 ) : (

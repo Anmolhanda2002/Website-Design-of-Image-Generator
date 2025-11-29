@@ -584,7 +584,7 @@ color={textcolor}
       </Box> */}
 
       {/* 🔢 Model */}
-      <Box>
+<Box>
   <Text fontWeight="bold">Model ID</Text>
 
   <Select
@@ -593,23 +593,128 @@ color={textcolor}
     onChange={(e) =>
       setBulkImageData((prev) => ({
         ...prev,
-        model: e.target.value,
+        model: Number(e.target.value), // ALWAYS NUMBER
       }))
     }
     mt={2}
-     sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
   >
-    <option value="123">Nano Banana</option>
-    <option value="456">Seeddream</option>
-    <option value="789">Nano banana pro</option>
+    <option value="123">Nano Banana (Model 123)</option>
+    <option value="456">Seeddream (Model 456)</option>
   </Select>
 </Box>
 
+{/* ================================
+   EXTRA FIELDS FOR MODEL 456
+   ================================ */}
+{bulkImageData.model === 456 && (
+  <>
+    {/* SIZE */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Image Size</Text>
+      <Select
+        value={bulkImageData.image_size || ""}
+        onChange={(e) =>
+          setBulkImageData((prev) => ({
+            ...prev,
+            image_size: e.target.value,
+          }))
+        }
+        mt={2}
+        placeholder="Select size"
+            sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+      >
+        <option value="2K">2K</option>
+        <option value="4K">4K</option>
+      </Select>
+    </Box>
+
+    {/* ASPECT RATIO */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Aspect Ratio</Text>
+      <Select
+        value={bulkImageData.aspect_ratio || ""}
+        onChange={(e) =>
+          setBulkImageData((prev) => ({
+            ...prev,
+            aspect_ratio: e.target.value,
+          }))
+        }
+        mt={2}
+        placeholder="Select Aspect Ratio"
+            sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+      >
+        <option value="9:16">9:16</option>
+        <option value="16:9">16:9</option>
+        <option value="1:1">1:1</option>
+      </Select>
+    </Box>
+
+    {/* THINKING LEVEL */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Thinking Level</Text>
+      <Select
+        value={bulkImageData.thinking_level || ""}
+        onChange={(e) =>
+          setBulkImageData((prev) => ({
+            ...prev,
+            thinking_level: e.target.value,
+          }))
+        }
+        mt={2}
+            sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </Select>
+    </Box>
+
+    {/* SEARCH ENABLED */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Search Enabled</Text>
+      <Select
+        value={bulkImageData.search_enabled ? "true" : "false"}
+        onChange={(e) =>
+          setBulkImageData((prev) => ({
+            ...prev,
+            search_enabled: e.target.value === "true",
+          }))
+        }
+        mt={2}
+            sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+      >
+        <option value="false">Disabled</option>
+        <option value="true">Enabled</option>
+      </Select>
+    </Box>
+  </>
+)}
 
     </VStack>
   );
@@ -652,6 +757,12 @@ case "Image Creation":
               }))
             }
             mt={2}
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
           >
             {guidelines.length > 0 ? (
               guidelines.map((g) => (
@@ -683,6 +794,12 @@ case "Image Creation":
               }))
             }
             mt={2}
+             sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
           >
             {useCases.length > 0 ? (
               useCases.map(({ label, value }) => (
@@ -697,6 +814,137 @@ case "Image Creation":
         )}
       </Box>
 
+
+
+     {/* Model */}
+<Box>
+  <Text fontWeight="bold">Model</Text>
+  <Select
+    placeholder="Select Model"
+    value={imageCreationSettings.model}
+    onChange={(e) =>
+      setImageCreationSettings((prev) => ({
+        ...prev,
+        model: e.target.value
+      }))
+    }
+    mt={2}
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+      }
+    }}
+  >
+    <option value="123">Nano Banana</option>
+    <option value="456">Seeddream</option>
+    <option value="789">Nano banana pro</option>
+  </Select>
+</Box>
+
+{/* ================================
+   SHOW FIELDS ONLY FOR MODEL 456 or 789
+   ================================= */}
+{["456", "789"].includes(imageCreationSettings.model) && (
+  <>
+    {/* SIZE */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Size</Text>
+      <Select
+        value={imageCreationSettings.size || ""}
+        onChange={(e) =>
+          setImageCreationSettings((prev) => ({
+            ...prev,
+            size: e.target.value
+          }))
+        }
+        mt={2}
+        placeholder="Select size"
+         sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+      >
+        <option value="2K">2K</option>
+        <option value="4K">4K</option>
+      </Select>
+    </Box>
+
+    {/* WATERMARK */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Watermark</Text>
+      <Select
+        value={imageCreationSettings.watermark || "false"}
+        onChange={(e) =>
+          setImageCreationSettings((prev) => ({
+            ...prev,
+            watermark: e.target.value === "true"
+          }))
+        }
+        mt={2}
+         sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+      >
+        <option value="false">Disable</option>
+        <option value="true">Enable</option>
+      </Select>
+    </Box>
+
+    {/* SEQUENTIAL IMAGE GENERATION */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Sequential Image Generation</Text>
+      <Select
+        value={imageCreationSettings.sequential_image_generation || "disabled"}
+        onChange={(e) =>
+          setImageCreationSettings((prev) => ({
+            ...prev,
+            sequential_image_generation: e.target.value
+          }))
+        }
+        mt={2}
+         sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+      >
+        <option value="disabled">Disabled</option>
+        <option value="enabled">Enabled</option>
+      </Select>
+    </Box>
+
+    {/* RESPONSE FORMAT */}
+    <Box mt={4}>
+      <Text fontWeight="bold">Response Format</Text>
+      <Select
+        value={imageCreationSettings.response_format || "url"}
+        onChange={(e) =>
+          setImageCreationSettings((prev) => ({
+            ...prev,
+            response_format: e.target.value
+          }))
+        }
+        mt={2}
+         sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+      >
+        <option value="url">URL</option>
+        <option value="base64">Base64</option>
+      </Select>
+    </Box>
+  </>
+)}
       {/* 🎯 IMAGE SETTINGS TOGGLE */}
       <Box>
         <Text fontWeight="bold">Pro Version For Resizing</Text>
@@ -722,11 +970,20 @@ case "Image Creation":
           }}
           mt={2}
           placeholder="Select option"
+           sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
         >
           <option value="enable">Enable</option>
           <option value="disable">Disable</option>
         </Select>
       </Box>
+
+
+
 
       {/* ===================================================== */}
       {/* 🔹 WHEN DISABLE → ONLY ASPECT RATIO SHOW              */}
@@ -777,6 +1034,12 @@ case "Image Creation":
                 }))
               }
               mt={2}
+               sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               <option value="false">Aspect Ratio</option>
               <option value="true">Width & Height</option>
@@ -801,6 +1064,12 @@ case "Image Creation":
                   }))
                 }
                 mt={2}
+                 sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
               >
                 <option value="1:1">1:1 (Square)</option>
                 <option value="4:5">4:5 (Portrait)</option>
@@ -809,6 +1078,12 @@ case "Image Creation":
               </Select>
             </Box>
           )}
+
+
+
+   {/* Model */}
+
+
 
           {/* ========================== */}
           {/* 🔹 MODE: WIDTH + HEIGHT    */}
@@ -870,10 +1145,16 @@ case "Image Creation":
                 }))
               }
               mt={2}
+               sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
-              <option value="contain">Contain</option>
-              <option value="cover">Cover</option>
-              <option value="pad">Pad</option>
+              <option value="blur">Blur</option>
+              <option value="solid_color">Solid Color</option>
+              
             </Select>
           </Box>
 
@@ -890,6 +1171,12 @@ case "Image Creation":
                 }))
               }
               mt={2}
+               sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               <option value="maintain_aspect">Maintain Aspect Ratio</option>
               <option value="crop">Crop</option>
@@ -1077,12 +1364,119 @@ case "Resize Image":
             }
           }}
         >
-          <option value="none">None</option>
-          <option value="pad">Pad</option>
-          <option value="crop">Crop</option>
-          <option value="stretch">Stretch</option>
+          <option value="blur">Blur</option>
+              <option value="solid_color">Solid Color</option>
         </Select>
       </Box>
+
+      {/* Model */}
+      {/* Model */}
+<Box>
+  <Text fontWeight="bold">Model</Text>
+  <Select
+    placeholder="Select Model"
+    value={resizeImageSettings.model}
+    onChange={(e) =>
+      setResizeImageSettings((prev) => ({
+        ...prev,
+        model: e.target.value
+      }))
+    }
+    mt={2}
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+      }
+    }}
+  >
+    <option value="123">Nano Banana</option>
+    <option value="456">Seeddream</option>
+    <option value="789">Nano banana pro</option>
+  </Select>
+</Box>
+
+{/* ================================
+   SHOW FIELDS ONLY FOR MODEL 456 or 789
+   ================================= */}
+{["456", "789"].includes(resizeImageSettings.model) && (
+  <>
+    {/* SIZE */}
+    {/* <Box mt={4}>
+      <Text fontWeight="bold">Size</Text>
+      <Select
+        value={resizeImageSettings.size || ""}
+        onChange={(e) =>
+          setResizeImageSettings((prev) => ({
+            ...prev,
+            size: e.target.value
+          }))
+        }
+        mt={2}
+        placeholder="Select size"
+      >
+        <option value="2K">2K</option>
+        <option value="4K">4K</option>
+      </Select>
+    </Box> */}
+
+    {/* WATERMARK */}
+    {/* <Box mt={4}>
+      <Text fontWeight="bold">Watermark</Text>
+      <Select
+        value={resizeImageSettings.watermark || "false"}
+        onChange={(e) =>
+          setResizeImageSettings((prev) => ({
+            ...prev,
+            watermark: e.target.value === "true"
+          }))
+        }
+        mt={2}
+      >
+        <option value="false">Disable</option>
+        <option value="true">Enable</option>
+      </Select>
+    </Box> */}
+
+    {/* SEQUENTIAL IMAGE GENERATION */}
+    {/* <Box mt={4}>
+      <Text fontWeight="bold">Sequential Image Generation</Text>
+      <Select
+        value={resizeImageSettings.sequential_image_generation || "disabled"}
+        onChange={(e) =>
+          setResizeImageSettings((prev) => ({
+            ...prev,
+            sequential_image_generation: e.target.value
+          }))
+        }
+        mt={2}
+      >
+        <option value="disabled">Disabled</option>
+        <option value="enabled">Enabled</option>
+      </Select>
+    </Box> */}
+
+    {/* RESPONSE FORMAT */}
+    {/* <Box mt={4}>
+      <Text fontWeight="bold">Response Format</Text>
+      <Select
+        value={resizeImageSettings.response_format || "url"}
+        onChange={(e) =>
+          setResizeImageSettings((prev) => ({
+            ...prev,
+            response_format: e.target.value
+          }))
+        }
+        mt={2}
+      >
+        <option value="url">URL</option>
+        <option value="base64">Base64</option>
+      </Select>
+    </Box> */}
+  </>
+)}
+
+
 
       {/* Quality */}
       <Box>
@@ -1149,7 +1543,7 @@ color={textcolor}
       </Box>
 
 {/* lifestyleid is select  */}
-<box>
+<Box>
 <Text fontWeight="bold">Select Lifestyle Id</Text>
 <Select
   placeholder="Select Lifestyle ID"
@@ -1179,7 +1573,7 @@ color={textcolor}
 </Select>
 
 
-</box>
+</Box>
 {/* 🔍 Project Search & Select */}
 
 

@@ -16,6 +16,11 @@ import axiosInstance from "utils/AxiosInstance";
 
 export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
   const [jobs, setJobs] = useState([]);
+
+  // PAGINATION STATES
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [loading, setLoading] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +28,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
   const [pollingJobId, setPollingJobId] = useState(null);
   const [pollingStatus, setPollingStatus] = useState(null);
 
-  // FINAL VIDEO
   const [finalMusicVideoUrl, setFinalMusicVideoUrl] = useState(null);
   const [showFinalView, setShowFinalView] = useState(false);
 
@@ -40,54 +44,47 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
   );
 
   // -------------------------------------------------------------------
-  //                     FETCH USER JOBS
+  //                     FETCH JOBS WITH PAGINATION
   // -------------------------------------------------------------------
-  useEffect(() => {
-    if (!selectedUser?.user_id) {
-      setJobs([]);
-      return;
+  const fetchJobs = async (page = 1) => {
+    try {
+      setLoading(true);
+
+      const res = await axiosInstance.get("/get_user_all_jobs/", {
+        params: { 
+          user_id: selectedUser?.user_id,
+          page: page 
+        },
+      });
+
+      if (!res.data?.success) {
+        setJobs([]);
+        return;
+      }
+
+      const completeWithMusic = res.data.data.filter(
+        (job) => job.final_video_url
+      );
+
+      setJobs(completeWithMusic);
+      setCurrentPage(res.data.current_page);
+      setTotalPages(res.data.total_pages);
+
+    } catch (err) {
+      toast({
+        title: "Failed to load videos",
+        status: "error",
+        duration: 2000,
+      });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    startTransition(() => {
-      const fetchJobs = async () => {
-        try {
-          setLoading(true);
-
-          const res = await axiosInstance.get("/get_user_all_jobs/", {
-            params: { user_id: selectedUser.user_id },
-          });
-
-          if (!res.data?.success || !Array.isArray(res.data.data)) {
-            setJobs([]);
-            return toast({
-              title: "No videos found.",
-              status: "warning",
-              duration: 2000,
-              isClosable: true,
-            });
-          }
-
-          const completeWithMusic = res.data.data.filter(
-            (job) => job.final_video_with_music_url
-          );
-
-          setJobs(completeWithMusic);
-        } catch (err) {
-          toast({
-            title: "Failed to load videos",
-            description:
-              err.response?.data?.message || "Please try again later.",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchJobs();
-    });
+  // INITIAL LOAD
+  useEffect(() => {
+    if (!selectedUser?.user_id) return;
+    fetchJobs(1);
   }, [selectedUser]);
 
   // -------------------------------------------------------------------
@@ -108,7 +105,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
         description: `Merge ID set to ${job.job_id}`,
         status: "info",
         duration: 1500,
-        isClosable: true,
       });
     });
   };
@@ -122,8 +118,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
         title: "No video selected",
         description: "Please select a video.",
         status: "warning",
-        duration: 2500,
-        isClosable: true,
       });
     }
 
@@ -133,7 +127,7 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
       const body = {
         merge_id: selectedJob.job_id,
         user_id: selectedUser?.user_id,
-        ...MusicData
+        ...MusicData,
       };
 
       const res = await axiosInstance.post("/music_to_merge_video/", body);
@@ -142,27 +136,23 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
 
       const newMergeId = res.data?.job_id || selectedJob.job_id;
 
-      // RESET FINAL VIEW
       setShowFinalView(false);
       setFinalMusicVideoUrl(null);
 
-      // Start polling
       setPollingJobId(newMergeId);
       setPollingStatus("processing");
       startPolling(newMergeId);
 
       toast({
         title: "Processing Started",
-        description: `Job ${newMergeId} is being processed.`,
+        description: `Job ${newMergeId} started.`,
         status: "success",
-        duration: 3000,
       });
     } catch (err) {
       toast({
         title: "Error",
         description: err.message,
         status: "error",
-        duration: 3000,
       });
     } finally {
       setSubmitting(false);
@@ -187,7 +177,7 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
         const status = res.data.job_status;
         setPollingStatus(status);
 
-        if (status === "completed_with_music") {
+       
           setFinalMusicVideoUrl(res.data.final_video_with_music_url);
           setShowFinalView(true);
 
@@ -195,12 +185,11 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
           pollingRef.current = null;
 
           toast({
-            title: "Success!",
-            description: "Final video with music is ready.",
+            title: "Video Ready",
+            description: "Your video with music is completed.",
             status: "success",
-            duration: 3000,
           });
-        }
+        
       } catch (err) {
         console.log("Polling error:", err);
       }
@@ -213,9 +202,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
     };
   }, []);
 
-  // -------------------------------------------------------------------
-  //                    BACK FROM FINAL VIEW
-  // -------------------------------------------------------------------
   const handleBack = () => {
     setShowFinalView(false);
     setFinalMusicVideoUrl(null);
@@ -223,7 +209,7 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
   };
 
   // -------------------------------------------------------------------
-  //                     JOB CARD COMPONENT
+  //                     JOB CARD UI
   // -------------------------------------------------------------------
   const JobCard = ({ job, isSelected }) => {
     const videoUrl =
@@ -264,16 +250,37 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
   };
 
   // -------------------------------------------------------------------
+  //                     PAGINATION UI
+  // -------------------------------------------------------------------
+  const Pagination = () => (
+    <Flex justify="center" align="center" mt={6} gap={4}>
+      <Button
+        onClick={() => fetchJobs(currentPage - 1)}
+        isDisabled={currentPage <= 1}
+      >
+        Previous
+      </Button>
+
+      <Text fontWeight="bold">
+        Page {currentPage} / {totalPages}
+      </Text>
+
+      <Button
+        onClick={() => fetchJobs(currentPage + 1)}
+        isDisabled={currentPage >= totalPages}
+      >
+        Next
+      </Button>
+    </Flex>
+  );
+
+  // -------------------------------------------------------------------
   //                        MAIN RETURN UI
   // -------------------------------------------------------------------
   return (
     <Flex direction="column" p={6} gap={6} bg={pageBg} w="100%">
-      {/* ————————————————————————————————
-            FINAL VIDEO SECTION ONLY
-          ———————————————————————————————— */}
       {showFinalView && finalMusicVideoUrl ? (
         <Box>
-          {/* Back Button */}
           <Flex align="center" mb={4}>
             <IconButton
               icon={<ArrowBackIcon />}
@@ -288,7 +295,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
             </Text>
           </Flex>
 
-          {/* Final Video Preview */}
           <Box
             border="2px solid green"
             borderRadius="xl"
@@ -299,13 +305,12 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
               src={finalMusicVideoUrl}
               controls
               autoPlay
-              style={{ width: "100%", borderRadius: "12px" }}
+              style={{ width: "100%",maxHeight: "400px", borderRadius: "12px" }}
             />
           </Box>
         </Box>
       ) : (
         <>
-          {/* HEADER */}
           <Flex justify="space-between" align="center">
             <Text fontSize="2xl" fontWeight="bold">
               Completed Videos (With Music)
@@ -315,13 +320,11 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
               colorScheme="blue"
               onClick={handleAddMusicSubmit}
               isLoading={submitting}
-              
             >
               Add Music Again
             </Button>
           </Flex>
 
-          {/* JOB CARDS GRID */}
           {!pollingStatus && (
             <Box pr={1}>
               {loading ? (
@@ -329,18 +332,24 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
                   <Spinner size="xl" />
                 </Flex>
               ) : jobs.length > 0 ? (
-                <SimpleGrid
-                  columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-                  spacing={6}
-                >
-                  {jobs.map((job) => (
-                    <JobCard
-                      key={job.job_id}
-                      job={job}
-                      isSelected={selectedJob?.job_id === job.job_id}
-                    />
-                  ))}
-                </SimpleGrid>
+                <>
+                  {/* GRID */}
+                  <SimpleGrid
+                    columns={{ base: 1, sm: 2, md: 3, lg: 3 }}
+                    spacing={6}
+                  >
+                    {jobs.map((job) => (
+                      <JobCard
+                        key={job.job_id}
+                        job={job}
+                        isSelected={selectedJob?.job_id === job.job_id}
+                      />
+                    ))}
+                  </SimpleGrid>
+
+                  {/* PAGINATION BELOW GRID */}
+                  <Pagination />
+                </>
               ) : (
                 <Flex h="60vh" align="center" justify="center">
                   <Text>No videos found.</Text>
@@ -349,7 +358,6 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
             </Box>
           )}
 
-          {/* PROCESSING VIEW */}
           {pollingStatus === "processing" && (
             <Box
               bg={panelBg}

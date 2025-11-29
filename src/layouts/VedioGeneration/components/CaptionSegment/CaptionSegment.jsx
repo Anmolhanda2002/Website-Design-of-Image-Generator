@@ -178,7 +178,10 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
       variant="solid"
       borderRadius="full"
       size="sm"
-      onClick={() => setResultVideo(null)}
+        onClick={() => {
+            setResultVideo(null);     // ← Go back
+            setSelectedVideo(null);   // ← Clear selection (optional)
+          }}
       position="absolute"
       top="12px"
       left="12px"

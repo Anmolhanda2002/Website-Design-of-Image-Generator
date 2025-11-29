@@ -1,3 +1,4 @@
+// --- YOUR IMPORTS (NO CHANGE) ---
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -28,6 +29,12 @@ export default function CaptionedCombine({ selectedUser }) {
   const [pollingStatusText, setPollingStatusText] = useState("Initializing...");
   const [selectuser, setSelectuser] = useState(selectedUser?.user_id ?? "");
 
+  // ✅ PAGINATION STATES ADDED
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   const bg = useColorModeValue("#F8FAFC", "#1A202C");
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.600");
@@ -38,10 +45,10 @@ export default function CaptionedCombine({ selectedUser }) {
   );
 
   const transitionOptions = [
-    "none", "fade", "dissolve", "slide", "slideright", "slideleft",
-    "slideup", "slidedown", "zoomin", "zoomout", "wiperight", "wipeleft",
-    "wipeup", "wipedown", "fadeblack", "fadewhite", "radial", "circlecrop",
-    "rectcrop", "smoothleft", "smoothright", "distance", "dis_rot", "sequence",
+    "none","fade","dissolve","slide","slideright","slideleft",
+    "slideup","slidedown","zoomin","zoomout","wiperight","wipeleft",
+    "wipeup","wipedown","fadeblack","fadewhite","radial","circlecrop",
+    "rectcrop","smoothleft","smoothright","distance","dis_rot","sequence",
     "sequential",
   ];
 
@@ -52,7 +59,7 @@ export default function CaptionedCombine({ selectedUser }) {
     }
   }, [selectedUser]);
 
-  // ✅ Fetch videos
+  // ✅ FETCH VIDEOS WITH PAGINATION
   useEffect(() => {
     if (!selectuser) return;
 
@@ -60,12 +67,14 @@ export default function CaptionedCombine({ selectedUser }) {
       setLoading(true);
       try {
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
-          params: { user_id: selectuser },
+          params: { 
+            user_id: selectuser,
+            page,
+            limit
+          },
         });
 
-        const allVideos = res.data?.data || [];
-
-        const captionedVideos = allVideos.filter((v) =>
+        const captionedVideos = (res.data?.data || []).filter((v) =>
           v.captioned_final_video_url ||
           v.final_video_url ||
           v.final_resize_video_url ||
@@ -73,6 +82,11 @@ export default function CaptionedCombine({ selectedUser }) {
         );
 
         setVideos(captionedVideos);
+
+        // ✅ READ PAGINATION FROM BACKEND
+        setTotalPages(res.data?.total_pages || 1);
+        setTotalItems(res.data?.total_items || 0);
+
       } catch (err) {
         toast({
           title: "Error loading videos",
@@ -85,9 +99,9 @@ export default function CaptionedCombine({ selectedUser }) {
     };
 
     fetchVideos();
-  }, [selectuser]);
+  }, [selectuser, page]);   // 👈 PAGE ADDED IN DEPENDENCY
 
-  // Cleanup interval
+  // CLEANUP INTERVAL
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -100,10 +114,9 @@ export default function CaptionedCombine({ selectedUser }) {
     );
   };
 
-  // ✅ Polling logic
+  // Polling logic (NO CHANGE)
   const pollStatus = (url) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-
     setPollingStarted(true);
     setProcessing(true);
 
@@ -128,20 +141,14 @@ export default function CaptionedCombine({ selectedUser }) {
           setFinalVideoUrl(finalUrl);
           setProcessing(false);
 
-          toast({
-            title: "✅ Video Ready!",
-            status: "success",
-          });
+          toast({ title: "✅ Video Ready!", status: "success" });
         }
 
         if (status === "failed" || status === "error") {
           clearInterval(intervalRef.current);
           setProcessing(false);
 
-          toast({
-            title: "❌ Processing failed",
-            status: "error",
-          });
+          toast({ title: "❌ Processing failed", status: "error" });
         }
       } catch (err) {
         console.error("Polling error:", err);
@@ -149,13 +156,10 @@ export default function CaptionedCombine({ selectedUser }) {
     }, 6000);
   };
 
-  // ✅ Start video combine process
+  // Submit logic (NO CHANGE)
   const handleSubmit = async () => {
     if (!selectedVideo) {
-      toast({
-        title: "No video selected",
-        status: "warning",
-      });
+      toast({ title: "No video selected", status: "warning" });
       return;
     }
 
@@ -172,7 +176,6 @@ export default function CaptionedCombine({ selectedUser }) {
     try {
       const res = await axiosInstance.post(`/captioned_combined_video/`, payload);
 
-      // ✅ Show backend success message
       toast({
         title: res.data?.message || "Processing started",
         status: "success",
@@ -192,15 +195,13 @@ export default function CaptionedCombine({ selectedUser }) {
 
       pollStatus(statusUrl);
     } catch (err) {
-      const backendMessage =
-        err.response?.data?.message ||
-        err.response?.data?.detail ||
-        err.message ||
-        "Error starting processing";
-
       toast({
         title: "Processing failed",
-        description: backendMessage,
+        description:
+          err.response?.data?.message ||
+          err.response?.data?.detail ||
+          err.message ||
+          "Error starting processing",
         status: "error",
       });
 
@@ -208,7 +209,7 @@ export default function CaptionedCombine({ selectedUser }) {
     }
   };
 
-  // ✅ Video card
+  // VideoCard (NO CHANGE)
   const VideoCard = ({ video }) => {
     const selected = selectedVideo?.edit_id === video.edit_id;
 
@@ -265,90 +266,65 @@ export default function CaptionedCombine({ selectedUser }) {
     );
   };
 
-  // ✅ Processing status screen
-// ✅ Processing status screen (SCROLLABLE + HIDDEN SCROLLBAR)
-const ProcessingView = () => (
-  <Flex
-    align="center"
-    justify="center"
-    width="100%"
-    minH="60vh"
-    py={4}
-    mt={"-80px"}
-  >
-    <Box
-      w="100%"
-      maxW="800px"
-      maxH="75vh"
-      overflowY="auto"
-      px={2}
+  // Processing View (NO CHANGE)
+  const ProcessingView = () => (
+    <Flex align="center" justify="center" width="100%" minH="60vh" py={4} mt={"-80px"}>
+      <Box
+        w="100%"
+        maxW="800px"
+        maxH="75vh"
+        overflowY="auto"
+        px={2}
+        sx={{
+          "&::-webkit-scrollbar": { width: "0px" },
+          scrollbarWidth: "none",
+        }}
+      >
+        {finalVideoUrl ? (
+          <VStack spacing={6} w="100%">
+            <Flex align="center" gap={3} color="green.500">
+              <MdCheckCircle size={30} />
+              <Text fontSize="2xl" fontWeight="bold">Video Ready!</Text>
+            </Flex>
 
-      // ✅ HIDE SCROLLBAR (Chrome, Edge, Safari)
-      sx={{
-        "&::-webkit-scrollbar": {
-          width: "0px",
-        },
-        "&::-webkit-scrollbar-track": {
-          background: "transparent",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          background: "transparent",
-        },
+            <video
+              src={finalVideoUrl}
+              controls
+              autoPlay
+              style={{
+                width: "100%",
+                height: "400px",
+                maxHeight: "450px",
+                borderRadius: "14px",
+                backgroundColor: "black",
+              }}
+            />
 
-        // ✅ HIDE SCROLLBAR (Firefox)
-        scrollbarWidth: "none",
-      }}
-    >
-      {finalVideoUrl ? (
-        <VStack spacing={6} w="100%">
-          <Flex align="center" gap={3} color="green.500">
-            <MdCheckCircle size={30} />
-            <Text fontSize="2xl" fontWeight="bold">
-              Video Ready!
-            </Text>
-          </Flex>
-
-          <video
-            src={finalVideoUrl}
-            controls
-            autoPlay
-            style={{
-              width: "100%",
-              height: "400px",
-              maxHeight: "450px",
-              borderRadius: "14px",
-              backgroundColor: "black",
-            }}
-          />
-
-          <Button
-            colorScheme="blue"
-            onClick={() => {
-              setProcessing(false);
-              setFinalVideoUrl(null);
-              setPollingStarted(false);
-            }}
-          >
-            Process Another
-          </Button>
-        </VStack>
-      ) : (
-        <VStack spacing={4} py={10}>
-          <Spinner size="xl" color="blue.400" />
-          <Text>{pollingStatusText}</Text>
-        </VStack>
-      )}
-    </Box>
-  </Flex>
-);
-
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                setProcessing(false);
+                setFinalVideoUrl(null);
+                setPollingStarted(false);
+              }}
+            >
+              Process Another
+            </Button>
+          </VStack>
+        ) : (
+          <VStack spacing={4} py={10}>
+            <Spinner size="xl" color="blue.400" />
+            <Text>{pollingStatusText}</Text>
+          </VStack>
+        )}
+      </Box>
+    </Flex>
+  );
 
   return (
     <Box bg={bg} minH="100vh" p={4} w="100%">
       <Flex justify="space-between" mb={6} w="100%" flexWrap="wrap">
-        <Text fontSize="2xl" fontWeight="bold">
-          Captioned Video Combine
-        </Text>
+        <Text fontSize="2xl" fontWeight="bold">Captioned Video Combine</Text>
 
         {!processing && !pollingStarted && (
           <Flex gap={4}>
@@ -383,15 +359,38 @@ const ProcessingView = () => (
           <Spinner size="xl" />
         </Flex>
       ) : videos.length > 0 ? (
-        <SimpleGrid
-          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-          spacing={6}
-          width="100%"
-        >
-          {videos.map((v) => (
-            <VideoCard key={v.edit_id} video={v} />
-          ))}
-        </SimpleGrid>
+        <>
+          <SimpleGrid
+            columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+            spacing={6}
+            width="100%"
+          >
+            {videos.map((v) => (
+              <VideoCard key={v.edit_id} video={v} />
+            ))}
+          </SimpleGrid>
+
+          {/* ✅ PAGINATION BUTTONS */}
+          <Flex justify="center" mt={6} gap={4}>
+            <Button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+
+            <Text fontSize="lg" fontWeight="bold">
+              Page {page} of {totalPages}
+            </Text>
+
+            <Button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </Button>
+          </Flex>
+        </>
       ) : (
         <Flex align="center" justify="center" h="50vh" w="100%">
           <Text fontSize="xl" fontWeight="bold" color="gray.500">

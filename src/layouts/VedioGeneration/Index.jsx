@@ -31,22 +31,46 @@ import {
 import { MdArrowBack } from "react-icons/md";
 import { SearchIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
+import  { Suspense } from "react";
 import Sidebar, { MobileSidebarItems, MobileMenuButton } from "./components/Sidebar"; 
-import Panel from "./components/Panel";
-import PreviewArea from "./components/Privewarea";
-import EditVedioComponent from "./components/EditPreviewBox/EditPreviewBox";
+// import Panel from "./components/Panel";
+// import PreviewArea from "./components/Privewarea";
+// import EditVedioComponent from "./components/EditPreviewBox/EditPreviewBox";
 import Image from "assets/image.png";
 import axiosInstance from "utils/AxiosInstance";
-import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
-import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
-import MergeVideo from "./components/MergeData/MergeVideo";
-import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
-import BulkImageCreation from "./components/BulkImage/BulkImageCreation";
+// import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
+// import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
+// import MergeVideo from "./components/MergeData/MergeVideo";
+// import AddMusic from "./components/AddMusicVideo/AddMusicVIdeo";
+// import BulkImageCreation from "./components/BulkImage/BulkImageCreation";
+
+
+
+const Panel = React.lazy(() => import("./components/Panel"));
+const PreviewArea = React.lazy(() => import("./components/Privewarea"));
+const EditVedioComponent = React.lazy(() =>
+  import("./components/EditPreviewBox/EditPreviewBox")
+);
+const CaptionedSegment = React.lazy(() =>
+  import("./components/CaptionSegment/CaptionSegment")
+);
+const CaptionedEdit = React.lazy(() =>
+  import("./components/CaptionEdit/CaptionEdit")
+);
+const MergeVideo = React.lazy(() =>
+  import("./components/MergeData/MergeVideo")
+);
+const AddMusic = React.lazy(() =>
+  import("./components/AddMusicVideo/AddMusicVIdeo")
+);
+const BulkImageCreation = React.lazy(() =>
+  import("./components/BulkImage/BulkImageCreation")
+);
 import { useLocation } from "react-router-dom";
 // --- Initial State Definitions for Reset (Must be outside the component) ---
 const initialImageCreationSettings = {
-    guidelineId: "", targetMethod: "disable", targetWidth: "", 
-    targetHeight: "", resizeMethod: "", quality: "",use_case:"",target_aspect_ratio:"",fill_method:"",toggle:"false"
+    guidelineId: "", targetMethod: "disable", targetWidth: "", model:"",
+    targetHeight: "", resizeMethod: "", quality: "",use_case:"",target_aspect_ratio:"",fill_method:"",toggle:"false",size:"",watermark:false,sequential_image_generation:"",response_format:""
 };
 const initialResizeImageSettings = {
   customId: "",
@@ -57,7 +81,9 @@ const initialResizeImageSettings = {
   quality: "",
   mode: "aspect_ratio",   // aspect_ratio | width_height
   target_aspect_ratio: "",
-  fill_method: ""
+  fill_method: "",
+  model:"",
+  size:"",watermark:false,sequential_image_generation:"",response_format:""
 };
 const initialImageToVideoSettings = {
     customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
@@ -96,7 +122,11 @@ const initialBulkImageData = {
   product_id: "",
   customer_id: "",
   file_type:"image",
-  csv_file:""
+  csv_file:"",
+  image_size:"",
+  aspect_ratio:"",
+  thinking_level:"",
+  search_enabled:false
 };
 
 
@@ -673,42 +703,151 @@ useEffect(() => {
             </Drawer>
 
             {/* ---------- BODY ---------- */}
-            {isMobile ? (
-                /* ===== Mobile Layout (Simplified) ===== */
-                <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
-                    {/* Conditional full-screen components for specific tabs */}
-                    {(activeTab === "Edit Video" || activeTab === "Caption Segment" || activeTab === "Captioned Edit" || activeTab === "Merge Video" || activeTab === "Add Music") ? (
-                        <Box
-                            overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
-                            sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
-                        >
-                        {activeTab === "Studio Shot" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData} setImages={setImages} setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>)}
-                            {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} setActiveTab={setActiveTab} setImages={setImages} setlastimagetovideo={setlastimagetovideo}/>)}
-                            {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
-                            {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
-                            {activeTab === "Merge Video" && (<MergeVideo selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />)}
-                            {activeTab === "Add Music" && <AddMusic selectedUser={selectedUser} MusicData={MusicData} SetMusicData={SetMusicData} />}
-                        </Box>
-                    ) : (
-                        // Default Panel/Preview Layout for other tabs
-                        <>
-                            <PreviewArea
-                            setlastimagetovideo={setlastimagetovideo}
-                            setActiveTab={setActiveTab}
-                            generatedVideo={generatedVideo} setGeneratedVideo={setGeneratedVideo}
-                              generatedImage={generatedImage} setGeneratedImage={setGeneratedImage} resizedImage={resizedImage} setResizedImage={setResizedImage} text={text} resetTrigger={resetTrigger} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} resolution={resolution} ratio={ratio} activeTab={activeTab} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser}
-                            />
-                            {/* Panel Below Preview in Mobile */}
-                            <Panel
-                             setImages={setImages}
-                            bulkImageData={BulkData} setBulkImageData={setBulkData}
-                            selectedUser={selectedUser}
-                                activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData}
-                            />
-                        </>
-                    )}
-                </Flex>
-            ) : (
+           {isMobile ? (
+  <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
+
+    <Suspense fallback={<div>Loading...</div>}>
+
+      {(activeTab === "Edit Video" ||
+        activeTab === "Caption Segment" ||
+        activeTab === "Captioned Edit" ||
+        activeTab === "Merge Video" ||
+        activeTab === "Add Music") ? (
+
+        <Box
+          overflowY="auto"
+          flex="1"
+          p={4}
+          bg={color}
+          borderRadius="lg"
+          boxShadow="md"
+          sx={{
+            "::-webkit-scrollbar": { display: "none" },
+            msOverflowStyle: "none",
+            scrollbarWidth: "none"
+          }}
+        >
+
+          {activeTab === "Studio Shot" && (
+            <BulkImageCreation
+              selectedUser={selectedUser}
+              bulkImageData={BulkData}
+              setBulkImageData={setBulkData}
+              setImages={setImages}
+              setlastimagetovideo={setlastimagetovideo}
+              setActiveTab={setActiveTab}
+            />
+          )}
+
+          {activeTab === "Edit Video" && (
+            <EditVedioComponent
+              selectedUser={selectedUser}
+              previewData={previewData}
+              setActiveTab={setActiveTab}
+              setImages={setImages}
+              setlastimagetovideo={setlastimagetovideo}
+            />
+          )}
+
+          {activeTab === "Caption Segment" && (
+            <CaptionedSegment
+              selectedUser={selectedUser}
+              captionData={captionData}
+              setCaptionData={setCaptionData}
+            />
+          )}
+
+          {activeTab === "Captioned Edit" && (
+            <CaptionedEdit
+              selectedUser={selectedUser}
+              MergeData={MergeData}
+              setMergeData={setMergeData}
+            />
+          )}
+
+          {activeTab === "Merge Video" && (
+            <MergeVideo
+              selectedUser={selectedUser}
+              MergeData={MergeData}
+              setMergeData={setMergeData}
+            />
+          )}
+
+          {activeTab === "Add Music" && (
+            <AddMusic
+              selectedUser={selectedUser}
+              MusicData={MusicData}
+              SetMusicData={SetMusicData}
+            />
+          )}
+
+        </Box>
+      ) : (
+        <>
+          {/* Preview Area */}
+          <PreviewArea
+            setlastimagetovideo={setlastimagetovideo}
+            setActiveTab={setActiveTab}
+            generatedVideo={generatedVideo}
+            setGeneratedVideo={setGeneratedVideo}
+            generatedImage={generatedImage}
+            setGeneratedImage={setGeneratedImage}
+            resizedImage={resizedImage}
+            setResizedImage={setResizedImage}
+            text={text}
+            resetTrigger={resetTrigger}
+            setText={setText}
+            images={images}
+            setImages={setImages}
+            loadingImages={loadingImages}
+            setLoadingImages={setLoadingImages}
+            sending={sending}
+            setSending={setSending}
+            model={model}
+            duration={duration}
+            resolution={resolution}
+            ratio={ratio}
+            activeTab={activeTab}
+            imageCreationSettings={imageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            selectedUser={selectedUser}
+          />
+
+          {/* Panel below Preview */}
+          <Panel
+            setImages={setImages}
+            bulkImageData={BulkData}
+            setBulkImageData={setBulkData}
+            selectedUser={selectedUser}
+            activeTab={activeTab}
+            onDataChange={handleDataChange}
+            model={model}
+            setModel={setModel}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            setRatio={setRatio}
+            imageCreationSettings={imageCreationSettings}
+            setImageCreationSettings={setImageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            setResizeImageSettings={setResizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            setImageToVideoSettings={setImageToVideoSettings}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+          />
+        </>
+      )}
+
+    </Suspense>
+
+  </Flex>
+)  : (
                 /* ===== Desktop Layout (Existing Logic) ===== */
                 <Flex flex="1" overflow="hidden">
                     {/* Sidebar */}
@@ -718,7 +857,7 @@ useEffect(() => {
                     >
                         <Sidebar activeTab={activeTab} setActiveTab={handleSetActiveTab} /> {/* ✅ Uses the reset handler */}
                     </Box>
-
+<Suspense fallback={ <Flex flex="1" justify="center" align="center"> <Spinner size="xl" thickness="4px" /> </Flex> } >
                     {/* Conditional Rendering */}
                     {activeTab === "Edit Video" ? (
                         <Box
@@ -797,8 +936,11 @@ useEffect(() => {
                             </Box>
                         </Flex>
                     )}
+                    </Suspense>
                 </Flex>
             )}
+          
+            
         </Flex>
     );
 }

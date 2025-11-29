@@ -225,94 +225,194 @@ const handleSubmit = async () => {
 
   try {
 
-    if (activeTab === "Image Creation") {
-      const res1 = await axiosInstance.post(
-        "/factory_development_gemini_virtual_tryon_generate/",
-        {
-  
-          image_urls: images.map((img) => img.url),
-          prompt: text,
-          use_case:imageCreationSettings?.use_case,
-          img_guideline_id: imageCreationSettings?.guidelineId,
-          user_id: selectedUser?.user_id,
+  if (activeTab === "Image Creation") {
+
+  // 1️⃣ GENERATE IMAGE FIRST
+  const res1 = await axiosInstance.post(
+  "/factory_development_gemini_virtual_tryon_generate/",
+  {
+    image_urls: images.map((img) => img.url),
+    prompt: text,
+    use_case: imageCreationSettings?.use_case,
+    img_guideline_id: imageCreationSettings?.guidelineId,
+    user_id: selectedUser?.user_id,
+
+    // ADD THIS (important)
+    model: Number(imageCreationSettings?.model) , // 789 or 456
+
+    ...(imageCreationSettings?.model === 789 || imageCreationSettings?.model === 456
+      ? {
+          model_config: {
+            size: imageCreationSettings?.size || "2K",
+            watermark: false,
+            sequential_image_generation:
+              imageCreationSettings?.sequential || "disabled",
+            response_format: "url",
+          },
         }
-      );
+      : {}),
+  }
+);
 
-      const compositionId = res1?.data?.data?.composition_id;
-      const generatedUrl = res1?.data?.data?.generated_image_url;
 
-      if (!generatedUrl) throw new Error("Failed to generate image.");
+  const compositionId = res1?.data?.data?.composition_id;
+  const generatedUrl = res1?.data?.data?.generated_image_url;
 
-      setGeneratedImage(generatedUrl);
-      setVideoStatus("completed");
+  if (!generatedUrl) throw new Error("Failed to generate image.");
 
-      const { targetWidth, targetHeight, resizeMethod, quality,target_aspect_ratio,fill_method } = imageCreationSettings || {};
-      const hasResizeSettings = targetWidth || targetHeight || resizeMethod || target_aspect_ratio;
+  setGeneratedImage(generatedUrl);
+  setVideoStatus("completed");
 
-      if (hasResizeSettings) {
-        const res2 = await axiosInstance.post(
-          "/factory_development_resize_composition_image/",
-          {
-      
-            composition_id: compositionId,
-            target_width: targetWidth,
-            target_height: targetHeight,
-            resize_method: resizeMethod,
-            quality,
-            user_id: selectedUser?.user_id,
-            target_aspect_ratio,
-            fill_method
-          }
-        );
+  // 2️⃣ EXTRACT RESIZE SETTINGS
+  const {
+    targetWidth,
+    targetHeight,
+    resizeMethod,
+    quality,
+    target_aspect_ratio,
+    fill_method,
+    toggle, // "true" = width+height, "false" = aspect ratio
+  } = imageCreationSettings || {};
 
-        setResizedImage(res2?.data?.data?.resized_image_url || null);
-        setResizeDetails(res2?.data?.data || {});
-      }
+  let hasResizeSettings = false;
+  let resizePayload = {
+    composition_id: compositionId,
+    user_id: selectedUser?.user_id,
+    fill_method,
+  };
 
-      toast({
-        title: "Image generated successfully",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+  // 3️⃣ CHECK WHICH MODE TO CALL
+
+  // WIDTH + HEIGHT MODE
+  if (toggle === "true") {
+    if (targetWidth || targetHeight) {
+      hasResizeSettings = true;
+      resizePayload = {
+        ...resizePayload,
+        model: 789,
+        target_width: targetWidth,
+        target_height: targetHeight,
+      };
     }
+  }
 
-    else if (activeTab === "Resize Image") {
-      const { targetWidth, targetHeight, resizeMethod, quality,target_aspect_ratio,
-          fill_method, } = resizeImageSettings || {};
-      const hasResizeSettings = targetWidth || targetHeight || resizeMethod || quality;
-
-      const res2 = await axiosInstance.post(
-        "/factory_development_resize_direct_image/",
-        {
-         
-          image_url: images[0]?.url,
-
-          target_width: targetWidth,
-          target_height: targetHeight,
-          resize_method: resizeMethod,
-          quality,
-          user_id: selectedUser?.user_id,
-          target_aspect_ratio,
-          fill_method,
-        }
-      );
-
-      const resizedUrl = res2?.data?.data?.resized_image_url;
-      if (!resizedUrl) throw new Error("Failed to resize image.");
-
-      setResizedImage(resizedUrl);
-      setResizeDetails(res2?.data?.data || {});
-
-      toast({
-        title: "Image resized successfully",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-        position: "top-right",
-      });
+  // ASPECT RATIO MODE
+  if (toggle === "false") {
+    if (target_aspect_ratio) {
+      hasResizeSettings = true;
+      resizePayload = {
+        ...resizePayload,
+        model: 123,
+        target_aspect_ratio,
+        resize_method: resizeMethod,
+      };
     }
+  }
+
+  // 4️⃣ CALL RESIZE API ONLY IF NEEDED
+  if (hasResizeSettings) {
+    const res2 = await axiosInstance.post(
+      "/factory_development_resize_composition_image/",
+      resizePayload
+    );
+
+    setResizedImage(res2?.data?.data?.resized_image_url || null);
+    setResizeDetails(res2?.data?.data || {});
+  }
+
+  // 5️⃣ SUCCESS MESSAGE
+  toast({
+    title: "Image generated successfully",
+    status: "success",
+    duration: 3000,
+    isClosable: true,
+    position: "top-right",
+  });
+}
+
+else if (activeTab === "Resize Image") {
+
+  const {
+    targetWidth,
+    targetHeight,
+    resizeMethod,
+    quality,
+    target_aspect_ratio,
+    fill_method,
+    mode,
+    model
+  } = resizeImageSettings || {};
+
+  let resizePayload = {
+    image_url: images[0]?.url,
+    user_id: selectedUser?.user_id,
+    fill_method,
+  };
+
+  let hasResizeSettings = false;
+
+  // 🔹 CASE 1 — WIDTH & HEIGHT MODE
+  if (mode === "width_height") {
+    if (targetWidth || targetHeight) {
+      hasResizeSettings = true;
+
+      resizePayload = {
+        ...resizePayload,
+        target_width: targetWidth,
+        target_height: targetHeight,
+        resize_method: resizeMethod,
+        quality,
+       model:Number(model), // Width/Height uses model 123
+      };
+    }
+  }
+
+  // 🔹 CASE 2 — ASPECT RATIO MODE
+  if (mode === "aspect_ratio") {
+    if (target_aspect_ratio) {
+      hasResizeSettings = true;
+
+      resizePayload = {
+        ...resizePayload,
+        target_aspect_ratio,
+        resize_method: resizeMethod,
+        model: 789, // Aspect ratio uses model 789
+      };
+    }
+  }
+
+  if (!hasResizeSettings) {
+    toast({
+      title: "No resize settings provided",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+    return;
+  }
+
+  // 🔥 CALL API
+  const res2 = await axiosInstance.post(
+    "/factory_development_resize_direct_image/",
+    resizePayload
+  );
+
+  const resizedUrl = res2?.data?.data?.resized_image_url;
+  if (!resizedUrl) throw new Error("Failed to resize image.");
+
+  setResizedImage(resizedUrl);
+  setResizeDetails(res2?.data?.data || {});
+
+  toast({
+    title: "Image resized successfully",
+    status: "success",
+    duration: 3000,
+    isClosable: true,
+    position: "top-right",
+  });
+}
+
 
 else if (activeTab === "Image to Video") {
   const {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { ChevronLeftIcon } from "@chakra-ui/icons";
 import {
   Box,
   Flex,
@@ -41,14 +42,23 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const activeBorderColor = "blue.400";
 
-  // ✅ cleanup interval
+  // ✅ PAGINATION STATES
+  const [currentPage, setCurrentPage] = useState(1);
+  const videosPerPage = 9;
+
+  const indexOfLastVideo = currentPage * videosPerPage;
+  const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
+  const currentVideos = videos.slice(indexOfFirstVideo, indexOfLastVideo);
+  const totalPages = Math.ceil(videos.length / videosPerPage);
+
+  // cleanup interval
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
-  // ✅ fetch videos
+  // fetch videos
   useEffect(() => {
     if (!selectedUser?.user_id) return;
 
@@ -58,6 +68,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
         const res = await axiosInstance.get("/get_edited_videos_by_user/", {
           params: { user_id: selectedUser.user_id },
         });
+
         const data = Array.isArray(res.data?.data) ? res.data.data : [];
         setVideos(res.data?.success ? data : []);
       } catch {
@@ -74,7 +85,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     fetchVideos();
   }, [selectedUser]);
 
-  // ✅ select a video
+  // select a video
   const handleSelect = (video) => {
     setSelectedVideo(video);
     setMergedVideo(null);
@@ -88,7 +99,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     }));
   };
 
-  // ✅ start merge
+  // start merge
   const handleMergeSubmit = async () => {
     if (!selectedVideo) {
       toast({ title: "Select a video first", status: "warning" });
@@ -135,7 +146,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     }
   };
 
-  // ✅ poll merge status
+  // poll merge status
   const startPolling = (jobId) => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setPolling(true);
@@ -185,7 +196,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     }, 7000);
   };
 
-  // ✅ handle resize (manual trigger)
+  // resize video
   const handleResize = async () => {
     if (!resizeInputs.height || !resizeInputs.width) {
       toast({
@@ -237,7 +248,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     }
   };
 
-  // ✅ video modal
+  // video modal
   const VideoPlayerModal = () => (
     <Modal isOpen={videoPlayer.isOpen} onClose={videoPlayer.onClose} size="5xl">
       <ModalOverlay />
@@ -261,7 +272,6 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     </Modal>
   );
 
-  // ✅ reusable video card
   const VideoCard = ({ title, url, buttonLabel, dimensions }) => (
     <VStack
       bg={panelBg}
@@ -272,6 +282,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
       p={3}
       w="100%"
     >
+
       <Text fontWeight="bold">{title}</Text>
       <video
         src={url}
@@ -307,7 +318,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
           colorScheme="blue"
           isLoading={submitting}
           onClick={handleMergeSubmit}
-          isDisabled={ polling}
+          isDisabled={polling}
         >
           Start Merge
         </Button>
@@ -349,7 +360,22 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
               url={mergedVideo}
               buttonLabel="Play Merged Video"
             />
-            <HStack spacing={3}>
+  <Button
+    leftIcon={<ChevronLeftIcon />}
+    variant="ghost"
+    colorScheme="gray"
+    mt={4}
+    mb={2}
+    onClick={() => {
+      setSelectedVideo(null);
+      setMergedVideo(null);
+      setResizedVideo(null);
+      setMergeStatus(null);
+      setResizeInputs({ width: "", height: "" });
+    }}
+  >
+    Back
+  </Button>            {/* <HStack spacing={3}>
               <Input
                 placeholder="Height"
                 value={resizeInputs.height}
@@ -366,50 +392,82 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
                 }
                 w="120px"
               />
-          
-            </HStack>
+            </HStack> */}
           </VStack>
         ) : (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mt={4}>
-            {videos.map((video) => (
-              <VStack
-                key={video.edit_id}
-                bg={panelBg}
-                border="2px solid"
-                borderColor={
-                  selectedVideo?.edit_id === video.edit_id
-                    ? activeBorderColor
-                    : borderColor
-                }
-                borderRadius="lg"
-                overflow="hidden"
-                cursor="pointer"
-                onClick={() => handleSelect(video)}
-              >
-                <Box h="210px" w="100%" bg="black">
-                  <video
-                    src={
-                      video.captioned_final_video_url ||
-                      video.final_video_url ||
-                      video.final_resize_video_url
-                    }
-                    muted
-                    autoPlay
-                    loop
-                    style={{ width: "100%", height: "210px", objectFit: "cover" }}
-                  />
-                </Box>
-                <Box p={3} w="100%">
-                  <Text fontWeight="bold" noOfLines={1}>
-                    {video.project_name}
-                  </Text>
-                  <Text color="gray.500" fontSize="sm">
-                    {video.edit_id}
-                  </Text>
-                </Box>
-              </VStack>
-            ))}
-          </SimpleGrid>
+          <>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mt={4} mb={10}>
+              {currentVideos.map((video) => (
+                <VStack
+                  key={video.edit_id}
+                  bg={panelBg}
+                  border="2px solid"
+                  borderColor={
+                    selectedVideo?.edit_id === video.edit_id
+                      ? activeBorderColor
+                      : borderColor
+                  }
+                  borderRadius="lg"
+                  overflow="hidden"
+                  cursor="pointer"
+                  onClick={() => handleSelect(video)}
+                >
+                  <Box h="210px" w="100%" bg="black">
+                    <video
+                      src={
+                        video.captioned_final_video_url ||
+                        video.final_video_url ||
+                        video.final_resize_video_url
+                      }
+                      muted
+                      autoPlay
+                      loop
+                      style={{
+                        width: "100%",
+                        height: "210px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </Box>
+                  <Box p={3} w="100%">
+                    <Text fontWeight="bold" noOfLines={1}>
+                      {video.project_name}
+                    </Text>
+                    <Text color="gray.500" fontSize="sm">
+                      {video.edit_id}
+                    </Text>
+                  </Box>
+                </VStack>
+              ))}
+            </SimpleGrid>
+
+            {/* ✅ PAGINATION UI BELOW GRID */}
+            {videos.length > videosPerPage && (
+              <Flex justify="center" mt={6}  mb={10}gap={4} align="center">
+                <Button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  isDisabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                <Text fontWeight="bold">
+                  Page {currentPage} of {totalPages}
+                </Text>
+
+                <Button
+                  onClick={() =>
+                    setCurrentPage((prev) =>
+                      Math.min(prev + 1, totalPages)
+                    )
+                  }
+                  isDisabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </Flex>
+            )}
+          </>
         )}
       </Box>
 
