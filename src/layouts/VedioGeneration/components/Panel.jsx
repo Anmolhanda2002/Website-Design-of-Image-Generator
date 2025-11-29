@@ -15,7 +15,7 @@ import {
     HStack,
     SimpleGrid,
     Icon,
-    Button,
+    Button,Switch,
     Flex,Progress,
    
 } from "@chakra-ui/react";
@@ -335,7 +335,7 @@ useEffect(() => {
 
     const renderPanelContent = () => {
         switch (activeTab) {
-case "Bulk Image":
+case "Studio Shot":
   return (
     <VStack align="stretch" spacing={4}>
       
@@ -604,7 +604,9 @@ color={textcolor}
     },
   }}
   >
-    <option value="123">123</option>
+    <option value="123">Nano Banana</option>
+    <option value="456">Seeddream</option>
+    <option value="789">Nano banana pro</option>
   </Select>
 </Box>
 
@@ -613,17 +615,18 @@ color={textcolor}
   );
 
 
-          case "Image Creation":
+case "Image Creation":
   return (
     <VStack align="stretch" spacing={4}>
-      {/* 🔍 Search Image Guidelines */}
+
+      {/* 🔍 Search Guidelines */}
       <Box>
         <Text fontWeight="bold">Search Image Guidelines</Text>
         <Input
           placeholder="Enter guideline name..."
           value={searchTerm}
-          _placeholder={{color:textcolor}}
-color={textcolor}
+          _placeholder={{ color: textcolor }}
+          color={textcolor}
           onChange={(e) => {
             const value = e.target.value;
             startTransition(() => setSearchTerm(value));
@@ -649,12 +652,6 @@ color={textcolor}
               }))
             }
             mt={2}
-             sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
           >
             {guidelines.length > 0 ? (
               guidelines.map((g) => (
@@ -669,7 +666,7 @@ color={textcolor}
         )}
       </Box>
 
-      {/* 🧠 Use Case Dropdown (from API) */}
+      {/* 🧠 Use Case */}
       <Box mt={4}>
         <Text fontWeight="bold">Select Use Case</Text>
 
@@ -686,12 +683,6 @@ color={textcolor}
               }))
             }
             mt={2}
-             sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
           >
             {useCases.length > 0 ? (
               useCases.map(({ label, value }) => (
@@ -706,69 +697,332 @@ color={textcolor}
         )}
       </Box>
 
-      {/* 🎯 Target Method */}
+      {/* 🎯 IMAGE SETTINGS TOGGLE */}
       <Box>
-        <Text fontWeight="bold">Target Method</Text>
+        <Text fontWeight="bold">Pro Version For Resizing</Text>
         <Select
-          placeholder="Select option"
           value={imageCreationSettings.targetMethod}
           onChange={(e) => {
             const value = e.target.value;
+
             setImageCreationSettings((prev) => ({
               ...prev,
               targetMethod: value,
+
               ...(value === "disable" && {
                 targetWidth: "",
                 targetHeight: "",
+                target_aspect_ratio: "",
+                resizeMethod: "",
+                quality: "",
+                fill_method: "",
+                toggle: "false",
               }),
             }));
           }}
           mt={2}
-           sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
+          placeholder="Select option"
         >
           <option value="enable">Enable</option>
           <option value="disable">Disable</option>
         </Select>
       </Box>
 
-      {/* 📏 Width / Height if Enabled */}
+      {/* ===================================================== */}
+      {/* 🔹 WHEN DISABLE → ONLY ASPECT RATIO SHOW              */}
+      {/* ===================================================== */}
+      {/* {imageCreationSettings.targetMethod === "enable" && (
+        <Box>
+          <Text fontWeight="bold">Aspect Ratio</Text>
+          <Select
+            placeholder="Select Aspect Ratio"
+            value={imageCreationSettings.target_aspect_ratio}
+            onChange={(e) =>
+              setImageCreationSettings((prev) => ({
+                ...prev,
+                target_aspect_ratio: e.target.value,
+                targetWidth: "",
+                targetHeight: "",
+              }))
+            }
+            mt={2}
+          >
+            <option value="1:1">1:1 (Square)</option>
+            <option value="4:5">4:5 (Portrait)</option>
+            <option value="3:4">3:4 (Portrait)</option>
+            <option value="9:16">9:16 (Vertical)</option>
+          </Select>
+        </Box>
+      )} */}
+
+      {/* ===================================================== */}
+      {/* 🔹 WHEN ENABLE → SHOW ALL FIELDS + TOGGLE LOGIC       */}
+      {/* ===================================================== */}
       {imageCreationSettings.targetMethod === "enable" && (
         <>
+
+          {/* 🔀 TOGGLE BETWEEN ASPECT RATIO & WIDTH/HEIGHT */}
           <Box>
-            <Text fontWeight="bold">Target Width (px)</Text>
-            <Input
-              type="number"
-              placeholder="Width in px"
-              _placeholder={{color:textcolor}}
-color={textcolor}
-              value={imageCreationSettings.targetWidth}
+            <Text fontWeight="bold">Choose Mode</Text>
+            <Select
+              value={imageCreationSettings.toggle}
               onChange={(e) =>
                 setImageCreationSettings((prev) => ({
                   ...prev,
-                  targetWidth: e.target.value,
+                  toggle: e.target.value,
+
+                  ...(e.target.value === "true"
+                    ? { target_aspect_ratio: "" }
+                    : { targetWidth: "", targetHeight: "" }),
+                }))
+              }
+              mt={2}
+            >
+              <option value="false">Aspect Ratio</option>
+              <option value="true">Width & Height</option>
+            </Select>
+          </Box>
+
+          {/* ========================== */}
+          {/* 🔹 MODE: ASPECT RATIO      */}
+          {/* ========================== */}
+          {imageCreationSettings.toggle === "false" && (
+            <Box>
+              <Text fontWeight="bold">Aspect Ratio</Text>
+              <Select
+                placeholder="Select Aspect Ratio"
+                value={imageCreationSettings.target_aspect_ratio}
+                onChange={(e) =>
+                  setImageCreationSettings((prev) => ({
+                    ...prev,
+                    target_aspect_ratio: e.target.value,
+                    targetWidth: "",
+                    targetHeight: "",
+                  }))
+                }
+                mt={2}
+              >
+                <option value="1:1">1:1 (Square)</option>
+                <option value="4:5">4:5 (Portrait)</option>
+                <option value="3:4">3:4 (Portrait)</option>
+                <option value="9:16">9:16 (Vertical)</option>
+              </Select>
+            </Box>
+          )}
+
+          {/* ========================== */}
+          {/* 🔹 MODE: WIDTH + HEIGHT    */}
+          {/* ========================== */}
+          {imageCreationSettings.toggle === "true" && (
+            <>
+              {/* WIDTH */}
+              <Box>
+                <Text fontWeight="bold">Target Width (px)</Text>
+                <Input
+                  type="number"
+                  placeholder="Enter width (px)"
+                  value={imageCreationSettings.targetWidth}
+                  onChange={(e) =>
+                    setImageCreationSettings((prev) => ({
+                      ...prev,
+                      targetWidth: e.target.value,
+                      target_aspect_ratio: "",
+                    }))
+                  }
+                  mt={2}
+                />
+              </Box>
+
+              {/* HEIGHT */}
+              <Box>
+                <Text fontWeight="bold">Target Height (px)</Text>
+                <Input
+                  type="number"
+                  placeholder="Enter height (px)"
+                  value={imageCreationSettings.targetHeight}
+                  onChange={(e) =>
+                    setImageCreationSettings((prev) => ({
+                      ...prev,
+                      targetHeight: e.target.value,
+                      target_aspect_ratio: "",
+                    }))
+                  }
+                  mt={2}
+                />
+              </Box>
+            </>
+          )}
+
+          {/* ========================== */}
+          {/*   REMAINING FIELDS         */}
+          {/* ========================== */}
+
+          {/* FILL METHOD */}
+          <Box>
+            <Text fontWeight="bold">Fill Method</Text>
+            <Select
+              placeholder="Select Fill Method"
+              value={imageCreationSettings.fill_method}
+              onChange={(e) =>
+                setImageCreationSettings((prev) => ({
+                  ...prev,
+                  fill_method: e.target.value,
+                }))
+              }
+              mt={2}
+            >
+              <option value="contain">Contain</option>
+              <option value="cover">Cover</option>
+              <option value="pad">Pad</option>
+            </Select>
+          </Box>
+
+          {/* RESIZE METHOD */}
+          <Box>
+            <Text fontWeight="bold">Resize Method</Text>
+            <Select
+              placeholder="Select resize method"
+              value={imageCreationSettings.resizeMethod}
+              onChange={(e) =>
+                setImageCreationSettings((prev) => ({
+                  ...prev,
+                  resizeMethod: e.target.value,
+                }))
+              }
+              mt={2}
+            >
+              <option value="maintain_aspect">Maintain Aspect Ratio</option>
+              <option value="crop">Crop</option>
+              <option value="stretch">Stretch</option>
+            </Select>
+          </Box>
+
+          {/* QUALITY */}
+          <Box>
+            <Text fontWeight="bold">Quality (1–100)</Text>
+            <Input
+              type="number"
+              min="1"
+              max="100"
+              placeholder="85"
+              value={imageCreationSettings.quality}
+              _placeholder={{ color: textcolor }}
+              color={textcolor}
+              onChange={(e) =>
+                setImageCreationSettings((prev) => ({
+                  ...prev,
+                  quality: e.target.value,
                 }))
               }
               mt={2}
             />
           </Box>
 
+        </>
+      )}
+    </VStack>
+  );
+
+
+
+
+
+case "Resize Image":
+  return (
+    <VStack align="stretch" spacing={4}>
+
+      {/* Mode Select (Aspect Ratio or Width/Height) */}
+      <Box>
+        <Text fontWeight="bold">Resize Mode</Text>
+        <Select
+          mt={2}
+          value={resizeImageSettings.mode}
+          onChange={(e) =>
+            setResizeImageSettings((prev) => ({
+              ...prev,
+              mode: e.target.value,
+              // Reset values when switching modes
+              target_aspect_ratio: e.target.value === "aspect_ratio" ? prev.target_aspect_ratio : "",
+              targetWidth: e.target.value === "width_height" ? prev.targetWidth : "",
+              targetHeight: e.target.value === "width_height" ? prev.targetHeight : ""
+            }))
+          }
+          sx={{
+            "& option": {
+              backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+              color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+            },
+          }}
+        >
+          <option value="aspect_ratio">Aspect Ratio</option>
+          <option value="width_height">Width & Height</option>
+        </Select>
+      </Box>
+
+      {/* --- If Mode = Aspect Ratio → Show Aspect Ratio Dropdown --- */}
+      {resizeImageSettings.mode === "aspect_ratio" && (
+        <Box>
+          <Text fontWeight="bold">Target Aspect Ratio</Text>
+          <Select
+            placeholder="Select aspect ratio"
+            value={resizeImageSettings.target_aspect_ratio}
+            onChange={(e) =>
+              setResizeImageSettings((prev) => ({
+                ...prev,
+                target_aspect_ratio: e.target.value
+              }))
+            }
+            mt={2}
+            sx={{
+              "& option": {
+                backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+                color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+              },
+            }}
+          >
+            <option value="1:1">1:1</option>
+            <option value="4:5">4:5</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+          </Select>
+        </Box>
+      )}
+
+      {/* --- If Mode = Width & Height → Show Inputs --- */}
+      {resizeImageSettings.mode === "width_height" && (
+        <>
+          {/* Target Width */}
+          <Box>
+            <Text fontWeight="bold">Target Width (px)</Text>
+            <Input
+              type="number"
+              placeholder="Enter width in px"
+              _placeholder={{ color: textcolor }}
+              color={textcolor}
+              value={resizeImageSettings.targetWidth}
+              onChange={(e) =>
+                setResizeImageSettings((prev) => ({
+                  ...prev,
+                  targetWidth: e.target.value
+                }))
+              }
+              mt={2}
+            />
+          </Box>
+
+          {/* Target Height */}
           <Box>
             <Text fontWeight="bold">Target Height (px)</Text>
             <Input
               type="number"
-              placeholder="Height in px"
-              _placeholder={{color:textcolor}}
-color={textcolor}
-              value={imageCreationSettings.targetHeight}
+              placeholder="Enter height in px"
+              _placeholder={{ color: textcolor }}
+              color={textcolor}
+              value={resizeImageSettings.targetHeight}
               onChange={(e) =>
-                setImageCreationSettings((prev) => ({
+                setResizeImageSettings((prev) => ({
                   ...prev,
-                  targetHeight: e.target.value,
+                  targetHeight: e.target.value
                 }))
               }
               mt={2}
@@ -776,95 +1030,6 @@ color={textcolor}
           </Box>
         </>
       )}
-
-      {/* 🔄 Resize Method */}
-      <Box>
-        <Text fontWeight="bold">Resize Method</Text>
-        <Select
-          placeholder="Select resize method"
-          value={imageCreationSettings.resizeMethod}
-          onChange={(e) =>
-            setImageCreationSettings((prev) => ({
-              ...prev,
-              resizeMethod: e.target.value,
-            }))
-          }
-          mt={2}
-           sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
-        >
-          <option value="maintain_aspect">Maintain Aspect</option>
-          <option value="crop">Crop</option>
-          <option value="stretch">Stretch</option>
-        </Select>
-      </Box>
-
-      {/* 💎 Quality */}
-      <Box>
-        <Text fontWeight="bold">Quality (1–100)</Text>
-        <Input
-          type="number"
-          min="1"
-          max="100"
-          placeholder="85"
-          _placeholder={{color:textcolor}}
-color={textcolor}
-          value={imageCreationSettings.quality}
-          onChange={(e) =>
-            setImageCreationSettings((prev) => ({
-              ...prev,
-              quality: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
-    </VStack>
-  );
-         case "Resize Image":
-  return (
-    <VStack align="stretch" spacing={4}>
-      {/* Target Width */}
-      <Box>
-        <Text fontWeight="bold">Target Width (px)</Text>
-        <Input
-          type="number"
-          placeholder="Enter width in px"
-          _placeholder={{color:textcolor}}
-color={textcolor}
-          value={resizeImageSettings.targetWidth}
-          onChange={(e) =>
-            setResizeImageSettings((prev) => ({
-              ...prev,
-              targetWidth: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
-
-      {/* Target Height */}
-      <Box>
-        <Text fontWeight="bold">Target Height (px)</Text>
-        <Input
-          type="number"
-          placeholder="Enter height in px"
-          _placeholder={{color:textcolor}}
-color={textcolor}
-          value={resizeImageSettings.targetHeight}
-          onChange={(e) =>
-            setResizeImageSettings((prev) => ({
-              ...prev,
-              targetHeight: e.target.value,
-            }))
-          }
-          mt={2}
-        />
-      </Box>
 
       {/* Resize Method */}
       <Box>
@@ -875,18 +1040,45 @@ color={textcolor}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
               ...prev,
-              resizeMethod: e.target.value,
+              resizeMethod: e.target.value
             }))
           }
           mt={2}
-           sx={{
-    "& option": {
-      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
-      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
-    },
-  }}
+          sx={{
+            "& option": {
+              backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+              color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+            },
+          }}
         >
           <option value="maintain_aspect">Maintain Aspect</option>
+          <option value="crop">Crop</option>
+          <option value="stretch">Stretch</option>
+        </Select>
+      </Box>
+
+      {/* Fill Method */}
+      <Box>
+        <Text fontWeight="bold">Fill Method</Text>
+        <Select
+          placeholder="Select fill method"
+          value={resizeImageSettings.fill_method}
+          onChange={(e) =>
+            setResizeImageSettings((prev) => ({
+              ...prev,
+              fill_method: e.target.value
+            }))
+          }
+          mt={2}
+          sx={{
+            "& option": {
+              backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+              color: colorMode === "dark" ? "#FFFFFF" : "#14225C"
+            }
+          }}
+        >
+          <option value="none">None</option>
+          <option value="pad">Pad</option>
           <option value="crop">Crop</option>
           <option value="stretch">Stretch</option>
         </Select>
@@ -900,13 +1092,13 @@ color={textcolor}
           min="1"
           max="100"
           placeholder="85"
-          _placeholder={{color:textcolor}}
-color={textcolor}
+          _placeholder={{ color: textcolor }}
+          color={textcolor}
           value={resizeImageSettings.quality}
           onChange={(e) =>
             setResizeImageSettings((prev) => ({
               ...prev,
-              quality: e.target.value,
+              quality: e.target.value
             }))
           }
           mt={2}
@@ -914,6 +1106,8 @@ color={textcolor}
       </Box>
     </VStack>
   );
+
+
 
            case "Image to Video":
   return (

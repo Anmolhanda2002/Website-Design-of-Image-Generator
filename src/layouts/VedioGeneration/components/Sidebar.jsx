@@ -24,7 +24,7 @@ MdPhotoLibrary
 // import { MdPhotoLibrary } from "react-icons/md";
 // ✅ Sidebar Items
 export const sidebarItems = [
-  { name: "Bulk Image", icon: MdPhotoLibrary },
+  { name: "Studio Shot", icon: MdPhotoLibrary },
   { name: "Image Creation", icon: MdBrush },
   { name: "Resize Image", icon: MdCrop },
   { name: "Image to Video", icon: MdMovie },

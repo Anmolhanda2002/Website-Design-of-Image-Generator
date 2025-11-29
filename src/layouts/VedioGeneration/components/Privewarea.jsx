@@ -246,8 +246,8 @@ const handleSubmit = async () => {
       setGeneratedImage(generatedUrl);
       setVideoStatus("completed");
 
-      const { targetWidth, targetHeight, resizeMethod, quality } = imageCreationSettings || {};
-      const hasResizeSettings = targetWidth || targetHeight || resizeMethod;
+      const { targetWidth, targetHeight, resizeMethod, quality,target_aspect_ratio,fill_method } = imageCreationSettings || {};
+      const hasResizeSettings = targetWidth || targetHeight || resizeMethod || target_aspect_ratio;
 
       if (hasResizeSettings) {
         const res2 = await axiosInstance.post(
@@ -260,6 +260,8 @@ const handleSubmit = async () => {
             resize_method: resizeMethod,
             quality,
             user_id: selectedUser?.user_id,
+            target_aspect_ratio,
+            fill_method
           }
         );
 
@@ -277,7 +279,8 @@ const handleSubmit = async () => {
     }
 
     else if (activeTab === "Resize Image") {
-      const { targetWidth, targetHeight, resizeMethod, quality } = resizeImageSettings || {};
+      const { targetWidth, targetHeight, resizeMethod, quality,target_aspect_ratio,
+          fill_method, } = resizeImageSettings || {};
       const hasResizeSettings = targetWidth || targetHeight || resizeMethod || quality;
 
       const res2 = await axiosInstance.post(
@@ -285,11 +288,14 @@ const handleSubmit = async () => {
         {
          
           image_url: images[0]?.url,
+
           target_width: targetWidth,
           target_height: targetHeight,
           resize_method: resizeMethod,
           quality,
           user_id: selectedUser?.user_id,
+          target_aspect_ratio,
+          fill_method,
         }
       );
 

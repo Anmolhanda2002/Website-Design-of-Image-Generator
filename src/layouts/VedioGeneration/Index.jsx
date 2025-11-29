@@ -46,11 +46,18 @@ import { useLocation } from "react-router-dom";
 // --- Initial State Definitions for Reset (Must be outside the component) ---
 const initialImageCreationSettings = {
     guidelineId: "", targetMethod: "disable", targetWidth: "", 
-    targetHeight: "", resizeMethod: "", quality: "",use_case:""
+    targetHeight: "", resizeMethod: "", quality: "",use_case:"",target_aspect_ratio:"",fill_method:"",toggle:"false"
 };
 const initialResizeImageSettings = {
-    customId: "", productId: "", targetWidth: "", targetHeight: "", 
-    resizeMethod: "", quality: "",
+  customId: "",
+  productId: "",
+  targetWidth: "",
+  targetHeight: "",
+  resizeMethod: "",
+  quality: "",
+  mode: "aspect_ratio",   // aspect_ratio | width_height
+  target_aspect_ratio: "",
+  fill_method: ""
 };
 const initialImageToVideoSettings = {
     customer_ID: "", product_ID: "", layover_text: "", project_name: "", 
@@ -675,7 +682,7 @@ useEffect(() => {
                             overflowY="auto" flex="1" p={4} bg={color} borderRadius="lg" boxShadow="md"
                             sx={{ "::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
                         >
-                        {activeTab === "Bulk Image" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData} setImages={setImages} setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>)}
+                        {activeTab === "Studio Shot" && (<BulkImageCreation  selectedUser={selectedUser}  bulkImageData={BulkData} setBulkImageData={setBulkData} setImages={setImages} setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>)}
                             {activeTab === "Edit Video" && (<EditVedioComponent  selectedUser={selectedUser} previewData={previewData} setActiveTab={setActiveTab} setImages={setImages} setlastimagetovideo={setlastimagetovideo}/>)}
                             {activeTab === "Caption Segment" && (<CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />)}
                             {activeTab === "Captioned Edit" && <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />}
@@ -732,7 +739,10 @@ useEffect(() => {
                             </Box>
                         </Flex>
                     ) : activeTab === "Captioned Edit" ? (
-                        <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
+                       <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                              <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                        
                     ) : activeTab === "Merge Video" ? (
                         <Flex flex="1" overflow="hidden">
                             {/* Panel */}
@@ -757,7 +767,7 @@ useEffect(() => {
                         </Flex>
                        
                     ) : 
-                     activeTab === "Bulk Image" ? (
+                     activeTab === "Studio Shot" ? (
                                               <Flex flex="1" overflow="auto">
                             {/* Panel */}
                             <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>

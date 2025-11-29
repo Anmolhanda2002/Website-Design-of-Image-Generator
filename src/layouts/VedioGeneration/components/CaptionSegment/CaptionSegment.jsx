@@ -7,25 +7,31 @@ import {
   Button,
   useToast,
   useColorModeValue,
-  VStack,SimpleGrid
+  VStack,
+  SimpleGrid,
+  IconButton,
 } from "@chakra-ui/react";
 import axiosInstance from "utils/AxiosInstance";
-import { MdSend, MdReplay } from "react-icons/md";
+import { MdSend, MdReplay, MdArrowBack } from "react-icons/md";
 
 export default function CaptionedEdit({ selectedUser, captionData, setCaptionData }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [resultVideo, setResultVideo] = useState(null); // ✅ New state for result page
-  const toast = useToast();
+  const [resultVideo, setResultVideo] = useState(null);
 
+  // 👉 Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const videosPerPage = 6;
+
+  const toast = useToast();
   const panelBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const hoverBg = useColorModeValue("gray.50", "gray.700");
   const color = useColorModeValue("#A0AEC0", "#4A5568");
 
-  // ✅ Fetch all edited videos for user
+  // ---------------------- FETCH VIDEOS ----------------------
   useEffect(() => {
     if (!selectedUser?.user_id) return;
     const controller = new AbortController();
@@ -39,56 +45,45 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
         });
 
         if (res.data?.success && Array.isArray(res.data.data)) {
-          startTransition(() => setVideos(res.data.data));
+          startTransition(() => {
+            setVideos(res.data.data);
+            setCurrentPage(1);
+          });
         } else {
           startTransition(() => setVideos([]));
-          toast({
-            title: "No videos found for this user",
-            status: "warning",
-            duration: 2000,
-            isClosable: true,
-          });
         }
       } catch (err) {
         if (err.name !== "CanceledError") {
-          console.error("❌ Error fetching captioned videos:", err);
           toast({
-            title: "Failed to load videos",
-            description: err.response?.data?.message || "Check network or user ID.",
+            title: "Error loading videos",
             status: "error",
-            duration: 3000,
-            isClosable: true,
           });
         }
       } finally {
-        startTransition(() => setLoading(false));
+        setLoading(false);
       }
     };
 
     fetchVideos();
     return () => controller.abort();
-  }, [selectedUser?.user_id, toast]);
+  }, [selectedUser?.user_id]);
 
-  // ✅ Handle video selection
+  // ---------------------- SELECT VIDEO ----------------------
   const handleSelect = (video) => {
-    startTransition(() => {
-      setSelectedVideo(video);
-      setCaptionData((prev) => ({
-        ...prev,
-        edit_id: video.edit_id || "",
-        segment_number: video.total_segments_created || 1,
-      }));
-    });
+    setSelectedVideo(video);
+    setCaptionData((prev) => ({
+      ...prev,
+      edit_id: video.edit_id || "",
+      segment_number: video.total_segments_created || 1,
+    }));
   };
 
-  // ✅ Handle caption submission
+  // ---------------------- SUBMIT CAPTION ----------------------
   const handleSubmit = async () => {
     if (!selectedVideo) {
       toast({
-        title: "Please select a video first",
+        title: "Select a video first",
         status: "warning",
-        duration: 2000,
-        isClosable: true,
       });
       return;
     }
@@ -96,7 +91,7 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
     setIsSubmitting(true);
 
     const payload = {
-      edit_id: selectedVideo.edit_id || captionData.edit_id,
+      edit_id: selectedVideo.edit_id,
       segment_number: Number(captionData.segment_number) || 1,
       captions: [
         {
@@ -123,13 +118,11 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
         const { captioned_segment_url, edit_id, segment_number } = res.data.data;
 
         toast({
-          title: `Captions added successfully!`,
+          title: "Caption added!",
           status: "success",
-          duration: 2500,
-          isClosable: true,
         });
 
-        // ✅ Show only the result video in a new view
+        // Show Result View
         setResultVideo({
           captioned_segment_url,
           edit_id,
@@ -137,87 +130,99 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
           project_name: selectedVideo.project_name || "Captioned Video",
         });
 
-        // ✅ Clear previous videos and selections
         setVideos([]);
         setSelectedVideo(null);
-      } else {
-        throw new Error(res.data?.message || "API response error");
       }
     } catch (err) {
-      console.error("❌ Error submitting caption segment:", err);
       toast({
-        title: "Failed to submit caption segment",
-        description: err.response?.data?.message || err.message || "An unknown error occurred.",
+        title: "Caption failed",
         status: "error",
-        duration: 4000,
-        isClosable: true,
       });
     } finally {
-      startTransition(() => setIsSubmitting(false));
+      setIsSubmitting(false);
     }
   };
 
-  // ✅ Result view for single captioned video
+  // ---------------------- PAGINATION LOGIC ----------------------
+  const indexOfLast = currentPage * videosPerPage;
+  const indexOfFirst = indexOfLast - videosPerPage;
+  const currentVideos = videos.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(videos.length / videosPerPage);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage((p) => p + 1);
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage((p) => p - 1);
+  };
+
+  // ---------------------- RESULT VIDEO VIEW ----------------------
   if (resultVideo) {
     return (
-      <Flex direction="column" align="center" justify="center" h="100%" p={6} >
-        <Box
-          bg={panelBg}
-          p={5}
-          borderRadius="xl"
-          boxShadow="lg"
-          maxW="700px"
-          w="100%"
-          textAlign="center"
-          overflowY="auto"
-          sx={{
-            "&::-webkit-scrollbar": { width: "8px" },
-            "&::-webkit-scrollbar-thumb": { background: "none", borderRadius: "4px" },
-          }}
-           
-        >
-          <Text fontSize="2xl" fontWeight="bold" mb={4}>
-            🎉 Captioned Segment Ready!
-          </Text>
+    <Flex direction="column" align="center" justify="center" h="100%" p={6}>
+  <Box
+    bg={panelBg}
+    p={5}
+    borderRadius="xl"
+    boxShadow="lg"
+    maxW="700px"
+    w="100%"
+    textAlign="center"
+    position="relative"   // 👈 needed for correct absolute position
+  >
+    {/* 🔙 BACK BUTTON (Perfect Position) */}
+    <IconButton
+      icon={<MdArrowBack size={22} />}
+      colorScheme="gray"
+      variant="solid"
+      borderRadius="full"
+      size="sm"
+      onClick={() => setResultVideo(null)}
+      position="absolute"
+      top="12px"
+      left="12px"
+      bg="white"
+      _hover={{ bg: "gray.200" }}
+      boxShadow="md"
+    />
 
-          <video
-            src={resultVideo.captioned_segment_url}
-            controls
-            autoPlay
-            style={{
-              width: "100%",
-              borderRadius: "12px",
-              maxHeight:"300px",
-              marginBottom: "16px",
-              boxShadow: "0 0 20px rgba(0,0,0,0.2)",
-            }}
-          />
+    <Text fontSize="2xl" fontWeight="bold" mb={4} mt={4}>
+      🎉 Captioned Segment Ready!
+    </Text>
 
-          <Text fontWeight="semibold">
-            Edit ID: <b>{resultVideo.edit_id}</b>
-          </Text>
-          <Text color="green.500" fontWeight="bold">
-            Segment #{resultVideo.segment_number}
-          </Text>
+    <video
+      src={resultVideo.captioned_segment_url}
+      controls
+      autoPlay
+      style={{
+        width: "100%",
+        borderRadius: "12px",
+        maxHeight: "300px",
+        marginBottom: "16px",
+      }}
+    />
 
+    <Text fontWeight="semibold">
+      Edit ID: <b>{resultVideo.edit_id}</b>
+    </Text>
 
-        </Box>
-      </Flex>
+    <Text color="green.500" fontWeight="bold">
+      Segment #{resultVideo.segment_number}
+    </Text>
+  </Box>
+</Flex>
+
     );
   }
 
-  // ✅ Default Video List View
+  // ---------------------- DEFAULT LIST VIEW ----------------------
   return (
-    <Flex direction="column" h="100%" w="100%" p={4} gap={4} overflowY="auto"
-          sx={{
-            "&::-webkit-scrollbar": { width: "8px" },
-            "&::-webkit-scrollbar-thumb": { background: color, borderRadius: "4px" },
-          }}>
+    <Flex direction="column" h="100vh" w="100%"  p={4} gap={4} overflowY="auto">
+      {/* HEADER */}
       <Flex justify="space-between" align="center">
         <VStack align="flex-start" spacing={0}>
-          <Text fontSize="xl" fontWeight="bold">
-            Captioned Edit
-          </Text>
+          <Text fontSize="xl" fontWeight="bold">Captioned Edit</Text>
           {selectedVideo && (
             <Text fontSize="sm" color="gray.500">
               Selected Video ID: <b>{selectedVideo.edit_id}</b>
@@ -230,98 +235,88 @@ export default function CaptionedEdit({ selectedUser, captionData, setCaptionDat
           size="md"
           onClick={handleSubmit}
           isLoading={isSubmitting}
-          loadingText="Submitting..."
-          // isDisabled={!selectedVideo}
-          leftIcon={isSubmitting ? undefined : <MdSend size={18} />}
+          leftIcon={<MdSend size={18} />}
         >
           Submit Captions
         </Button>
       </Flex>
 
+      {/* LOADING */}
       {loading ? (
         <Flex align="center" justify="center" flex="1">
           <Spinner size="lg" color="blue.500" />
         </Flex>
       ) : videos.length === 0 ? (
         <Flex align="center" justify="center" flex="1">
-          <Text color="gray.500">No videos found for caption editing.</Text>
+          <Text>No videos found.</Text>
         </Flex>
       ) : (
-        <Box
-  flex="1"
-  overflowY="auto"
-  sx={{
-    "&::-webkit-scrollbar": { width: "0px" },
-    "&::-webkit-scrollbar-thumb": { background: "none", borderRadius: "4px" },
-  }}
->
-  <SimpleGrid
-    columns={{ base: 1, sm: 2, md: 3 }} // 👈 1 col mobile, 2 tab, 3 desktop
-    spacing={4}
-    justifyItems="center"
-  >
-    {videos.map((video) => {
-      const videoSrc =
-        video.captioned_segment_url ||
-        video.captioned_final_video_url ||
-        video.final_video_url;
+        <>
+          {/* VIDEO GRID */}
+          <Box flex="1" overflowY="auto" h="100%">
+            <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4}>
+              {currentVideos.map((video) => {
+                const videoSrc =
+                  video.captioned_segment_url ||
+                  video.captioned_final_video_url ||
+                  video.final_video_url;
 
-      const isSelected = selectedVideo?.edit_id === video.edit_id;
+                const isSelected = selectedVideo?.edit_id === video.edit_id;
 
-      return (
-        <Box
-          key={video.edit_id}
-          bg={panelBg}
-          border="2px solid"
-          borderColor={isSelected ? "blue.400" : borderColor}
-          borderRadius="xl"
-          boxShadow={isSelected ? "0 0 15px rgba(66,153,225,0.5)" : "sm"}
-          overflow="hidden"
-          transition="all 0.3s ease"
-          cursor="pointer"
-          onClick={() => handleSelect(video)}
-          _hover={{
-            transform: "scale(1.03)",
-            boxShadow: "lg",
-          }}
-        >
-          {videoSrc ? (
-            <video
-              src={videoSrc}
-              style={{
-                width: "100%",
-                height: "200px",
-                objectFit: "cover",
-              }}
-              controls
-              muted
-            />
-          ) : (
-            <Box
-              w="100%"
-              h="200px"
-              bg="gray.100"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <Text color="gray.500">No Video</Text>
-            </Box>
-          )}
-          <Box p={3}>
-            <Text fontWeight="bold" noOfLines={1}>
-              {video.project_name || "Unnamed Project"}
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              ID: {video.edit_id}
-            </Text>
+                return (
+                  <Box
+                    key={video.edit_id}
+                    bg={panelBg}
+                    border="2px solid"
+                    borderColor={isSelected ? "blue.400" : borderColor}
+                    borderRadius="xl"
+                    boxShadow={isSelected ? "0 0 15px rgba(66,153,225,0.5)" : "sm"}
+                    overflow="hidden"
+                    cursor="pointer"
+                    onClick={() => handleSelect(video)}
+                  >
+                    {videoSrc ? (
+                      <video
+                        src={videoSrc}
+                        controls
+                        muted
+                        style={{ width: "100%", height: "200px", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <Box w="100%" h="200px" bg="gray.100" display="flex" justifyContent="center" alignItems="center">
+                        <Text>No Video</Text>
+                      </Box>
+                    )}
+
+                    <Box p={3}>
+                      <Text fontWeight="bold" noOfLines={1}>
+                        {video.project_name || "Unnamed Project"}
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        ID: {video.edit_id}
+                      </Text>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </SimpleGrid>
           </Box>
-        </Box>
-      );
-    })}
-  </SimpleGrid>
-</Box>
 
+          {/* PAGINATION */}
+          <Flex justify="center" align="center" mt={4} gap={3}>
+            <Button onClick={prevPage} isDisabled={currentPage === 1}>
+              Previous
+            </Button>
+
+            <Text fontWeight="bold">
+              {currentPage} / {totalPages}
+            </Text>
+
+            <Button onClick={nextPage} isDisabled={currentPage === totalPages}>
+              Next
+            </Button>
+          </Flex>
+        </>
       )}
     </Flex>
   );

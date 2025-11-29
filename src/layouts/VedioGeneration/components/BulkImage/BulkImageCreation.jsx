@@ -33,7 +33,8 @@ const BulkImageCreation = ({
   const [lifestyleLoading, setLifestyleLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [submitloading, setsubmitloading] = useState(false);
-
+  const [previewdata,setpreviewdata]=useState([])
+const [isLoading, setIsLoading] = useState(false);
   // NEW STATES
   const [isFirstApiDone, setIsFirstApiDone] = useState(false);
   const [isLifestyleDone, setIsLifestyleDone] = useState(false);
@@ -189,6 +190,27 @@ const BulkImageCreation = ({
     }
   };
 
+
+  const handleImageSelect = (url) => {
+  setSelectedImage(url);
+
+  // Find full image data from shotMapping or API response
+  const selectedData = Object.entries(previewdata).find(
+    ([imageUrl]) => imageUrl === url
+  );
+
+  console.log(previewdata)
+  if (selectedData) {
+    const output = {
+      image_url: selectedData[0],
+      shot_name: selectedData[1],
+    };
+    console.log("Selected Image Data:", output);
+  } else {
+    console.log("Selected Image URL (no extra data):", url);
+  }
+};
+
   /* ------------------------------------------
       CSV UPLOAD API
       (upload CSV file and set bulkImageData.csv_file)
@@ -247,7 +269,7 @@ const BulkImageCreation = ({
       setPreviewImages([]);
       setBackgroundNotice(null);
       setsubmitloading(true);
-
+setpreviewdata([])
       const body = {
         user_id: selectedUser?.user_id,
         model: Number(bulkImageData.model),
@@ -400,7 +422,7 @@ const BulkImageCreation = ({
     setLifestyleImages(lifestyleUrls);
     setPreviewImages(lifestyleUrls);
     setSelectedImage(lifestyleUrls[0]);
-
+setpreviewdata(data)
     setIsLifestyleDone(true);
 
     // Swal.fire("Success!", "Lifestyle Generated Successfully!", "success");
@@ -411,6 +433,8 @@ const BulkImageCreation = ({
     setLifestyleLoading(false);
   }
 };
+
+
 
 
   /* ------------------------------------------
@@ -464,6 +488,159 @@ const BulkImageCreation = ({
       return handleSubmitImage();
     }
   };
+
+
+
+// Handle editing a selected image
+const handleEdit = async () => {
+  if (!selectedImage) {
+    Swal.fire("Error", "No image selected", "error");
+    return;
+  }
+
+  if (!previewdata || !previewdata.generated_variations) {
+    Swal.fire("Error", "No generated variations available", "error");
+    return;
+  }
+
+  const selectedImageData = previewdata.generated_variations.find(
+    (item) => item.image_url === selectedImage
+  );
+
+  if (!selectedImageData) {
+    Swal.fire("Error", "Selected image not found in variations", "error");
+    return;
+  }
+
+  // Open Swal modal for prompt & model selection
+  const { value: editData } = await Swal.fire({
+    title: "Edit Lifestyle Image",
+    html: `
+      <div style="display:flex; flex-direction:column; gap:10px; text-align:left;">
+        <label style="font-weight:bold;">Prompt</label>
+        <textarea id="editPrompt" class="swal2-textarea" rows="4" placeholder="Enter edit instructions"></textarea>
+        <label style="font-weight:bold;">Model</label>
+        <select id="editModel" class="swal2-select">
+          <option value="123">123 - Nano Banana</option>
+          <option value="789" selected>789 - Pro</option>
+        </select>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Submit",
+    cancelButtonText: "Cancel",
+    preConfirm: () => {
+      const prompt = document.getElementById("editPrompt").value.trim();
+      const model = Number(document.getElementById("editModel").value);
+      if (!prompt) Swal.showValidationMessage("Prompt cannot be empty");
+      return { prompt, model };
+    },
+    didOpen: () => {
+      // Optional: Focus the textarea when modal opens
+      document.getElementById("editPrompt")?.focus();
+    },
+  });
+
+  if (!editData) return; // Cancel clicked
+
+  try {
+    // Show Swal loading while API is called
+    Swal.fire({
+      title: "Processing...",
+      html: "Please wait while the image is being edited.",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    const body = {
+      user_id: selectedUser?.user_id,
+      lifestyle_id: previewdata.lifestyle_id,
+      composition_id: selectedImageData.composition_id,
+      prompt: editData.prompt,
+      model: editData.model || 789,
+    };
+
+    const res = await axiosInstance.post("/factory_edit_lifestyle_composition/", body);
+    const editedImageUrl = res.data?.data?.edited_image_url;
+
+    if (!editedImageUrl) throw new Error("No edited image returned from API");
+
+    Swal.close(); // Close loading
+
+    // Show preview of edited image
+    const { isConfirmed } = await Swal.fire({
+      title: "Edited Image Preview",
+      html: `<img src="${editedImageUrl}" style="width:100%; border-radius:8px;" />`,
+      showCancelButton: true,
+      confirmButtonText: "Use this Image",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!isConfirmed) return;
+
+    // Update preview images and selection
+    setPreviewImages((prev) =>
+      prev.map((img) => (img === selectedImage ? editedImageUrl : img))
+    );
+    setSelectedImage(editedImageUrl);
+
+    // Optionally regenerate bulk images
+    await handleGenerateBulkImages();
+
+    Swal.fire("Success!", "Edited image applied successfully", "success");
+  } catch (err) {
+    Swal.close();
+    console.error(err);
+    Swal.fire("Error", err?.response?.data?.message || err.message || "Failed to edit image", "error");
+  }
+};
+
+
+// Generate bulk lifestyle images
+const handleGenerateBulkImages = async () => {
+  const shotName = shotMapping[selectedImage];
+  if (!shotName) {
+    // toast({ title: "No matching shot name found", status: "error" });
+    return;
+  }
+
+  const body = {
+    user_id: selectedUser?.user_id,
+    session_id: sessionId,
+    source_shot: shotName,
+    model: 123, // You can allow user to select this dynamically too
+    image_guideline_id: guidelineToSend,
+  };
+
+  try {
+    setIsLoading(true);
+
+    const res = await axiosInstance.post("/factory_generate_bulk_lifestyle_shots/", body);
+    const data = res.data.data;
+
+    // Filter out only valid URLs
+    const lifestyleUrls = Object.values(data.image_urls).filter((url) => url);
+
+    setLifestyleImages(lifestyleUrls);
+    setPreviewImages(lifestyleUrls);
+    setSelectedImage(lifestyleUrls[0]);
+    setpreviewdata(data);
+    setIsLifestyleDone(true);
+
+    Swal.fire("Success!", "Lifestyle images generated successfully", "success");
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", err?.response?.data?.message || "Failed to generate images", "error");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+
+
+
+
 
   return (
     <Box w="100%" p={5}>
@@ -566,7 +743,7 @@ const BulkImageCreation = ({
                 overflow="hidden"
                 cursor="pointer"
                 border={selectedImage === url ? "3px solid #3182CE" : `2px solid ${borderColor}`}
-                onClick={() => setSelectedImage(url)}
+                onClick={() => handleImageSelect(url)}
                 _hover={{ transform: "scale(1.03)" }}
                 transition="0.2s"
               >
@@ -591,6 +768,14 @@ const BulkImageCreation = ({
           <Button colorScheme="purple" onClick={handleCreateVideo} isDisabled={!selectedImage}>
             Create Video
           </Button>
+        )}
+         {(isFirstApiDone && isLifestyleDone) && (
+          <Button
+  colorScheme="blue"
+  onClick={handleEdit}
+>
+  Edit Image
+</Button>
         )}
 
         {(isFirstApiDone || isLifestyleDone) && (
