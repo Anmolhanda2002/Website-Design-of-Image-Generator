@@ -228,31 +228,42 @@ const handleSubmit = async () => {
   if (activeTab === "Image Creation") {
 
   // 1️⃣ GENERATE IMAGE FIRST
-  const res1 = await axiosInstance.post(
-  "/factory_development_gemini_virtual_tryon_generate/",
-  {
-    image_urls: images.map((img) => img.url),
-    prompt: text,
-    use_case: imageCreationSettings?.use_case,
-    img_guideline_id: imageCreationSettings?.guidelineId,
-    user_id: selectedUser?.user_id,
+const res1 = await axiosInstance.post(
+"/factory_development_gemini_virtual_tryon_generate/",
+{
+image_urls: images.map((img) => img.url),
+prompt: text,
+use_case: imageCreationSettings?.use_case,
+img_guideline_id: imageCreationSettings?.guidelineId,
+user_id: selectedUser?.user_id,
+model: Number(imageCreationSettings?.model),
 
-    // ADD THIS (important)
-    model: Number(imageCreationSettings?.model) , // 789 or 456
 
-    ...(imageCreationSettings?.model === 789 || imageCreationSettings?.model === 456
-      ? {
-          model_config: {
-            size: imageCreationSettings?.size || "2K",
-            watermark: false,
-            sequential_image_generation:
-              imageCreationSettings?.sequential || "disabled",
-            response_format: "url",
-          },
-        }
-      : {}),
-  }
+// Dynamic model_config based on selected model
+...(imageCreationSettings?.model === 456 || imageCreationSettings?.model === "456"
+  ? {
+      model_config: {
+        size: "2K",
+        watermark: false,
+        sequential_image_generation: "disabled",
+        response_format: "url",
+      },
+    }
+  : imageCreationSettings?.model === 789 || imageCreationSettings?.model === "789"
+  ? {
+      model_config: {
+        image_size: "4K",
+        aspect_ratio: "16:9",
+        thinking_level: "high",
+        search_enabled: false,
+      },
+    }
+  : {}),
+
+
+}
 );
+
 
 
   const compositionId = res1?.data?.data?.composition_id;

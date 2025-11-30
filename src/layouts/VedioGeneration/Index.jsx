@@ -70,7 +70,7 @@ import { useLocation } from "react-router-dom";
 // --- Initial State Definitions for Reset (Must be outside the component) ---
 const initialImageCreationSettings = {
     guidelineId: "", targetMethod: "disable", targetWidth: "", model:"",
-    targetHeight: "", resizeMethod: "", quality: "",use_case:"",target_aspect_ratio:"",fill_method:"",toggle:"false",size:"",watermark:false,sequential_image_generation:"",response_format:""
+    targetHeight: "", resizeMethod: "", quality: "85",use_case:"",target_aspect_ratio:"",fill_method:"gen_ai",toggle:"false",size:"",watermark:false,sequential_image_generation:"",response_format:"",image_size:"",aspect_ratio:"",thinking_level:"",search_enabled:""
 };
 const initialResizeImageSettings = {
   customId: "",
@@ -78,10 +78,10 @@ const initialResizeImageSettings = {
   targetWidth: "",
   targetHeight: "",
   resizeMethod: "",
-  quality: "",
+  quality: "85",
   mode: "aspect_ratio",   // aspect_ratio | width_height
   target_aspect_ratio: "",
-  fill_method: "",
+  fill_method: "gen_ai",
   model:"",
   size:"",watermark:false,sequential_image_generation:"",response_format:""
 };
@@ -126,7 +126,9 @@ const initialBulkImageData = {
   image_size:"",
   aspect_ratio:"",
   thinking_level:"",
-  search_enabled:false
+  search_enabled:false,
+  sequential_image_generation:"",
+  response_format:""
 };
 
 

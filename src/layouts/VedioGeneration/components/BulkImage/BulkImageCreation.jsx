@@ -50,7 +50,8 @@ const isDark = colorMode === "dark";
   const textColor = useColorModeValue("gray.800", "white");
   const borderColor = useColorModeValue("#e6ecf5", "gray.700");
   const subtleText = useColorModeValue("gray.500", "gray.300");
-
+const [frontUploading, setFrontUploading] = useState(false);
+const [backUploading, setBackUploading] = useState(false);
   /* ------------------------------------------
       IMAGE UPLOAD
   ------------------------------------------- */
@@ -85,31 +86,36 @@ const isDark = colorMode === "dark";
     }
   };
 
-  const handleSingleImage = async (event, type) => {
-    const file = event.target.files[0];
-    if (!file) return;
+const handleSingleImage = async (event, type) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-    setUploading(true);
+  // ⭐ Set loader only for the image being uploaded
+  if (type === "front") setFrontUploading(true);
+  if (type === "back") setBackUploading(true);
 
-    try {
-      const uploadedUrl = await handleImageUpload(file);
+  try {
+    const uploadedUrl = await handleImageUpload(file);
 
-      setBulkImageData((prev) => ({
-        ...prev,
-        user_id: selectedUser,
-        product_images: {
-          ...prev.product_images,
-          [type]: uploadedUrl,
-        },
-      }));
+    setBulkImageData((prev) => ({
+      ...prev,
+      user_id: selectedUser,
+      product_images: {
+        ...prev.product_images,
+        [type]: uploadedUrl,
+      },
+    }));
 
-      toast({ title: `${type} image uploaded`, status: "success" });
-    } catch (err) {
-      toast({ title: "Upload Failed", status: "error" });
-    } finally {
-      setUploading(false);
-    }
-  };
+    toast({ title: `${type} image uploaded`, status: "success" });
+  } catch (err) {
+    toast({ title: "Upload Failed", status: "error" });
+  } finally {
+    // ⭐ Stop loader only for the selected image
+    if (type === "front") setFrontUploading(false);
+    if (type === "back") setBackUploading(false);
+  }
+};
+
 
   /* ------------------------------------------
       GENERATE PRODUCT ID
@@ -127,85 +133,108 @@ const isDark = colorMode === "dark";
       IMAGE SUBMIT API
   ------------------------------------------- */
 const handleSubmitImage = async () => {
-  try {
-    setIsProcessing(true);
-    setLifestyleImages([]);
-    setPreviewImages([]);
-    setBackgroundNotice(null);
-    setsubmitloading(true);
+try {
+setIsProcessing(true);
+setLifestyleImages([]);
+setPreviewImages([]);
+setBackgroundNotice(null);
+setsubmitloading(true);
 
-    const userId = selectedUser?.user_id;
 
-    const baseBody = {
-      user_id: userId,
-      model: Number(bulkImageData.model),
-      image_guideline_id: bulkImageData.image_guideline_id,
-      customer_id: `CRM-${userId}`,
-      product_id: generateShortUUID(),
-      product_name: bulkImageData.product_name,
-      product_type: bulkImageData.product_type,
-      shot_type: "studio_shots",
-      product_images: bulkImageData.product_images,
-    };
+const userId = selectedUser?.user_id;
 
-    // ------------------------------------------
-    // 🔥 MODEL 456 → ADD model_config
-    // ------------------------------------------
-    if (bulkImageData.model === 456) {
-      baseBody.model_config = {
-        image_size: bulkImageData.image_size,
-        aspect_ratio: bulkImageData.aspect_ratio,
-        thinking_level: bulkImageData.thinking_level,
-        search_enabled: bulkImageData.search_enabled,
-      };
-    }
-
-    console.log("FINAL BODY SENT:", baseBody);
-
-    const res = await axiosInstance.post(
-      "/factory_bulk_generate_product_shots/",
-      baseBody
-    );
-
-    const apiData = res?.data?.data;
-
-    if (!apiData) {
-      setBackgroundNotice(
-        res?.data?.message ||
-          "Processing started in background. Results will appear here."
-      );
-      return;
-    }
-
-    setSessionId(apiData.session_id);
-
-    const finalImages = Array.from(
-      new Set([
-        apiData.base_shot?.image_url,
-        ...((apiData.generated_shots || []).map((s) => s.image_url) || []),
-      ].filter(Boolean))
-    );
-
-    const mapping = {};
-    apiData.generated_shots?.forEach((s) => {
-      mapping[s.image_url] = s.shot_name;
-    });
-
-    setShotMapping(mapping);
-    setPreviewImages(finalImages);
-    setSelectedImage(finalImages[0]);
-
-    setIsFirstApiDone(true);
-    setIsLifestyleDone(false);
-
-    toast({ title: "Submitted Successfully", status: "success" });
-  } catch (err) {
-    toast({ title: "Submit Failed", status: "error" });
-  } finally {
-    setIsProcessing(false);
-    setsubmitloading(false);
-  }
+const baseBody = {
+  user_id: userId,
+  model: Number(bulkImageData.model),
+  image_guideline_id: bulkImageData.image_guideline_id,
+  customer_id: `CRM-${userId}`,
+  product_id: generateShortUUID(),
+  product_name: bulkImageData.product_name,
+  product_type: bulkImageData.product_type,
+  shot_type: "studio_shots",
+  product_images: bulkImageData.product_images,
 };
+
+// -----------------------------
+// MODEL CONFIG
+// -----------------------------
+if (bulkImageData.model === 456) {
+  baseBody.model_config = {
+    size: bulkImageData.size,
+    watermark: false,
+    sequential_image_generation: bulkImageData.sequential_image_generation,
+    response_format: bulkImageData.response_format,
+  };
+}
+
+if (bulkImageData.model === 789) {
+  baseBody.model_config = {
+    image_size: bulkImageData.image_size,
+    aspect_ratio: bulkImageData.aspect_ratio,
+    thinking_level: bulkImageData.thinking_level,
+    search_enabled: bulkImageData.search_enabled,
+  };
+}
+
+const res = await axiosInstance.post(
+  "/factory_bulk_generate_product_shots/",
+  baseBody
+);
+
+const apiData = res?.data?.data;
+
+// ⭐ SUCCESS TOAST WITH BACKEND MESSAGE
+toast({
+  title: res?.data?.message || "Submitted Successfully",
+  status: "success",
+});
+
+if (!apiData) {
+  setBackgroundNotice(
+    res?.data?.message ||
+      "Processing started in background. Results will appear here."
+  );
+  return;
+}
+
+setSessionId(apiData.session_id);
+
+const finalImages = Array.from(
+  new Set([
+    apiData.base_shot?.image_url,
+    ...((apiData.generated_shots || []).map((s) => s.image_url) || []),
+  ].filter(Boolean))
+);
+
+const mapping = {};
+apiData.generated_shots?.forEach((s) => {
+  mapping[s.image_url] = s.shot_name;
+});
+
+setShotMapping(mapping);
+setPreviewImages(finalImages);
+setSelectedImage(finalImages[0]);
+
+setIsFirstApiDone(true);
+setIsLifestyleDone(false);
+
+
+} catch (err) {
+// ❌ ERROR TOAST WITH BACKEND MESSAGE
+toast({
+title:
+err?.response?.data?.message ||
+err?.message ||
+"Submit Failed",
+status: "error",
+});
+} finally {
+setIsProcessing(false);
+setsubmitloading(false);
+}
+};
+
+
 
 
 
@@ -368,56 +397,18 @@ const handleGenerateLifestyle = async () => {
     return;
   }
 
-  // Detect App Theme (Chakra's color mode)
   const isDark = colorMode === "dark";
 
-  // Common Swal Style for Dark/Light Mode
-  const swalStyles = `
-    .swal2-popup {
-      background: ${isDark ? "#14225C" : "#fff"} !important;
-      color: ${isDark ? "#fff" : "#000"} !important;
-      border-radius: 12px;
-    }
-
-    .swal2-title {
-      color: ${isDark ? "#fff" : "#000"} !important;
-    }
-
-    .swal2-html-container {
-      color: ${isDark ? "#fff" : "#000"} !important;
-    }
-
-    select, input {
-      background: ${isDark ? "#2D3748;" : "#fff"} !important;
-      color: ${isDark ? "#fff" : "#000"} !important;
-      border: 1px solid ${isDark ? "#2D3748;" : "#ccc"} !important;
-      border-radius: 6px;
-      padding: 6px;
-    }
-
-    .swal2-confirm {
-      background-color: ${isDark ? "#4d6bff" : "#1a66ff"} !important;
-      color: white !important;
-      border-radius: 6px !important;
-    }
-
-    .swal2-cancel {
-      background-color: ${isDark ? "#333" : "#d3d3d3"} !important;
-      color: ${isDark ? "#fff" : "#000"} !important;
-      border-radius: 6px !important;
-    }
-  `;
-
-  // Inject Dark/Light Mode Styles into HTML Head
   const styleTag = document.createElement("style");
-  styleTag.innerHTML = swalStyles;
+  styleTag.innerHTML = `
+    .swal2-popup { background: ${isDark ? "#14225C" : "#fff"} !important; color: ${isDark ? "#fff" : "#000"} !important; border-radius: 12px; }
+    .swal2-title { color: ${isDark ? "#fff" : "#000"} !important; }
+    select, input { background: ${isDark ? "#2D3748" : "#fff"} !important; color: ${isDark ? "#fff" : "#000"} !important; padding: 6px; border-radius: 6px; }
+  `;
   document.head.appendChild(styleTag);
 
-  // ===================================================
   // LOAD GUIDELINES
-  // ===================================================
   let guidelineOptions = `<option value="">Default (Current Guideline)</option>`;
-
   try {
     const user = JSON.parse(localStorage.getItem("user"));
     const selected = JSON.parse(localStorage.getItem("selected_user"));
@@ -432,36 +423,30 @@ const handleGenerateLifestyle = async () => {
       guidelineOptions += `<option value="${gd.guideline_id}">${gd.name}</option>`;
     });
   } catch (e) {
-    console.log("Error loading guidelines:", e);
+    console.log("Guideline Load Error:", e);
   }
 
-  // ===================================================
   // STEP 1 POPUP
-  // ===================================================
   const firstPopup = await Swal.fire({
     title: "Lifestyle Settings",
     html: `
       <div style="width:100%; max-width:350px; margin:auto;">
 
-        <label style="font-weight:600; margin-bottom:6px;">Guideline</label>
-        <select id="guideline" style="width:100%; height:38px;">
-          ${guidelineOptions}
-        </select>
+        <label style="font-weight:600;">Guideline</label>
+        <select id="guideline" style="width:100%; height:38px;">${guidelineOptions}</select>
 
         <br/><br/>
 
-        <label style="font-weight:600; margin-bottom:6px;">Model</label>
+        <label style="font-weight:600;">Model</label>
         <select id="model" style="width:100%; height:38px;">
-          <option value="123">Model 123 (Default)</option>
-          <option value="456">Model 456</option>
+          <option value="123">Model Gem</option>
+          <option value="456">Model Sed</option>
+          <option value="789">Model Premium</option>
         </select>
 
       </div>
     `,
     width: 520,
-    customClass: { popup: "no-scroll-popup" },
-    background: isDark ? "#14225C" : "#fff",
-    color: isDark ? "#fff" : "#000",
     showCancelButton: true,
     confirmButtonText: "Next",
   });
@@ -471,68 +456,117 @@ const handleGenerateLifestyle = async () => {
   const guideline = document.getElementById("guideline").value;
   const model = Number(document.getElementById("model").value);
 
-  // ===================================================
-  // STEP 2 POPUP (MODEL 456)
-  // ===================================================
-  let extraConfig = null;
+  let modelConfig = null;
 
+  // ==========================
+  // MODEL 123 → DIRECT SUBMIT
+  // ==========================
+  if (model === 123) {
+    modelConfig = null;
+  }
+
+  // ==========================
+  // MODEL 456 → size + response_format
+  // ==========================
   if (model === 456) {
-    const secondPopup = await Swal.fire({
+    const popup456 = await Swal.fire({
       title: "Model 456 Settings",
       html: `
         <div style="width:100%; max-width:350px; margin:auto;">
 
-          <label style="font-weight:600;">Image Size</label>
-          <select id="imageSize" style="width:100%; height:38px;">
-            <option value="4K">4K</option>
+          <label style="font-weight:600;">Size</label>
+          <select id="size" style="width:100%; height:38px;">
             <option value="2K">2K</option>
-            <option value="1080p">1080p</option>
+            <option value="4K">4K</option>
           </select>
 
           <br/><br/>
 
-          <label style="font-weight:600;">Aspect Ratio</label>
-          <select id="aspect" style="width:100%; height:38px;">
-            <option value="9:16">9:16</option>
-            <option value="16:9">16:9</option>
-            <option value="1:1">1:1</option>
+          <label style="font-weight:600;">Response Format</label>
+          <select id="responseFormat" style="width:100%; height:38px;">
+            <option value="url">URL</option>
+            <option value="base64">Base64</option>
           </select>
 
         </div>
       `,
-      width: 520,
-      background: isDark ? "#14225C" : "#fff",
-      color: isDark ? "#fff" : "#000",
       showCancelButton: true,
       confirmButtonText: "Generate",
     });
 
-    if (!secondPopup.value) return;
+    if (!popup456.value) return;
 
-    extraConfig = {
-      image_size: document.getElementById("imageSize").value,
-      aspect_ratio: document.getElementById("aspect").value,
+    modelConfig = {
+      size: document.getElementById("size").value,
+      response_format: document.getElementById("responseFormat").value,
     };
   }
 
-  // ===================================================
-  // FINAL API BODY
-  // ===================================================
+  // ==========================
+  // MODEL 789 → image size + aspect ratio + thinking level + search enabled
+  // ==========================
+  if (model === 789) {
+    const popup789 = await Swal.fire({
+      title: "Model 789 Settings",
+      html: `
+        <div style="width:100%; max-width:350px; margin:auto;">
+
+          <label>Image Size</label>
+          <select id="imageSize789" style="width:100%; height:38px;">
+            <option value="2K">2K</option>
+            <option value="4K">4K</option>
+          </select>
+
+          <br/><br/>
+
+          <label>Aspect Ratio</label>
+          <select id="aspect789" style="width:100%; height:38px;">
+            <option value="9:16">9:16</option>
+            <option value="16:9">16:9</option>
+            <option value="1:1">1:1</option>
+            <option value="3:4">3:4</option>
+            <option value="4:5">4:5</option>
+          </select>
+
+          <br/><br/>
+
+          <label>Thinking Level</label>
+          <select id="thinking789" style="width:100%; height:38px;">
+            <option value="high">High</option>
+          </select>
+
+          <br/><br/>
+
+          <label>Search Enabled</label>
+          <select id="search789" style="width:100%; height:38px;">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Generate",
+    });
+
+    if (!popup789.value) return;
+
+    modelConfig = {
+      image_size: document.getElementById("imageSize789").value,
+      aspect_ratio: document.getElementById("aspect789").value,
+      thinking_level: document.getElementById("thinking789").value,
+      search_enabled: document.getElementById("search789").value === "true",
+    };
+  }
+
+  // FINAL BODY
   const body = {
     user_id: selectedUser?.user_id,
     session_id: sessionId,
     source_shot: shotName,
     model,
     image_guideline_id: guideline || bulkImageData?.image_guideline_id,
-    ...(model === 456
-      ? {
-          model_config: {
-            ...extraConfig,
-            search_enabled: true,
-            media_resolution: "media_resolution_high",
-          },
-        }
-      : {}),
+    ...(modelConfig ? { model_config: modelConfig } : {}),
   };
 
   try {
@@ -547,11 +581,11 @@ const handleGenerateLifestyle = async () => {
     );
 
     const data = res.data.data;
-    const lifestyleUrls = Object.values(data.image_urls).filter(Boolean);
+    const urls = Object.values(data.image_urls).filter(Boolean);
 
-    setLifestyleImages(lifestyleUrls);
-    setPreviewImages(lifestyleUrls);
-    setSelectedImage(lifestyleUrls[0]);
+    setLifestyleImages(urls);
+    setPreviewImages(urls);
+    setSelectedImage(urls[0]);
     setpreviewdata(data);
     setIsLifestyleDone(true);
   } catch (err) {
@@ -562,6 +596,7 @@ const handleGenerateLifestyle = async () => {
     setLifestyleLoading(false);
   }
 };
+
 
 
 
@@ -831,6 +866,7 @@ const handleGenerateBulkImages = async () => {
         borderRadius="xl"
         border={`1px solid ${borderColor}`}
         mt="-20px"
+        p={4}
         overflow="hidden"
         position="relative"
       >
@@ -904,29 +940,103 @@ const handleGenerateBulkImages = async () => {
           <Flex
             gap={3}
             overflowX="auto"
-            h="100%"
+            h="90%"
             align="center"
             sx={{
-              "&::-webkit-scrollbar": { display: "none" },
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
+    scrollBehavior: "smooth",
+    scrollSnapType: "x mandatory",
+    perspective: "1000px",
+
+  
+
+  
+
+    "&::-webkit-scrollbar": {
+      display: "none",
+    },
+
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+
+ 
+
+   
+  }}
           >
             {previewImages.map((url, index) => (
-              <Box
-                key={index}
-                minW="220px"
-                h="100%"
-                borderRadius="lg"
-                overflow="hidden"
-                cursor="pointer"
-                border={selectedImage === url ? "3px solid #3182CE" : `2px solid ${borderColor}`}
-                onClick={() => handleImageSelect(url)}
-                _hover={{ transform: "scale(1.03)" }}
-                transition="0.2s"
-              >
-                <Image src={url} w="100%" h="100%" objectFit="cover" />
-              </Box>
+<Box
+  key={index}
+  minW="220px"
+  h="100%"
+  position="relative"
+  borderRadius="20px"
+  overflow="hidden"
+  cursor="pointer"
+  onClick={() => handleImageSelect(url)}
+  transition="all 0.3s ease"
+  transform={
+    selectedImage === url ? "scale(1) translateY(0px)" : "scale(1)"
+  }
+  
+  border={
+    selectedImage === url
+      ? "5px solid #3B82F6"
+      : `2px solid ${borderColor}`
+  }
+  // _hover={{
+  //   transform:
+  //     selectedImage === url
+  //       ? "scale(1) translateY(-8px)"
+  //       : "scale(1.03)",
+  // }}
+>
+  {/* Soft inner glow highlight */}
+  {selectedImage === url && (
+    <Box
+      position="absolute"
+      inset="0"
+      bg="rgba(59,130,246,0.12)"
+      // backdropFilter="blur(1px)"
+      pointerEvents="none"
+      transition="all 0.3s ease"
+    />
+  )}
+
+  {/* Premium rounded checkmark badge */}
+  {/* {selectedImage === url && (
+    <Box
+      position="absolute"
+      top="10px"
+      right="10px"
+      bg="#3B82F6"
+      color="white"
+      w="32px"
+      h="20px"
+      borderRadius="50%"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      fontSize="18px"
+      boxShadow="0 4px 10px rgba(0,0,0,0.25)"
+      transform="scale(1)"
+      animation="pop 0.3s ease"
+      pointerEvents="none"
+    >
+      ✓
+    </Box>
+  )} */}
+
+<Image
+  src={url}
+  w="100%"
+  h="100%"
+  objectFit="contain"
+  borderRadius="md"
+  transition="all 0.3s ease"
+/>
+</Box>
+
+
             ))}
           </Flex>
         )}
@@ -969,184 +1079,175 @@ const handleGenerateBulkImages = async () => {
             csv mode: left csv upload + right submit
       ------------------------------------------- */}
       <Box mt={3}>
-        {/* IMAGE MODE (front/back + submit) */}
-        {!isFirstApiDone && bulkImageData.file_type === "image" && (
-          <Flex gap={5} alignItems="center" mt={2}>
-            <Flex flex="3" gap={4}>
-              {/* FRONT */}
-              <Box
-                flex="1"
-                h="80px"
-                maxW="80px"
-                bg={cardBg}
-                borderRadius="xl"
-                border={`1px solid ${borderColor}`}
-                display="flex"
-                flexDirection="column"
-                justifyContent="center"
-                alignItems="center"
-                cursor="pointer"
-                onClick={() => document.getElementById("frontInput").click()}
-              >
-                {uploading ? (
-                  <Spinner />
-                ) : bulkImageData.product_images.front ? (
-                  <Image
-                    src={bulkImageData.product_images.front}
-                    h="100%"
-                    w="100%"
-                    objectFit="cover"
-                    borderRadius="xl"
-                  />
-                ) : (
-                  <>
-                    <FiUpload size={22} color="#3182CE" />
-                    <Text mt={1} color={subtleText}>
-                      Front
-                    </Text>
-                  </>
-                )}
-
-                <Input
-                  id="frontInput"
-                  type="file"
-                  display="none"
-                  accept="image/*"
-                  onChange={(e) => handleSingleImage(e, "front")}
-                />
-              </Box>
-
-              {/* BACK */}
-              <Box
-                flex="1"
-                h="80px"
-                maxW="80px"
-                bg={cardBg}
-                borderRadius="xl"
-                border={`1px solid ${borderColor}`}
-                display="flex"
-                flexDirection="column"
-                justifyContent="center"
-                alignItems="center"
-                cursor="pointer"
-                onClick={() => document.getElementById("backInput").click()}
-              >
-                {uploading ? (
-                  <Spinner />
-                ) : bulkImageData.product_images.back ? (
-                  <Image
-                    src={bulkImageData.product_images.back}
-                    h="100%"
-                    w="100%"
-                    objectFit="cover"
-                    borderRadius="xl"
-                  />
-                ) : (
-                  <>
-                    <FiUpload size={22} color="#805AD5" />
-                    <Text mt={1} color={subtleText}>
-                      Back
-                    </Text>
-                  </>
-                )}
-
-                <Input
-                  id="backInput"
-                  type="file"
-                  display="none"
-                  accept="image/*"
-                  onChange={(e) => handleSingleImage(e, "back")}
-                />
-              </Box>
-            </Flex>
-
-            {/* SUBMIT IMAGE */}
-            <Button
-              flex="1"
-              h="55px"
-              maxW="55px"
-              bg="green.500"
+  {/* IMAGE MODE (front/back + submit) */}
+  {!isFirstApiDone && bulkImageData.file_type === "image" && (
+    <Flex gap={5} alignItems="center" mt={2}>
+      <Flex flex="3" gap={4}>
+        {/* FRONT */}
+        <Box
+          flex="1"
+          h="80px"
+          maxW="80px"
+          bg={cardBg}
+          borderRadius="xl"
+          border={`1px solid ${borderColor}`}
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+          alignItems="center"
+          cursor="pointer"
+          onClick={() => document.getElementById("frontInput").click()}
+        >
+          {frontUploading ? (
+            <Spinner />
+          ) : bulkImageData.product_images.front ? (
+            <Image
+              src={bulkImageData.product_images.front}
+              h="100%"
+              w="100%"
+              objectFit="cover"
               borderRadius="xl"
-              onClick={handleSubmit}
-              isLoading={submitloading}
-              isDisabled={submitloading}
+            />
+          ) : (
+            <>
+              <FiUpload size={22} color="#3182CE" />
+              <Text mt={1} color={subtleText}>Front</Text>
+            </>
+          )}
+
+          <Input
+            id="frontInput"
+            type="file"
+            display="none"
+            accept="image/*"
+            onChange={(e) => handleSingleImage(e, "front")}
+          />
+        </Box>
+
+        {/* BACK */}
+        <Box
+          flex="1"
+          h="80px"
+          maxW="80px"
+          bg={cardBg}
+          borderRadius="xl"
+          border={`1px solid ${borderColor}`}
+          display="flex"
+          flexDirection="column"
+          justifyContent="center"
+          alignItems="center"
+          cursor="pointer"
+          onClick={() => document.getElementById("backInput").click()}
+        >
+          {backUploading ? (
+            <Spinner />
+          ) : bulkImageData.product_images.back ? (
+            <Image
+              src={bulkImageData.product_images.back}
+              h="100%"
+              w="100%"
+              objectFit="cover"
+              borderRadius="xl"
+            />
+          ) : (
+            <>
+              <FiUpload size={22} color="#805AD5" />
+              <Text mt={1} color={subtleText}>Back</Text>
+            </>
+          )}
+
+          <Input
+            id="backInput"
+            type="file"
+            display="none"
+            accept="image/*"
+            onChange={(e) => handleSingleImage(e, "back")}
+          />
+        </Box>
+      </Flex>
+
+      {/* SUBMIT IMAGE */}
+      <Button
+        flex="1"
+        h="55px"
+        maxW="55px"
+        bg="green.500"
+        borderRadius="xl"
+        onClick={handleSubmit}
+        isLoading={submitloading}
+        isDisabled={submitloading}
+      >
+        <FiSend size={20} color="white" />
+      </Button>
+    </Flex>
+  )}
+
+  {/* CSV Mode */}
+  {bulkImageData.file_type === "csv" && (
+    <Flex mt={4} justify="space-between" align="center" w="100%">
+      <Box
+        h="80px"
+        w="80px"
+        bg={cardBg}
+        borderRadius="xl"
+        border={`1px solid ${borderColor}`}
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        flexDirection="column"
+        cursor="pointer"
+        p={2}
+        onClick={() => document.getElementById("csvInput").click()}
+      >
+        {uploadingCSV ? (
+          <Spinner />
+        ) : bulkImageData.csv_file ? (
+          <>
+            <FiUpload size={20} />
+            <Text
+              mt={1}
+              fontSize="9px"
+              textAlign="center"
+              noOfLines={2}
+              maxW="70px"
+              color={subtleText}
             >
-              <FiSend size={20} color="white" />
-            </Button>
-          </Flex>
+              {bulkImageData.csv_file.split("/").pop()}
+            </Text>
+          </>
+        ) : (
+          <>
+            <FiUpload size={22} color="#3182CE" />
+            <Text fontSize="10px" mt={1} color={subtleText}>
+              CSV
+            </Text>
+          </>
         )}
 
-        {/* CSV Mode: left CSV upload + right CSV submit (appears when file_type === 'csv') */}
-        {bulkImageData.file_type === "csv" && (
-          <Flex mt={4} justify="space-between" align="center" w="100%">
-            {/* CSV UPLOAD BOX (LEFT) */}
-            <Box
-              h="80px"
-              w="80px"
-              bg={cardBg}
-              borderRadius="xl"
-              border={`1px solid ${borderColor}`}
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              flexDirection="column"
-              cursor="pointer"
-              p={2}
-              onClick={() => document.getElementById("csvInput").click()}
-            >
-              {uploading ? (
-                <Spinner />
-              ) : bulkImageData.csv_file ? (
-                <>
-                  <FiUpload size={20} color="#3182CE" />
-                  <Text
-                    mt={1}
-                    fontSize="9px"
-                    textAlign="center"
-                    noOfLines={2}
-                    maxW="70px"
-                    color={subtleText}
-                  >
-                    {bulkImageData.csv_file.split("/").pop()}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <FiUpload size={22} color="#3182CE" />
-                  <Text fontSize="10px" mt={1} color={subtleText}>
-                    CSV
-                  </Text>
-                </>
-              )}
-
-              <Input
-                id="csvInput"
-                type="file"
-                display="none"
-                accept=".csv"
-                onChange={handleCSVUpload}
-              />
-            </Box>
-
-            {/* SUBMIT ICON BUTTON (RIGHT) */}
-            <Button
-              h="55px"
-              w="55px"
-              bg="green.500"
-              borderRadius="xl"
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              cursor="pointer"
-              onClick={handleSubmit}
-              isLoading={submitloading}
-              isDisabled={submitloading}
-            >
-              <FiSend size={20} color="white" />
-            </Button>
-          </Flex>
-        )}
+        <Input
+          id="csvInput"
+          type="file"
+          display="none"
+          accept=".csv"
+          onChange={handleCSVUpload}
+        />
       </Box>
+
+      <Button
+        h="55px"
+        w="55px"
+        bg="green.500"
+        borderRadius="xl"
+        onClick={handleSubmit}
+        isLoading={submitloading}
+        isDisabled={submitloading}
+      >
+        <FiSend size={20} color="white" />
+      </Button>
+    </Flex>
+  )}
+</Box>
+
     </Box>
   );
 };
