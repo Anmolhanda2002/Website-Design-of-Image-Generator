@@ -25,7 +25,7 @@ export default function ImageGuidelineForm() {
   const [choices, setChoices] = useState(null);
   const [loading, setLoading] = useState(true);
   const {id} = useParams()
-  console.log(id)
+  // console.log(id)
 const { colorMode } = useColorMode();
 const isDark = colorMode === "dark";
 const navigate = useNavigate();
@@ -185,6 +185,26 @@ const handleSubmit = async () => {
         human_instruction: "",
         additional_instructions: "",
         background_color:"",
+          is_active: true,
+
+  camera_angle: "",
+  camera_angle_custom: "",
+
+  flooring_type: "",
+  flooring_type_custom: "",
+  flooring_color: "",
+
+  wall_color: "",
+  wall_color_custom: "",
+  wall_style: "",
+  wall_style_custom: "",
+
+  type_of_shot: "",
+  type_of_shot_custom: "",
+
+  default_shot_type: "",
+  brand_positioning: "",
+  target_consumers: ""
       });
     }
   } catch (error) {
@@ -365,9 +385,62 @@ const handleSubmit = async () => {
                 <option key={val} value={val}>{key}</option>
               ))}
             </Select>
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Interior (optional)" name="environment_interior" value={form.environment_interior} onChange={handleChange} />
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Exterior (e.g. Garden)" name="environment_exterior" value={form.environment_exterior} onChange={handleChange} />
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Lifestyle/Editorial" name="environment_lifestyle_editorial" value={form.environment_lifestyle_editorial} onChange={handleChange} />
+           <Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="Select Interior"
+  name="environment_interior"
+  value={form.environment_interior}
+  onChange={handleChange}
+>
+  {Object.entries(choices.environment_interior_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+
+<Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="Select Exterior"
+  name="environment_exterior"
+  value={form.environment_exterior}
+  onChange={handleChange}
+>
+  {Object.entries(choices.environment_exterior_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+
+
+<Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="Lifestyle/Editorial"
+  name="environment_lifestyle_editorial"
+  value={form.environment_lifestyle_editorial}
+  onChange={handleChange}
+>
+  {Object.entries(choices.environment_lifestyle_editorial_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+
+            {/* <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Lifestyle/Editorial" name="environment_lifestyle_editorial" value={form.environment_lifestyle_editorial} onChange={handleChange} /> */}
             <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Other Environment" name="environment_other" value={form.environment_other} onChange={handleChange} />
           </Grid>
         </VStack>
@@ -389,9 +462,63 @@ const handleSubmit = async () => {
                 <option key={val} value={val}>{key}</option>
               ))}
             </Select>
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="General Pose (e.g. Frontal)" name="pose_general" value={form.pose_general} onChange={handleChange} />
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Yoga Pose" name="pose_yoga" value={form.pose_yoga} onChange={handleChange} />
-            <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Activity Pose" name="pose_activity" value={form.pose_activity} onChange={handleChange} />
+
+
+<Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="General Pose"
+  name="pose_general"
+  value={form.pose_general}
+  onChange={handleChange}
+>
+  {Object.entries(choices.pose_general_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+<Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="Yoga Pose"
+  name="pose_yoga"
+  value={form.pose_yoga}
+  onChange={handleChange}
+>
+  {Object.entries(choices.pose_yoga_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+<Select
+  sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
+  color={textcolor}
+  placeholder="Activity Pose"
+  name="pose_yoga"
+  value={form.pose_activity}
+  onChange={handleChange}
+>
+  {Object.entries(choices.pose_activity_choices).map(([key, val]) => (
+    <option key={val} value={val}>{key}</option>
+  ))}
+</Select>
+
+            {/* <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="General Pose (e.g. Frontal)" name="pose_general" value={form.pose_general} onChange={handleChange} /> */}
+            {/* <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Yoga Pose" name="pose_yoga" value={form.pose_yoga} onChange={handleChange} /> */}
+            {/* <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Activity Pose" name="pose_activity" value={form.pose_activity} onChange={handleChange} /> */}
             <Input color={textcolor} _placeholder={{color:textcolor}} placeholder="Other Pose" name="pose_other" value={form.pose_other} onChange={handleChange} />
           </Grid>
         </VStack>
@@ -430,6 +557,276 @@ const handleSubmit = async () => {
           <Textarea color={textcolor} _placeholder={{color:textcolor}} placeholder="Human Instruction" name="human_instruction" value={form.human_instruction} onChange={handleChange} />
           <Textarea  color={textcolor}  _placeholder={{color:textcolor}} placeholder="Additional Instructions" name="additional_instructions" value={form.additional_instructions} onChange={handleChange} />
         </VStack>
+
+{/* Camera & Composition */}
+<VStack align="start" spacing={4} mb={8}>
+  <Text fontSize="xl" fontWeight="600">Camera & Composition</Text>
+  <Divider />
+
+  <Grid templateColumns={["1fr", "repeat(2, 1fr)"]} gap={6} w="100%">
+    
+    {/* Camera Angle */}
+    <Select
+      sx={{
+        "& option": {
+          backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+          color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+        },
+      }}
+      placeholder="Camera Angle"
+      name="camera_angle"
+      value={form.camera_angle}
+      onChange={handleChange}
+      color={textcolor}
+    >
+      {Object.entries(choices.camera_angle_choices).map(([label, value]) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </Select>
+
+    <Input
+      color={textcolor}
+      placeholder="Custom Camera Angle"
+      _placeholder={{color:textcolor}}
+      name="camera_angle_custom"
+      value={form.camera_angle_custom}
+      onChange={handleChange}
+    />
+  </Grid>
+
+  {/* Composition */}
+  <Select
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+    placeholder="Composition Style"
+    name="composition_style"
+    value={form.composition_style}
+    onChange={handleChange}
+    color={textcolor}
+  >
+    {Object.entries(choices.composition_style_choices).map(([label, value]) => (
+      <option key={value} value={value}>{label}</option>
+    ))}
+  </Select>
+</VStack>
+
+
+
+{/* Flooring Details */}
+
+{/* Flooring Details */}
+<VStack align="start" spacing={4} mb={8}>
+  <Text fontSize="xl" fontWeight="600">Flooring Details</Text>
+  <Divider />
+
+  <Grid templateColumns={["1fr", "repeat(3, 1fr)"]} gap={6} w="100%">
+    
+    {/* Flooring Type Select */}
+    <Select
+      sx={{
+        "& option": {
+          backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+          color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+        },
+      }}
+      placeholder="Flooring Type"
+      name="flooring_type"
+      value={form.flooring_type}
+      onChange={handleChange}
+      color={textcolor}
+    >
+      {Object.entries(choices.flooring_choices).map(([label, value]) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </Select>
+
+    <Input
+      color={textcolor}
+      placeholder="Custom Flooring Type"
+      _placeholder={{color:textcolor}}
+      name="flooring_type_custom"
+      value={form.flooring_type_custom}
+      onChange={handleChange}
+    />
+
+    <Input
+      color={textcolor}
+      placeholder="Flooring Color"
+      _placeholder={{color:textcolor}}
+      name="flooring_color"
+      value={form.flooring_color}
+      onChange={handleChange}
+    />
+  </Grid>
+</VStack>
+
+
+{/* Wall Details */}
+{/* Wall Details */}
+<VStack align="start" spacing={4} mb={8}>
+  <Text fontSize="xl" fontWeight="600">Wall Details</Text>
+  <Divider />
+
+  <Grid templateColumns={["1fr", "repeat(4, 1fr)"]} gap={6} w="100%">
+
+    {/* Wall Color */}
+    <Select
+      sx={{
+        "& option": {
+          backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+          color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+        },
+      }}
+      placeholder="Wall Color"
+      name="wall_color"
+      value={form.wall_color}
+      onChange={handleChange}
+      color={textcolor}
+    >
+      {Object.entries(choices.wall_color_choices).map(([label, value]) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </Select>
+
+    <Input
+      color={textcolor}
+      placeholder="Custom Wall Color"
+      _placeholder={{color:textcolor}}
+      name="wall_color_custom"
+      value={form.wall_color_custom}
+      onChange={handleChange}
+    />
+
+    {/* Wall Style */}
+    <Select
+      sx={{
+        "& option": {
+          backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+          color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+        },
+      }}
+      placeholder="Wall Style"
+      name="wall_style"
+      value={form.wall_style}
+      onChange={handleChange}
+      color={textcolor}
+    >
+      {Object.entries(choices.wall_style_choices).map(([label, value]) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </Select>
+
+    <Input
+      color={textcolor}
+      placeholder="Custom Wall Style"
+      name="wall_style_custom"
+      _placeholder={{color:textcolor}}
+      value={form.wall_style_custom}
+      onChange={handleChange}
+    />
+  </Grid>
+</VStack>
+
+
+{/* Shot Type */}
+
+{/* Shot Type */}
+<VStack align="start" spacing={4} mb={8}>
+  <Text fontSize="xl" fontWeight="600">Shot Type</Text>
+  <Divider />
+
+  <Grid templateColumns={["1fr", "repeat(2, 1fr)"]} gap={6} w="100%">
+    
+    <Select
+      sx={{
+        "& option": {
+          backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+          color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+        },
+      }}
+      placeholder="Type of Shot"
+      name="type_of_shot"
+      value={form.type_of_shot}
+      onChange={handleChange}
+      color={textcolor}
+    >
+      {Object.entries(choices.type_of_shot_choices).map(([label, value]) => (
+        <option key={value} value={value}>{label}</option>
+      ))}
+    </Select>
+
+    <Input
+      color={textcolor}
+      placeholder="Custom Type of Shot"
+      name="type_of_shot_custom"
+      _placeholder={{color:textcolor}}
+      value={form.type_of_shot_custom}
+      onChange={handleChange}
+    />
+  </Grid>
+
+  <Select
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+    placeholder="Default Shot Type"
+    name="default_shot_type"
+    value={form.default_shot_type}
+    onChange={handleChange}
+    color={textcolor}
+    required
+  >
+    {Object.entries(choices.default_shot_type_choices).map(([label, value]) => (
+      <option key={value} value={value}>{label}</option>
+    ))}
+  </Select>
+</VStack>
+
+
+
+{/* Brand Positioning & Target Audience */}
+{/* Brand & Audience */}
+<VStack align="start" spacing={4} mb={8}>
+  <Text fontSize="xl" fontWeight="600">Brand & Audience</Text>
+  <Divider />
+
+  <Input
+    color={textcolor}
+    placeholder="Brand Positioning"
+    name="brand_positioning"
+    _placeholder={{color:textcolor}}
+    value={form.brand_positioning}
+    onChange={handleChange}
+  />
+
+  {/* Target Consumers Select */}
+  <Select
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+    placeholder="Target Consumers"
+    name="target_consumers"
+    value={form.target_consumers}
+    onChange={handleChange}
+    color={textcolor}
+  >
+    {Object.entries(choices.target_choices).map(([label, value]) => (
+      <option key={value} value={value}>{label}</option>
+    ))}
+  </Select>
+</VStack>
+
+
 
         {/* --- Submit Button --- */}
         <HStack justify="flex-end">

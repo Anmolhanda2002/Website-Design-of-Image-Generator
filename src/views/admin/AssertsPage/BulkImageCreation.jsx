@@ -107,7 +107,7 @@ const textColor = useColorModeValue("gray.700", "gray.300");
   }, [handleScroll]);
 
   const handleCardClick = (session) => {
-    console.log(session)
+    // console.log(session)
     setSelectedSession(session);
     setModalOpen(true);
   };
@@ -138,11 +138,14 @@ const handleNavigation = (type, item) => {
   navigate("/videocreate/createvideo", {
     state: {
       activeTab:
-        type === "imageToVideo"
-          ? "Image to Video"
-          : type === "imageCreation"
-          ? "Image Creation"
-          : "Resize Image",
+       
+  type === "imageToVideo"
+    ? "Image to Video"
+    : type === "imageCreation"
+    ? "Image Creation"
+    : type === "lifestyleshot"
+    ? "Studio Shot"
+    : "Resize Image",
 
       selectedItem: {
         ...item,
@@ -395,6 +398,18 @@ const handleDownload = (url) => {
         onClick={() => handleNavigation("resizeImage", shot)}
       >
         Edit: Resize Image
+      </Text>
+       <Text
+        px={3}
+        py={1}
+        borderRadius="md"
+        bg="purple.500"
+        color="white"
+        fontSize="sm"
+        cursor="pointer"
+        onClick={() => handleNavigation("lifestyleshot", shot)}
+      >
+        Create LifeStyle Shot
       </Text>
     </Flex>
 

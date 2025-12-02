@@ -28,7 +28,7 @@ import axiosInstance from 'utils/AxiosInstance';
 import { useNavigate } from 'react-router-dom';
   import { useColorMode } from "@chakra-ui/react";
 export default function GuidelineTable({userId}) {
-  console.log("asdf",userId)
+  // console.log("asdf",userId)
 
 const { colorMode } = useColorMode();
 const isDark = colorMode === "dark";

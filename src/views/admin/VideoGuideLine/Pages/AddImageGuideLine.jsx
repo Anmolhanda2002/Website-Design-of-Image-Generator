@@ -91,7 +91,17 @@ const isDark = colorMode === "dark";
 const handleSubmit = async () => {
   try {
     // ✅ Get user_id from localStorage (adjust key names as per your app)
-
+   if (!form.sector || !form.user_case || !form.default_shot_type) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Required Fields",
+        text: "Please fill Sector, User Case, and Default Shot Type before submitting.",
+        confirmButtonColor: "#3085d6",
+        background: isDark ? "#14225C" : "#fff",
+        color: isDark ? "#fff" : "#000",
+      });
+      return; // ⛔ Stop execution
+    }
 
     // ✅ Create payload with user_id (no api_key)
     const payload = { user_id: id, ...form };

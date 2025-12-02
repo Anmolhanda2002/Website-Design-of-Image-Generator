@@ -32,6 +32,7 @@ import LifeStyleCreation from "./LifeStyleCreation";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import MusicVideo  from "./MusicPage"
+import AssetCard from "./components/AssertsCard"
 const AssetsPage = () => {
   const toast = useToast();
 const navigate = useNavigate();
@@ -46,13 +47,37 @@ const { colorMode } = useColorMode();
   const [selectedOption, setSelectedOption] = useState("1");
   const [selectedItem, setSelectedItem] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
-
+const [videoModal, setVideoModal] = useState({ isOpen: false, url: "" });
   const cardBg = useColorModeValue("white", "gray.700");
   const textColor = useColorModeValue("gray.800", "white");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
   const activeUserId = selectedUser?.user_id || user?.user_id;
+
+
+  const getVideoFromItem = (item) => {
+  return (
+    item?.video_url ||
+    item?.generated_video_url ||
+    item?.cloudinary_video_url ||
+    item?.final_video ||
+    null
+  );
+};
+
+// thrott
+const throttle = (func, limit) => {
+  let inThrottle;
+  return function () {
+    if (!inThrottle) {
+      func.apply(this, arguments);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+};
+
 
   useEffect(() => {
     const updateDisplayEmail = () => {
@@ -68,7 +93,7 @@ const { colorMode } = useColorMode();
   const getApiUrl = (userId, pageNumber = 1, search = "") => {
     switch (selectedOption) {
       case "1":
-        return `/assets_page?user_id=${userId}&page=${pageNumber}&search=${search}`;
+        return `/factory_development_assets_page?user_id=${userId}&page=${pageNumber}&search=${search}`;
       case "2":
         return `/get_virtual_tryon_images/?user_id=${userId}`;
       case "3":
@@ -76,7 +101,7 @@ const { colorMode } = useColorMode();
       case "4":
         return `/factory_development_assets_page/?user_id=${userId}`;
       default:
-        return `/assets_page?user_id=${userId}&page=${pageNumber}&search=${search}`;
+        return `/factory_development_assets_page?user_id=${userId}&page=${pageNumber}&search=${search}`;
     }
   };
 
@@ -179,24 +204,23 @@ const handleNavigation = (type, item) => {
   });
 };
 
+useEffect(() => {
+  if (selectedOption === "1") {
+    const handleScroll = throttle(() => {
+      if (
+        window.scrollY + window.innerHeight >=
+          document.documentElement.offsetHeight - 200 &&
+        !loading &&
+        page < totalPages
+      ) {
+        setPage((prev) => prev + 1);
+      }
+    }, 500); // prevents multiple calls
 
-  useEffect(() => {
-    if (selectedOption === "1") {
-      const handleScroll = () => {
-        if (
-          window.scrollY + window.innerHeight >=
-            document.documentElement.offsetHeight - 100 &&
-          !loading &&
-          page < totalPages
-        ) {
-          setPage((prev) => prev + 1);
-        }
-      };
-      window.addEventListener("scroll", handleScroll);
-      return () => window.removeEventListener("scroll", handleScroll);
-    }
-    return;
-  }, [loading, page, totalPages, selectedOption]);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }
+}, [loading, page, totalPages, selectedOption]);
 
   useEffect(() => {
     if (page > 1 && selectedOption === "1") fetchAssets(page);
@@ -228,9 +252,34 @@ const renderDetails = (item) => {
 
   const fieldsToShow = {
     "1": [
-      { label: "Creation ID", value: item.creation_id },
+      {
+  label: "Creation ID",
+  value: (
+    <Text
+      as="span"
+      color="blue.400"
+      cursor="pointer"
+      onClick={() => {
+        const videoUrl = getVideoFromItem(item);
+        if (!videoUrl) {
+          toast({
+            title: "No Video Found",
+            status: "warning",
+            duration: 2000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        setVideoModal({ isOpen: true, url: videoUrl });
+      }}
+    >
+      {item.creation_id}
+    </Text>
+  )
+},
       { label: "Product Name", value: item.product_name || "—" },
-      { label: "Video Dimensions", value: item.video_dimensions },
+      { label: "Dimensions", value: item.video_dimensions },
       { label: "Status", value: item.status },
       { label: "Created At", value: item.created_at },
     ],
@@ -397,57 +446,19 @@ const renderDetails = (item) => {
                 const statusText = item.status || "Unknown";
 
                 return (
-                  <GridItem
-                    key={`${item.creation_id || item.image_id || item.composition_id}-${i}`}
-                    borderWidth="1px"
-                    borderRadius="md"
-                    overflow="hidden"
-                    p={3}
-                    bg={cardBg}
-                    shadow="md"
-                    transition="all 0.3s"
-                    _hover={{ transform: "scale(1.03)", shadow: "xl" }}
-                  >
-                    <Image
-                      src={imageUrl}
-                      alt={title}
-                      borderRadius="md"
-                      objectFit="cover"
-                      height="200px"
-                      width="100%"
-                      fallback={<Skeleton height="200px" width="100%" />}
-                      cursor="pointer"
-                      onClick={() => handleView(item)}
-                    />
-                    <Text fontWeight="bold" color={textColor} mt={2} noOfLines={1}>
-                      {title}
-                    </Text>
-                    <Text fontSize="sm" color={isFailed ? "red.500" : "green.500"} mt={1}>
-                      {statusText}
-                    </Text>
-                    <Flex justify="space-between" mt={2}>
-                      <Button
-                        size="sm"
-                        leftIcon={<DownloadIcon />}
-                        colorScheme="blue"
-                        onClick={() => handleDownload(imageUrl)}
-                      >
-                        Download
-                      </Button>
-                      <Button
-                        size="sm"
-                        colorScheme="teal"
-                        variant="solid"
-                        onClick={() => handleView(item)}
-                        p={0}
-                        w="35px"
-                        h="35px"
-                        borderRadius="full"
-                      >
-                        <ViewIcon />
-                      </Button>
-                    </Flex>
-                  </GridItem>
+<AssetCard
+  key={`${item.creation_id || item.image_id || item.composition_id}-${i}`}
+  item={item}
+  imageUrl={imageUrl}
+  title={title}
+  statusText={statusText}
+  isFailed={isFailed}
+  onView={() => handleView(item)}
+  onDownload={() => handleDownload(imageUrl)}
+  cardBg={cardBg}
+  textColor={textColor}
+/>
+
                 );
               })}
             </Grid>
@@ -519,8 +530,40 @@ const renderDetails = (item) => {
             </ModalBody>
           </ModalContent>
         </Modal>
+
+        
       )}
+      <Modal
+  isOpen={videoModal.isOpen}
+  onClose={() => setVideoModal({ isOpen: false, url: "" })}
+  size="xl"
+  isCentered
+>
+  <ModalOverlay />
+  <ModalContent borderRadius="2xl" p={3}>
+    <ModalCloseButton />
+
+    <ModalBody p={4}>
+      <Text fontWeight="bold" mb={3} textAlign="center">
+        Video Preview
+      </Text>
+
+      <video
+        src={videoModal.url}
+        controls
+        autoPlay
+        style={{
+          width: "100%",
+          maxHeight: "500px",
+          borderRadius: "12px",
+          backgroundColor: "black",
+        }}
+      />
+    </ModalBody>
+  </ModalContent>
+</Modal>
     </Box>
+    
   );
 };
 

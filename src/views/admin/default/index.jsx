@@ -1,210 +1,241 @@
-/*!
-  _   _  ___  ____  ___ ________  _   _   _   _ ___   
- | | | |/ _ \|  _ \|_ _|__  / _ \| \ | | | | | |_ _| 
- | |_| | | | | |_) || |  / / | | |  \| | | | | || | 
- |  _  | |_| |  _ < | | / /| |_| | |\  | | |_| || |
- |_| |_|\___/|_| \_\___/____\___/|_| \_|  \___/|___|
-                                                                                                                                                                                                                                                                                                                                       
-=========================================================
-* Horizon UI - v1.1.0
-=========================================================
-
-* Product Page: https://www.horizon-ui.com/
-* Copyright 2023 Horizon UI (https://www.horizon-ui.com/)
-
-* Designed and Coded by Simmmple
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-*/
-
-// Chakra imports
+import React, { useEffect, useState, useCallback } from "react";
 import {
-  Avatar,
   Box,
   Flex,
-  FormLabel,
   Icon,
-  Select,
   SimpleGrid,
-  useColorModeValue,
   Spinner,
   Text,
+  Button,
+  Skeleton,
+  useColorModeValue,
+  Input,
 } from "@chakra-ui/react";
-// Assets
-import Usa from "assets/img/dashboards/usa.png";
-// Custom components
-import MiniCalendar from "components/calendar/MiniCalendar";
-import MiniStatistics from "components/card/MiniStatistics";
-import IconBox from "components/icons/IconBox";
-import React, { useEffect, useState } from "react";
 import {
-  MdAddTask,
-  MdAttachMoney,
-  MdBarChart,
   MdFileCopy,
   MdVideoLibrary,
   MdImage,
+  MdAttachMoney,
+  MdAddTask,
   MdVpnKey,
 } from "react-icons/md";
-import CheckTable from "views/admin/default/components/CheckTable";
-import ComplexTable from "views/admin/default/components/ComplexTable";
-import DailyTraffic from "views/admin/default/components/DailyTraffic";
-import PieCard from "views/admin/default/components/PieCard";
-import Tasks from "views/admin/default/components/Tasks";
-import TotalSpent from "views/admin/default/components/TotalSpent";
-import WeeklyRevenue from "views/admin/default/components/WeeklyRevenue";
-import {
-  columnsDataCheck,
-  columnsDataComplex,
-} from "views/admin/default/variables/columnsData";
-import tableDataCheck from "views/admin/default/variables/tableDataCheck.json";
-import tableDataComplex from "views/admin/default/variables/tableDataComplex.json";
+import MiniStatistics from "components/card/MiniStatistics";
+import IconBox from "components/icons/IconBox";
 import axiosInstance from "utils/AxiosInstance";
-
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import PieChart from "components/charts/PieChart";
+import TotalSpent from "./components/TotalSpent";
 export default function UserReports() {
-  // Chakra Color Mode
   const brandColor = useColorModeValue("brand.500", "white");
   const boxBg = useColorModeValue("secondaryGray.300", "whiteAlpha.100");
 
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // no full-page loading
+  const [activeUserId, setActiveUserId] = useState(null);
 
+  // Ranges
+  const ranges = [
+    { label: "24 Hours", value: "24_hours" },
+    { label: "1 Week", value: "1_week" },
+    { label: "1 Month", value: "1_month" },
+    { label: "6 Months", value: "6_months" },
+    { label: "1 Year", value: "1_year" },
+    { label: "Custom", value: "custom" },
+  ];
+  const [activeRange, setActiveRange] = useState("1_month");
+
+  const [customDates, setCustomDates] = useState({
+    startDate: null,
+    endDate: null,
+  });
+
+  // Get active user
+  const getActiveUserId = () => {
+    const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return selectedUser?.user_id || user?.user_id || null;
+  };
+
+  // Formula logic
+  const computeDates = (range) => {
+    const endDate = new Date();
+    let startDate = new Date();
+
+    switch (range) {
+      case "24_hours":
+        startDate.setDate(endDate.getDate() - 1);
+        break;
+      case "1_week":
+        startDate.setDate(endDate.getDate() - 7);
+        break;
+      case "1_month":
+        startDate.setMonth(endDate.getMonth() - 1);
+        break;
+      case "6_months":
+        startDate.setMonth(endDate.getMonth() - 6);
+        break;
+      case "1_year":
+        startDate.setFullYear(endDate.getFullYear() - 1);
+        break;
+      case "custom":
+        startDate = customDates.startDate || endDate;
+        endDate = customDates.endDate || endDate;
+        break;
+      default:
+        startDate.setMonth(endDate.getMonth() - 1);
+    }
+
+    const format = (d) => d.toISOString().split("T")[0];
+    return { start_date: format(startDate), end_date: format(endDate) };
+  };
+
+  // Fetch API
+  const fetchDashboard = useCallback(async () => {
+    const userId = getActiveUserId();
+    if (!userId) return;
+
+    setLoading(true);
+
+    try {
+      const { start_date, end_date } = computeDates(activeRange);
+      const response = await axiosInstance.get(
+        `/user_report_summary/?user_id=${userId}&start_date=${start_date}&end_date=${end_date}`
+      );
+
+      setDashboardData(response.data);
+    } catch (err) {
+      setDashboardData({
+        total_projects: 0,
+        total_image_assets: 0,
+        total_api_keys: 0,
+        total_cloudinary_video_url: 0,
+        total_processed_video_url: 0,
+        total_animated_ovrelay_video_url: 0,
+        total_api_hits: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [activeRange, customDates]);
+
+  // Detect user
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const userId = storedUser?.user_id;
-        if (!userId) return;
-
-        const response = await axiosInstance.get(`/dashboard?user_id=${userId}`);
-        if (response.data.status === "success") {
-          setDashboardData(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
+    const updateActiveUser = () => setActiveUserId(getActiveUserId());
+    updateActiveUser();
+    const interval = setInterval(updateActiveUser, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <Flex w="100%" h="100%" justify="center" align="center">
-        <Spinner size="xl" />
-      </Flex>
-    );
-  }
+  // Fetch data
+  useEffect(() => {
+    if (activeUserId) fetchDashboard();
+  }, [activeUserId, activeRange, customDates, fetchDashboard]);
 
   return (
-    <Box pt={{ base: "130px", md: "80px", xl: "80px" }}>
-      <SimpleGrid
-        columns={{ base: 1, md: 2, lg: 3, "2xl": 6 }}
-        gap="20px"
-        mb="20px"
+    <Box pt={{ base: "130px", md: "80px", xl: "80px" }} px={4}>
+
+      {/* DATE FILTERS */}
+      <Box
+      
+        p={4}
       >
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdFileCopy} color={brandColor} />}
-            />
-          }
-          name="Total Projects"
-          value={dashboardData?.total_projects ?? 0}
-        />
+        {/* Tabs */}
+        <Flex mb={4} wrap="wrap" gap={2}>
+          {ranges.map((range) => (
+            <Button
+              key={range.value}
+              size="sm"
+              variant={activeRange === range.value ? "solid" : "outline"}
+              colorScheme="brand"
+              onClick={() => setActiveRange(range.value)}
+            >
+              {range.label}
+            </Button>
+          ))}
+        </Flex>
 
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdVideoLibrary} color={brandColor} />}
-            />
-          }
-          name="Total Videos"
-          value={dashboardData?.total_videos ?? 0}
-        />
+        {/* Custom Date Range */}
+        {activeRange === "custom" && (
+          <Box
+            mt={2}
+            p={4}
+            borderRadius="10px"
+            bg={useColorModeValue("gray.50", "whiteAlpha.50")}
+            border="1px solid"
+            borderColor={useColorModeValue("gray.200", "whiteAlpha.200")}
+            animation="fadeIn 0.3s ease"
+          >
+            <style>{`
+              @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-5px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
 
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdImage} color={brandColor} />}
-            />
-          }
-          name="Total Assets"
-          value={dashboardData?.total_assets ?? 0}
-        />
+            <Text mb={3} fontWeight="600">Select Custom Date Range</Text>
 
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdAttachMoney} color={brandColor} />}
-            />
-          }
-          name="Balance"
-          value={`$${dashboardData?.balance ?? "0.00"}`}
-        />
+            <Flex gap={4} align="center">
+              <Box>
+                <Text fontSize="13px" mb={1}>Start Date</Text>
+                <DatePicker
+                  selected={customDates.startDate}
+                  onChange={(date) => setCustomDates({ ...customDates, startDate: date })}
+                  dateFormat="yyyy-MM-dd"
+                  customInput={<Input w="160px" />}
+                />
+              </Box>
 
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdAddTask} color={brandColor} />}
-            />
-          }
-          name="Completed Creations"
-          value={dashboardData?.total_completed_creations ?? 0}
-        />
+              <Box>
+                <Text fontSize="13px" mb={1}>End Date</Text>
+                <DatePicker
+                  selected={customDates.endDate}
+                  onChange={(date) => setCustomDates({ ...customDates, endDate: date })}
+                  dateFormat="yyyy-MM-dd"
+                  customInput={<Input w="160px" />}
+                />
+              </Box>
+            </Flex>
+          </Box>
+        )}
+      </Box>
 
-        <MiniStatistics
-          startContent={
-            <IconBox
-              w="56px"
-              h="56px"
-              bg={boxBg}
-              icon={<Icon w="32px" h="32px" as={MdVpnKey} color={brandColor} />}
-            />
-          }
-          name="Total Keys"
-          value={dashboardData?.total_keys ?? 0}
-        />
+      {/* DASHBOARD CARDS */}
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap="20px">
+
+        {[
+          { name: "Total Projects", value: "total_projects", icon: MdFileCopy },
+          { name: "Total Image Assets", value: "total_image_assets", icon: MdImage },
+          { name: "Total API Keys", value: "total_api_keys", icon: MdVpnKey },
+          { name: "Cloudinary Videos", value: "total_cloudinary_video_url", icon: MdVideoLibrary },
+          { name: "Processed Videos", value: "total_processed_video_url", icon: MdVideoLibrary },
+          { name: "Animated Overlay Videos", value: "total_animated_ovrelay_video_url", icon: MdAddTask },
+          { name: "API Hits", value: "total_api_hits", icon: MdAttachMoney },
+        ].map((item) => (
+          <MiniStatistics
+            key={item.name}
+            startContent={
+              <IconBox
+                w="56px"
+                h="56px"
+                bg={boxBg}
+                icon={<Icon as={item.icon} w="32px" h="32px" color={brandColor} />}
+              />
+            }
+            name={item.name}
+            value={
+              loading ? (
+                <Skeleton height="20px" width="60px" borderRadius="6px" />
+              ) : (
+                dashboardData?.[item.value] ?? 0
+              )
+            }
+          />
+        ))}
       </SimpleGrid>
-{/* 
-      <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap="20px" mb="20px">
-        <TotalSpent />
-        <WeeklyRevenue />
-      </SimpleGrid> */}
-
-      {/* keep existing commented code */}
-      {/* <SimpleGrid columns={{ base: 1, md: 0, xl: 0 }} gap='20px' mb='20px'>
-        <CheckTable columnsData={columnsDataCheck} tableData={tableDataCheck} />
-        <SimpleGrid columns={{ base: 1, md: 2, xl: 2 }} gap='20px'>
-          <DailyTraffic />
-          <PieCard />
-        </SimpleGrid>
-      </SimpleGrid> */}
-
-      {/* <SimpleGrid columns={{ base: 1, md: 2 }} gap="20px" mb="20px">
-        <Tasks />
-        <MiniCalendar selectRange={false} />
-      </SimpleGrid> */}
+      <Box mt={4}>
+      <TotalSpent  userId={activeUserId}/>
+      </Box>
     </Box>
   );
 }

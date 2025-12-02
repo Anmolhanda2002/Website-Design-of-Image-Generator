@@ -51,9 +51,9 @@ export default function Dashboard(props) {
     setLoading(false);
 
     // Debugging info
-    console.log("✅ Logged-in user:", normalizedUser);
-    console.log("✅ User role:", normalizedUser.role);
-    console.log("✅ Allowed routes:", filteredRoutes.map((r) => r.name));
+    // console.log("✅ Logged-in user:", normalizedUser);
+    // console.log("✅ User role:", normalizedUser.role);
+    // console.log("✅ Allowed routes:", filteredRoutes.map((r) => r.name));
   }, []); // ✅ Empty dependency array to prevent infinite re-render
 
   // Loading & Auth check

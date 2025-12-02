@@ -99,10 +99,13 @@ const handleSignup = async () => {
 
   setLoading(true);
   try {
+    const cleanedUsername = username.trim().replace(/\s+/g, "");
+const cleanedEmail = email.trim().replace(/\s+/g, "");
+const cleanedPassword = password.trim().replace(/\s+/g, "");
     const response = await axios.post(`${process.env.REACT_APP_API_URL}auth/signup/`, {
-      username,
-      email,
-      password,
+      username:cleanedUsername,
+      email:cleanedEmail,
+      password:cleanedPassword,
       user_type: userType.toLowerCase(), // send snake_case
     });
 

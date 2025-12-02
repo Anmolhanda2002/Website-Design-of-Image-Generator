@@ -30,7 +30,7 @@ export default function EditImageGuideline() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const userId = queryParams.get("user_id");
-    console.log("User ID from query:", userId);
+    // console.log("User ID from query:", userId);
   const [choices, setChoices] = useState({});
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -38,13 +38,13 @@ export default function EditImageGuideline() {
 
 
 const { is_active } = location.state || {};
-console.log("asdf",is_active)
+// console.log("asdf",is_active)
 const isDark = colorMode === "dark";
   const cardBg = useColorModeValue("white", "navy.700");
   const textColor = useColorModeValue("black", "white");
   const textcolor = useColorModeValue("black","white")
   const {user_id} = useParams()
-  console.log("id",user_id)
+  // console.log("id",user_id)
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
   const activeUserId = selectedUser?.user_id || user?.user_id;
@@ -73,44 +73,208 @@ const isDark = colorMode === "dark";
 
         setChoices(choicesData);
 
-        setForm({
-          name: guidelineData.name || "",
-          description: guidelineData.description || "",
-          use_case: guidelineData.use_case_sector?.use_case || "",
-          sector: guidelineData.use_case_sector?.sector || "",
-          product_name: guidelineData.product?.name || "",
-          product_info: guidelineData.product?.info || "",
-          goal: guidelineData.goal?.primary_goal || "",
-          goal_description: guidelineData.goal?.goal_description || "",
-          goal_of_image: guidelineData.goal?.goal_of_image || "",
-          main_focus_of_image: guidelineData.goal?.main_focus || "",
-          model_ethnicity: guidelineData.model?.ethnicity || "",
-          model_gender: guidelineData.model?.gender || "",
-          model_built: guidelineData.model?.built || "",
-          model_age_range: guidelineData.model?.age_range || "",
-          model_personality_features:
-            guidelineData.model?.personality_features || "",
-          model_other_features: guidelineData.model?.other_features || "",
-          environment_category: guidelineData.environment?.category || "",
-          environment_interior: guidelineData.environment?.interior || "",
-          environment_exterior: guidelineData.environment?.exterior || "",
-          environment_lifestyle_editorial:
-            guidelineData.environment?.lifestyle_editorial || "",
-          environment_other: guidelineData.environment?.other || "",
-          pose_category: guidelineData.pose?.category || "",
-          pose_general: guidelineData.pose?.general || "",
-          pose_yoga: guidelineData.pose?.yoga || "",
-          pose_activity: guidelineData.pose?.activity || "",
-          pose_other: guidelineData.pose?.other || "",
-          mood: guidelineData.mood || "",
-          lighting_preference: guidelineData.styling?.lighting || "",
-          color_palette: guidelineData.styling?.color_palette || "",
-          style_preference: guidelineData.styling?.style || "",
-          human_instruction: guidelineData.instructions?.human_instruction || "",
-          additional_instructions:
-            guidelineData.instructions?.additional_instructions || "",
-            background_color:guidelineData.instructions?.background_color || "",
-        });
+setForm({
+  // Basic Info
+  name: guidelineData.name || "",
+  description: guidelineData.description || "",
+  use_case: guidelineData.use_case_sector?.use_case || "",
+  sector: guidelineData.use_case_sector?.sector || "",
+
+  // Product Info
+  product_name: guidelineData.product?.name || "",
+  product_info: guidelineData.product?.info || "",
+
+  // Goal
+  goal: guidelineData.goal?.primary_goal || "",
+  goal_description: guidelineData.goal?.goal_description || "",
+  goal_of_image: guidelineData.goal?.goal_of_image || "",
+  main_focus_of_image: guidelineData.goal?.main_focus || "",
+
+  // Model Details
+  model_ethnicity: guidelineData.model?.ethnicity || "",
+  model_gender: guidelineData.model?.gender || "",
+  model_built: guidelineData.model?.built || "",
+  model_age_range: guidelineData.model?.age_range || "",
+  model_personality_features: guidelineData.model?.personality_features || "",
+  model_other_features: guidelineData.model?.other_features || "",
+
+  // Environment
+  environment_category: guidelineData.environment?.category || "",
+  environment_interior: guidelineData.environment?.interior || "",
+  environment_exterior: guidelineData.environment?.exterior || "",
+  environment_lifestyle_editorial: guidelineData.environment?.lifestyle_editorial || "",
+  environment_other: guidelineData.environment?.other || "",
+  environment_interior_custom: guidelineData.environment?.environment_interior_custom || "",
+  environment_exterior_custom: guidelineData.environment?.environment_exterior_custom || "",
+  environment_lifestyle_editorial_custom: guidelineData.environment?.environment_lifestyle_editorial_custom || "",
+  props_custom: guidelineData.environment?.props_custom || "",
+  mood_custom: guidelineData.environment?.mood_custom || "",
+  pose_general_custom: guidelineData.environment?.pose_general_custom || "",
+  pose_yoga_custom: guidelineData.environment?.pose_yoga_custom || "",
+  pose_activity_custom: guidelineData.environment?.pose_activity_custom || "",
+  location_custom: guidelineData.environment?.location_custom || "",
+  time_of_day_custom: guidelineData.environment?.time_of_day_custom || "",
+
+  // Pose
+  pose_category: guidelineData.pose?.category || "",
+  pose_general: guidelineData.pose?.general || "",
+  pose_yoga: guidelineData.pose?.yoga || "",
+  pose_activity: guidelineData.pose?.activity || "",
+  pose_other: guidelineData.pose?.other || "",
+
+  // Mood & Styling
+  mood: guidelineData.mood || "",
+  lighting_preference: guidelineData.styling?.lighting || "",
+  color_palette: guidelineData.styling?.color_palette || "",
+  style_preference: guidelineData.styling?.style || "",
+
+  // Instructions
+  human_instruction: guidelineData.instructions?.human_instruction || "",
+  additional_instructions: guidelineData.instructions?.additional_instructions || "",
+  background_color: guidelineData["Brand_&_Audience"]?.background_color || "#ffffff",
+
+  // Camera and Composition
+  camera_angle: guidelineData.Camera_and_Composition?.camera_angle || "",
+  camera_angle_custom: guidelineData.Camera_and_Composition?.camera_angle_custom || "",
+  composition_style: guidelineData.Camera_and_Composition?.composition_style || "",
+  composition_style_custom: guidelineData.Camera_and_Composition?.composition_style_custom || "",
+
+  // Depth of Field
+  depth_of_field: guidelineData.Depth_of_Field?.depth_of_field || "",
+  depth_of_field_custom: guidelineData.Depth_of_Field?.depth_of_field_custom || "",
+
+  // Color Temperature
+  color_temperature: guidelineData.Color_Temperature?.color_temperature || "",
+  color_temperature_custom: guidelineData.Color_Temperature?.color_temperature_custom || "",
+
+  // Weather & Season
+  weather_condition: guidelineData.Weather_Conditions?.weather_condition || "",
+  weather_condition_custom: guidelineData.Weather_Conditions?.weather_condition_custom || "",
+  season: guidelineData.Season?.season || "",
+  season_custom: guidelineData.Season?.season_custom || "",
+
+  // Flooring
+  flooring_type: guidelineData.Flooring?.flooring_type || "",
+  flooring_type_custom: guidelineData.Flooring?.flooring_type_custom || "",
+  flooring_color: guidelineData.Flooring?.flooring_color || "",
+
+  // Wall
+  wall_style: guidelineData.Wall?.wall_style || "",
+  wall_style_custom: guidelineData.Wall?.wall_style_custom || "",
+  wall_color: guidelineData.Wall?.wall_color || "",
+  wall_color_custom: guidelineData.Wall?.wall_color_custom || "",
+
+  // Type of Shot
+  type_of_shot: guidelineData.type_of_shot?.type_of_shot || "",
+  type_of_shot_custom: guidelineData.type_of_shot?.type_of_shot_custom || "",
+
+  // Brand & Audience
+  default_shot_type: guidelineData["Brand_&_Audience"]?.default_shot_type || "",
+  brand_positioning: guidelineData["Brand_&_Audience"]?.brand_positioning || "",
+  target_consumers: guidelineData["Brand_&_Audience"]?.target_consumers || "",
+});
+setForm({
+  // Basic Info
+  name: guidelineData.name || "",
+  description: guidelineData.description || "",
+  use_case: guidelineData.use_case_sector?.use_case || "",
+  sector: guidelineData.use_case_sector?.sector || "",
+
+  // Product Info
+  product_name: guidelineData.product?.name || "",
+  product_info: guidelineData.product?.info || "",
+
+  // Goal
+  goal: guidelineData.goal?.primary_goal || "",
+  goal_description: guidelineData.goal?.goal_description || "",
+  goal_of_image: guidelineData.goal?.goal_of_image || "",
+  main_focus_of_image: guidelineData.goal?.main_focus || "",
+
+  // Model Details
+  model_ethnicity: guidelineData.model?.ethnicity || "",
+  model_gender: guidelineData.model?.gender || "",
+  model_built: guidelineData.model?.built || "",
+  model_age_range: guidelineData.model?.age_range || "",
+  model_personality_features: guidelineData.model?.personality_features || "",
+  model_other_features: guidelineData.model?.other_features || "",
+
+  // Environment
+  environment_category: guidelineData.environment?.category || "",
+  environment_interior: guidelineData.environment?.interior || "",
+  environment_exterior: guidelineData.environment?.exterior || "",
+  environment_lifestyle_editorial: guidelineData.environment?.lifestyle_editorial || "",
+  environment_other: guidelineData.environment?.other || "",
+  environment_interior_custom: guidelineData.environment?.environment_interior_custom || "",
+  environment_exterior_custom: guidelineData.environment?.environment_exterior_custom || "",
+  environment_lifestyle_editorial_custom: guidelineData.environment?.environment_lifestyle_editorial_custom || "",
+  props_custom: guidelineData.environment?.props_custom || "",
+  mood_custom: guidelineData.environment?.mood_custom || "",
+  pose_general_custom: guidelineData.environment?.pose_general_custom || "",
+  pose_yoga_custom: guidelineData.environment?.pose_yoga_custom || "",
+  pose_activity_custom: guidelineData.environment?.pose_activity_custom || "",
+  location_custom: guidelineData.environment?.location_custom || "",
+  time_of_day_custom: guidelineData.environment?.time_of_day_custom || "",
+
+  // Pose
+  pose_category: guidelineData.pose?.category || "",
+  pose_general: guidelineData.pose?.general || "",
+  pose_yoga: guidelineData.pose?.yoga || "",
+  pose_activity: guidelineData.pose?.activity || "",
+  pose_other: guidelineData.pose?.other || "",
+
+  // Mood & Styling
+  mood: guidelineData.mood || "",
+  lighting_preference: guidelineData.styling?.lighting || "",
+  color_palette: guidelineData.styling?.color_palette || "",
+  style_preference: guidelineData.styling?.style || "",
+
+  // Instructions
+  human_instruction: guidelineData.instructions?.human_instruction || "",
+  additional_instructions: guidelineData.instructions?.additional_instructions || "",
+  background_color: guidelineData["Brand_&_Audience"]?.background_color || "#ffffff",
+
+  // Camera and Composition
+  camera_angle: guidelineData.Camera_and_Composition?.camera_angle || "",
+  camera_angle_custom: guidelineData.Camera_and_Composition?.camera_angle_custom || "",
+  composition_style: guidelineData.Camera_and_Composition?.composition_style || "",
+  composition_style_custom: guidelineData.Camera_and_Composition?.composition_style_custom || "",
+
+  // Depth of Field
+  depth_of_field: guidelineData.Depth_of_Field?.depth_of_field || "",
+  depth_of_field_custom: guidelineData.Depth_of_Field?.depth_of_field_custom || "",
+
+  // Color Temperature
+  color_temperature: guidelineData.Color_Temperature?.color_temperature || "",
+  color_temperature_custom: guidelineData.Color_Temperature?.color_temperature_custom || "",
+
+  // Weather & Season
+  weather_condition: guidelineData.Weather_Conditions?.weather_condition || "",
+  weather_condition_custom: guidelineData.Weather_Conditions?.weather_condition_custom || "",
+  season: guidelineData.Season?.season || "",
+  season_custom: guidelineData.Season?.season_custom || "",
+
+  // Flooring
+  flooring_type: guidelineData.Flooring?.flooring_type || "",
+  flooring_type_custom: guidelineData.Flooring?.flooring_type_custom || "",
+  flooring_color: guidelineData.Flooring?.flooring_color || "",
+
+  // Wall
+  wall_style: guidelineData.Wall?.wall_style || "",
+  wall_style_custom: guidelineData.Wall?.wall_style_custom || "",
+  wall_color: guidelineData.Wall?.wall_color || "",
+  wall_color_custom: guidelineData.Wall?.wall_color_custom || "",
+
+  // Type of Shot
+  type_of_shot: guidelineData.type_of_shot?.type_of_shot || "",
+  type_of_shot_custom: guidelineData.type_of_shot?.type_of_shot_custom || "",
+
+  // Brand & Audience
+  default_shot_type: guidelineData["Brand_&_Audience"]?.default_shot_type || "",
+  brand_positioning: guidelineData["Brand_&_Audience"]?.brand_positioning || "",
+  target_consumers: guidelineData["Brand_&_Audience"]?.target_consumers || "",
+});
+
+
       } catch (error) {
         console.error("Error fetching guideline:", error);
         toast({
@@ -170,7 +334,7 @@ const handleUpdate = async () => {
         ...form
     };
 
-    console.log("📝 Update Payload:", payload);
+    // console.log("📝 Update Payload:", payload);
 
     const { data } = await axiosInstance.post(
       "/factory_development_update_image_guideline/",
@@ -261,17 +425,7 @@ const handleUpdate = async () => {
         { type: "textarea", name: "product_info", placeholder: "Product Info" },
       ],
     },
-    {
- title: "Background Color",
-      fields: [
-        {
-          type: "color",
-          name: "color",
-          placeholder: "Backgorund Color",
-          choices: choices.background_color,
-        },
-      ]
-    },
+
     {
       title: "Goals & Objectives",
       fields: [
@@ -399,6 +553,43 @@ const handleUpdate = async () => {
         },
       ],
     },
+     {
+      title: "Camera & Composition",
+      fields: [
+        { type: "select", name: "camera_angle", placeholder: "Camera Angle", choices: choices.camera_angle_choices },
+        { type: "input", name: "camera_angle_custom", placeholder: "Custom Camera Angle" },
+        { type: "select", name: "composition_style", placeholder: "Composition Style", choices: choices.composition_style_choices },
+      ],
+    },
+    {
+      title: "Flooring & Wall",
+      fields: [
+        { type: "select", name: "flooring_type", placeholder: "Flooring Type", choices: choices.flooring_choices },
+        { type: "input", name: "flooring_type_custom", placeholder: "Custom Flooring Type" },
+        { type: "input", name: "flooring_color", placeholder: "Flooring Color" },
+        { type: "select", name: "wall_color", placeholder: "Wall Color", choices: choices.wall_color_choices },
+        { type: "input", name: "wall_color_custom", placeholder: "Custom Wall Color" },
+        { type: "select", name: "wall_style", placeholder: "Wall Style", choices: choices.wall_style_choices },
+        { type: "input", name: "wall_style_custom", placeholder: "Custom Wall Style" },
+      ],
+    },
+    {
+      title: "Type of Shot",
+      fields: [
+        { type: "select", name: "type_of_shot", placeholder: "Type of Shot", choices: choices.type_of_shot_choices },
+        { type: "input", name: "type_of_shot_custom", placeholder: "Custom Type of Shot" },
+        { type: "select", name: "default_shot_type", placeholder: "Default Shot Type", choices: choices.default_shot_type_choices },
+      ],
+    },
+    {
+      title: "Brand & Audience",
+      fields: [
+        { type: "input", name: "brand_positioning", placeholder: "Brand Positioning" },
+        { type: "select", name: "target_consumers", placeholder: "Target Consumers", choices: choices.target_choices },
+      ],
+    },
+
+
   ];
 
   // ✅ Render UI

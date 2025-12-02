@@ -28,7 +28,7 @@ import { SidebarContext } from "contexts/SidebarContext";
 function Sidebar(props) {
   const { routes } = props;
 
-  console.log("routes",routes)
+  // console.log("routes",routes)
 
   let variantChange = "0.2s linear";
   let shadow = useColorModeValue(

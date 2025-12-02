@@ -30,7 +30,7 @@ export default function EditImageGuideline() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const userId = queryParams.get("user_id");
-    console.log("User ID from query:", userId);
+    // console.log("User ID from query:", userId);
   const [choices, setChoices] = useState({});
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ export default function EditImageGuideline() {
   const textColor = useColorModeValue("black", "white");
   const textcolor = useColorModeValue("black","white")
   const {user_id} = useParams()
-  console.log("id",user_id)
+  // console.log("id",user_id)
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const selectedUser = JSON.parse(localStorage.getItem("selected_user") || "null");
   const activeUserId = selectedUser?.user_id || user?.user_id;
@@ -163,7 +163,7 @@ const handleUpdate = async () => {
         ...form,
     };
 
-    console.log("📝 Update Payload:", payload);
+    // console.log("📝 Update Payload:", payload);
 
     const { data } = await axiosInstance.post(
       "/factory_development_update_image_guideline/",

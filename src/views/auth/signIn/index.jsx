@@ -46,9 +46,11 @@ function SignIn() {
 const handleLogin = async () => {
   setLoading(true);
   try {
+    const cleanedEmail = email.trim().replace(/\s+/g, "");
+const cleanedPassword = password.trim().replace(/\s+/g, "");
     const response = await axios.post(`${process.env.REACT_APP_API_URL}auth/login/`, {
-      email,
-      password,
+      email:cleanedEmail,
+      password:cleanedPassword,
     });
 
     const { status, message, data } = response.data;

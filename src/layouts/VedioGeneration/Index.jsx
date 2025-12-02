@@ -172,7 +172,7 @@ export default function PixVerseLayout() {
 
 
 
-  console.log(initialImageToVideoSettings.setlifestyleid)
+  // console.log(initialImageToVideoSettings.setlifestyleid)
     useEffect(() => {
       if (isManager) return;
       const fetchUsers = async () => {
@@ -307,7 +307,7 @@ const locationState = location.state || {};
 const { selectedItem, editpage, option, activeTab: activeTabs } = locationState;
 
 
-console.log("selectedOption",option)
+// console.log("selectedOption",option)
 
 
     const resetAllData = () => {
@@ -365,7 +365,7 @@ useEffect(() => {
 
 
 
-console.log("hello",activeTabs,selectedItem,editpage)
+// console.log("hello",activeTabs,selectedItem,editpage)
 
 
 
@@ -521,7 +521,8 @@ const handleSearch = (e) => {
 };
 
 
-
+const [lifestyleSelected,setlifestyleSelected]=useState("")
+const [IsOutsideLifestyleShot,setIsOutsideLifestyleShot]=useState(false)
 useEffect(() => {
   if (!editpage || !activeTabs) return;
 
@@ -532,6 +533,10 @@ useEffect(() => {
 
   const item = selectedItem;
 
+    if (activeTabs === "Studio Shot") {
+    setlifestyleSelected(item);                  // your studio shot selected data
+    setIsOutsideLifestyleShot(true);    // mark as outside lifestyle shot
+  }
   // CASE 1 — multiple images
   if (Array.isArray(item?.image_urls)) {
     const formatted = item.image_urls.map((img, index) => ({
@@ -738,6 +743,8 @@ useEffect(() => {
               setImages={setImages}
               setlastimagetovideo={setlastimagetovideo}
               setActiveTab={setActiveTab}
+              lifestyleSelected={lifestyleSelected}
+              IsOutsideLifestyleShot={IsOutsideLifestyleShot}
             />
           )}
 
@@ -916,7 +923,7 @@ useEffect(() => {
                             </Box>
                             {/* Preview Area */}
                             <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
-                               <BulkImageCreation selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}  setImages={setImages}  setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>
+                               <BulkImageCreation IsOutsideLifestyleShot={IsOutsideLifestyleShot} lifestyleSelected={lifestyleSelected}  selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}  setImages={setImages}  setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>
                             </Box>
                         </Flex>
                         

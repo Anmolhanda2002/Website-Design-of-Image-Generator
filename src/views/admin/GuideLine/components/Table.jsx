@@ -73,7 +73,7 @@ const isDark = colorMode === "dark";
   const columnHelper = createColumnHelper();
 
 
-  console.log("asdf",userId)
+  // console.log("asdf",userId)
 const handlegoeditpage = (guidlelineid)=>{
   navigate(`/admin/edit_guideline_user/${guidlelineid}?user_id=${userId}`);
 }

@@ -117,21 +117,31 @@ const handleImageUpload = async (file) => {
         return uploadedImages; // Returns an ARRAY of uploaded image objects
     } catch (err) {
         console.error("Upload failed:", err);
-        setProgressMap((prev) => {
-            const copy = { ...prev };
-            delete copy[id];
-            return copy;
-        });
-        toast({
-            title: "Upload failed",
-            description: file.name,
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-            position: "top-right",
-        });
-        throw err; // Re-throw the error so handleImageChangeSingle can catch it
-    }
+            const backendMessage =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      err.response?.data ||
+      "Upload failed. Please try again.";
+
+    // Cleanup progress
+    setProgressMap((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+
+    toast({
+      title: "Upload Failed",
+      description: `${file.name} — ${backendMessage}`,
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+      position: "top-right",
+    });
+
+    throw err;
+  }
+
 };
 
 // Handle multiple image selection

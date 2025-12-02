@@ -38,7 +38,7 @@ export default function EditVideoGuideline() {
   const queryParams = new URLSearchParams(location.search);
   const userId = queryParams.get("user_id");
 
-  console.log("Aswer",userId)
+  // console.log("Aswer",userId)
   const [form, setForm] = useState({
     guideline_name: "",
     pace: "",

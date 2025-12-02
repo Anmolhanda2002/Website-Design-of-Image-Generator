@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Flex,
@@ -22,9 +22,14 @@ const BulkImageCreation = ({
   setImages,
   setlastimagetovideo,
   setActiveTab,
+  lifestyleSelected,
+  IsOutsideLifestyleShot,
 }) => {
-  const toast = useToast();
 
+
+
+  const toast = useToast();
+const [uploadingCSV, setUploadingCSV] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progressMap, setProgressMap] = useState({});
   const [previewImages, setPreviewImages] = useState([]);
@@ -52,6 +57,19 @@ const isDark = colorMode === "dark";
   const subtleText = useColorModeValue("gray.500", "gray.300");
 const [frontUploading, setFrontUploading] = useState(false);
 const [backUploading, setBackUploading] = useState(false);
+const [shotnameoutside,setshotnameoutside]=useState(null)
+
+useEffect(() => {
+  console.log(IsOutsideLifestyleShot, lifestyleSelected);
+  if (IsOutsideLifestyleShot && lifestyleSelected?.image_url) {
+    setPreviewImages([lifestyleSelected?.image_url]); // wrap in array
+    setSelectedImage(lifestyleSelected?.image_url);
+    setIsFirstApiDone(true) 
+    setshotnameoutside(lifestyleSelected?.shot_name)
+    setSessionId(lifestyleSelected?.session_id)
+      // select the first image
+  }
+}, [IsOutsideLifestyleShot, lifestyleSelected]);
   /* ------------------------------------------
       IMAGE UPLOAD
   ------------------------------------------- */
@@ -81,8 +99,21 @@ const [backUploading, setBackUploading] = useState(false);
 
       return uploadedUrl;
     } catch (err) {
-      toast({ title: "Upload failed", status: "error" });
-      throw err;
+      const backendMessage =
+      err.response?.data?.message ||
+      err.response?.data?.error ||
+      "Upload failed. Please try again.";
+
+    toast({
+      title: "Upload Failed",
+      description: backendMessage,
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+
+    throw err;
+  
     }
   };
 
@@ -246,15 +277,15 @@ setsubmitloading(false);
     ([imageUrl]) => imageUrl === url
   );
 
-  console.log(previewdata)
+  // console.log(previewdata)
   if (selectedData) {
     const output = {
       image_url: selectedData[0],
       shot_name: selectedData[1],
     };
-    console.log("Selected Image Data:", output);
+    // console.log("Selected Image Data:", output);
   } else {
-    console.log("Selected Image URL (no extra data):", url);
+    // console.log("Selected Image URL (no extra data):", url);
   }
 };
 
@@ -386,12 +417,13 @@ setpreviewdata([])
 let lifestyleController = null;
 
 const handleGenerateLifestyle = async () => {
+  
   if (!selectedImage) {
     toast({ title: "Select an image first", status: "warning" });
     return;
   }
 
-  const shotName = shotMapping[selectedImage];
+  const shotName = shotMapping[selectedImage] || shotnameoutside;
   if (!shotName) {
     toast({ title: "No matching shot name found", status: "error" });
     return;
@@ -408,7 +440,7 @@ const handleGenerateLifestyle = async () => {
   document.head.appendChild(styleTag);
 
   // LOAD GUIDELINES
-  let guidelineOptions = `<option value="">Default (Current Guideline)</option>`;
+  let guidelineOptions = ``;
   try {
     const user = JSON.parse(localStorage.getItem("user"));
     const selected = JSON.parse(localStorage.getItem("selected_user"));
@@ -449,6 +481,13 @@ const handleGenerateLifestyle = async () => {
     width: 520,
     showCancelButton: true,
     confirmButtonText: "Next",
+    preConfirm: () => {
+      const guideline = document.getElementById("guideline").value;
+      if (!guideline) {
+        Swal.showValidationMessage("Please select an image guideline");
+      }
+      return guideline;
+    },
   });
 
   if (!firstPopup.value) return;
@@ -701,8 +740,9 @@ const handleEdit = async () => {
 
         <label style="font-weight:bold;">Model</label>
         <select id="editModel" class="swal2-select">
-          <option value="123">123 - Nano Banana</option>
-          <option value="789" selected>789 - Pro</option>
+            <option value="123">Model Gem</option>
+          <option value="456">Model Sed</option>
+          <option value="789">Model Premium</option>
         </select>
       </div>
     `,
@@ -1202,7 +1242,7 @@ const handleGenerateBulkImages = async () => {
         {uploadingCSV ? (
           <Spinner />
         ) : bulkImageData.csv_file ? (
-          <>
+          <>uploadingCSV
             <FiUpload size={20} />
             <Text
               mt={1}

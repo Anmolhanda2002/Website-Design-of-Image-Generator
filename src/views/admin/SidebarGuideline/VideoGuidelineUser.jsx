@@ -41,7 +41,7 @@ export default function GuidelineTable() {
   const navigate = useNavigate();
   const { id: userIdParam } = useParams();
 
-  console.log(userIdParam)
+  // console.log(userIdParam)
   const fetchGuidelines = async () => {
     try {
       const response = await axiosInstance.get(`/list_video_guidelines/?user_id=${userIdParam}`);
