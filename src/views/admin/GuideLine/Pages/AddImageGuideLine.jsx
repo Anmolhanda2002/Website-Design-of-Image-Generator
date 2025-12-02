@@ -129,6 +129,17 @@ const handleSubmit = async () => {
         id,
       ...form,
     };
+       if (!form.name || !form.use_case || !form.default_shot_type) {
+          Swal.fire({
+            icon: "warning",
+            title: "Missing Required Fields",
+            text: "Please fill Name  Use Case, and Default Shot Type before submitting.",
+            confirmButtonColor: "#3085d6",
+            background: isDark ? "#14225C" : "#fff",
+            color: isDark ? "#fff" : "#000",
+          });
+          return; // ⛔ Stop execution
+        }
 
     const { data } = await axiosInstance.post(
       "/factory_development_create_image_guideline/",
@@ -781,7 +792,7 @@ const handleSubmit = async () => {
     value={form.default_shot_type}
     onChange={handleChange}
     color={textcolor}
-    required
+    
   >
     {Object.entries(choices.default_shot_type_choices).map(([label, value]) => (
       <option key={value} value={value}>{label}</option>

@@ -97,7 +97,17 @@ const handleSubmit = async () => {
   try {
     // ✅ Get user_id from localStorage (adjust key names as per your app)
 
-
+if (!form.guideline_name || !form.video_provider || !form.prompt_llm || !form.vision_llm) {
+          Swal.fire({
+            icon: "warning",
+            title: "Missing Required Fields",
+            text: "Please fill Name , Video Provider, Prompt LLM  and Vision LLM before submitting.",
+            confirmButtonColor: "#3085d6",
+            background: isDark ? "#14225C" : "#fff",
+            color: isDark ? "#fff" : "#000",
+          });
+          return; // ⛔ Stop execution
+        }
     // ✅ Create payload with user_id (no api_key)
     const payload = { user_id: activeUserId, ...form };
 
