@@ -115,6 +115,7 @@ const initialBulkImageData = {
   shot_type: "",
   product_type: "",
   product_name: "",
+  quality_analysis:true,
   product_images: {
     front: "",
     back: ""
@@ -128,7 +129,8 @@ const initialBulkImageData = {
   thinking_level:"",
   search_enabled:false,
   sequential_image_generation:"",
-  response_format:""
+  response_format:"",
+  
 };
 
 

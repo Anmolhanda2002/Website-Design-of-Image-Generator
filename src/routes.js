@@ -44,6 +44,7 @@ import ViewProjectDetails from "views/admin/profile/components/ViewProjectDetail
 import EditImageGuidelineUser from 'views/admin/EditUser/ImageGuideline.jsx/EditGuideline';
 import VideoGuidelineAddSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuidelineAdd.jsx"
 import VideoGuidelineEditSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuidelineEdit.jsx"
+import NewPasswordCreate from "views/auth/forgetpassword/Create_new_password"
 const routes = [
   {
     name: 'Main Dashboard',
@@ -53,6 +54,15 @@ const routes = [
     component: <MainDashboard />,
     showInSidebar: true,
   },
+    {
+    name: 'Reset Password',
+    layout: '/auth',
+    path: '/create-reset-password/:token',
+    icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
+    component: <NewPasswordCreate />,
+    showInSidebar:false,
+  },
+
           {
     name: 'Edit Guidelines',
     layout: '/admin',

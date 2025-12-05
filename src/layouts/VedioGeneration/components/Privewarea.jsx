@@ -1039,7 +1039,7 @@ const handleSubmitLifestyleVideo = async () => {
         {submittingCompositions ? (
           <Spinner size="sm" />
         ) : compositions?.length > 0 ? (
-          compositions.map((item) => (
+          compositions.filter((item) => item?.url).map((item) => (
             <Box
               key={item.id}
               position="relative"

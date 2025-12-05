@@ -278,7 +278,7 @@ useEffect(() => {
       setLoadingUseCase(false);
     }
   }, []);
-
+// console.log("Current QA value:", bulkImageData.quality_analysis);
   // ✅ Re-fetch ONLY when selected user changes AND tab = "Image Creation"
   useEffect(() => {
     if (activeTab !== "Image Creation") return;
@@ -393,6 +393,30 @@ color={textcolor}
           </Select>
         )}
       </Box>
+      <Box mt={4}>
+  <Text fontWeight="bold">Quality Analysis</Text>
+
+  <Select
+    sx={{
+      "& option": {
+        backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+        color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+      },
+    }}
+    value={bulkImageData?.quality_analysis ? "true" : "false"}
+    onChange={(e) =>
+      setBulkImageData((prev) => ({
+        ...prev,
+        quality_analysis: e.target.value == "true",
+      }))
+    }
+    mt={2}
+  >
+    <option value="false">Disabled</option>
+    <option value="true">Enabled</option>
+  </Select>
+</Box>
+
       <Box mt={4}>
   <Text fontWeight="bold">Upload File Type</Text>
   <Select

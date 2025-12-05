@@ -8,7 +8,7 @@ import {
   Input,
   useToast,
   Button,
-  useColorModeValue,
+  useColorModeValue,Progress
 } from "@chakra-ui/react";
 import { FiUpload, FiSend } from "react-icons/fi";
 import axiosInstance from "utils/AxiosInstance";
@@ -40,11 +40,12 @@ const [uploadingCSV, setUploadingCSV] = useState(false);
   const [lifestyleLoading, setLifestyleLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [submitloading, setsubmitloading] = useState(false);
-  const [previewdata,setpreviewdata]=useState([])
+  const [previewdata,setpreviewdata]=useState({})
 const [isLoading, setIsLoading] = useState(false);
   // NEW STATES
   const [isFirstApiDone, setIsFirstApiDone] = useState(false);
   const [isLifestyleDone, setIsLifestyleDone] = useState(false);
+  const [selecteddatauser,setselecteddatauser]=useState("")
     const { colorMode } = useColorMode();
 const isDark = colorMode === "dark";
   // Background notice state — used when CSV submit returns status: true but no immediate images
@@ -58,7 +59,7 @@ const isDark = colorMode === "dark";
 const [frontUploading, setFrontUploading] = useState(false);
 const [backUploading, setBackUploading] = useState(false);
 const [shotnameoutside,setshotnameoutside]=useState(null)
-
+const [sessionStatus, setSessionStatus] = useState(null);
 useEffect(() => {
   console.log(IsOutsideLifestyleShot, lifestyleSelected);
   if (IsOutsideLifestyleShot && lifestyleSelected?.image_url) {
@@ -164,106 +165,131 @@ const handleSingleImage = async (event, type) => {
       IMAGE SUBMIT API
   ------------------------------------------- */
 const handleSubmitImage = async () => {
-try {
-setIsProcessing(true);
-setLifestyleImages([]);
-setPreviewImages([]);
-setBackgroundNotice(null);
-setsubmitloading(true);
+  try {
+    setIsProcessing(true);
+    setPreviewImages([]);
+    setBackgroundNotice(null);
+    setsubmitloading(true);
+ setSessionStatus(null)
+    const userId = selectedUser?.user_id;
 
+    const baseBody = {
+      user_id: userId,
+      model: Number(bulkImageData.model),
+      image_guideline_id: bulkImageData.image_guideline_id,
+      customer_id: `CRM-${userId}`,
+      product_id: generateShortUUID(),
+      product_name: bulkImageData.product_name,
+      product_type: bulkImageData.product_type,
+      shot_type: "studio_shots",
+      product_images: bulkImageData.product_images,
+    };
 
-const userId = selectedUser?.user_id;
+    // Model-specific config
+    if (bulkImageData.model === 456) {
+      baseBody.model_config = {
+        size: bulkImageData.size,
+        watermark: false,
+        sequential_image_generation: bulkImageData.sequential_image_generation,
+        response_format: bulkImageData.response_format,
+      };
+    } else if (bulkImageData.model === 789) {
+      baseBody.model_config = {
+        image_size: bulkImageData.image_size,
+        aspect_ratio: bulkImageData.aspect_ratio,
+        thinking_level: bulkImageData.thinking_level,
+        search_enabled: bulkImageData.search_enabled,
+      };
+    }
 
-const baseBody = {
-  user_id: userId,
-  model: Number(bulkImageData.model),
-  image_guideline_id: bulkImageData.image_guideline_id,
-  customer_id: `CRM-${userId}`,
-  product_id: generateShortUUID(),
-  product_name: bulkImageData.product_name,
-  product_type: bulkImageData.product_type,
-  shot_type: "studio_shots",
-  product_images: bulkImageData.product_images,
+    // -----------------------------
+    // Step 1: Start bulk generation
+    // -----------------------------
+    const res = await axiosInstance.post("/factory_bulk_generate_product_shots/", baseBody);
+    const sessionId = res?.data?.session_id;
+
+    toast({
+      title: res?.data?.message || "Bulk generation started",
+      status: "success",
+    });
+
+    if (!sessionId) {
+      
+      setIsProcessing(false);
+      setsubmitloading(false);
+      return;
+    }
+
+    setSessionId(sessionId);
+
+    // -----------------------------
+    // Step 2: Polling session status every 5 sec
+    // -----------------------------
+    const pollInterval = setInterval(async () => {
+      try {
+        const statusRes = await axiosInstance.post("/factory_get_bulk_session_status/", {
+          session_id: sessionId,
+        });
+
+        const sessionData = statusRes?.data?.data?.session;
+        const shots = statusRes?.data?.data?.shots || [];
+
+        if (sessionData) {
+          setSessionStatus(sessionData); // for progress bar and status
+          setBackgroundNotice(
+            `Processing ${sessionData.completed} / ${sessionData.total_requested} images...`
+          );
+
+          // Add completed shots to preview
+   setpreviewdata((prev) => {
+  const updated = { ...prev };
+
+  shots.forEach((s) => {
+    if (s.status === "completed" && s.image_url && s.shot_name) {
+      updated[s.image_url] = s.shot_name;
+    }
+  });
+
+  return updated;
+});
+          const completedImages = shots
+            .filter((s) => s.status === "completed" && s.image_url)
+            .map((s) => s.image_url);
+
+          setPreviewImages((prev) => Array.from(new Set([...prev, ...completedImages])));
+        }
+ 
+        // Stop polling when done or failed
+        if (["completed", "failed"].includes(sessionData?.status)) {
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          setBackgroundNotice(null);
+          setsubmitloading(false);
+            setIsFirstApiDone(true);
+      setIsLifestyleDone(false);
+          toast({
+            title: sessionData?.status === "completed" ? "Bulk generation completed!" : "Bulk generation failed!",
+            status: sessionData?.status === "completed" ? "success" : "error",
+          });
+        }
+     
+      } catch (pollErr) {
+        console.error("Polling error:", pollErr);
+      }
+    }, 5000);
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: err?.response?.data?.message || err?.message || "Submit Failed",
+      status: "error",
+    });
+    setIsProcessing(false);
+    setsubmitloading(false);
+  }
 };
 
-// -----------------------------
-// MODEL CONFIG
-// -----------------------------
-if (bulkImageData.model === 456) {
-  baseBody.model_config = {
-    size: bulkImageData.size,
-    watermark: false,
-    sequential_image_generation: bulkImageData.sequential_image_generation,
-    response_format: bulkImageData.response_format,
-  };
-}
-
-if (bulkImageData.model === 789) {
-  baseBody.model_config = {
-    image_size: bulkImageData.image_size,
-    aspect_ratio: bulkImageData.aspect_ratio,
-    thinking_level: bulkImageData.thinking_level,
-    search_enabled: bulkImageData.search_enabled,
-  };
-}
-
-const res = await axiosInstance.post(
-  "/factory_bulk_generate_product_shots/",
-  baseBody
-);
-
-const apiData = res?.data?.data;
-
-// ⭐ SUCCESS TOAST WITH BACKEND MESSAGE
-toast({
-  title: res?.data?.message || "Submitted Successfully",
-  status: "success",
-});
-
-if (!apiData) {
-  setBackgroundNotice(
-    res?.data?.message ||
-      "Processing started in background. Results will appear here."
-  );
-  return;
-}
-
-setSessionId(apiData.session_id);
-
-const finalImages = Array.from(
-  new Set([
-    apiData.base_shot?.image_url,
-    ...((apiData.generated_shots || []).map((s) => s.image_url) || []),
-  ].filter(Boolean))
-);
-
-const mapping = {};
-apiData.generated_shots?.forEach((s) => {
-  mapping[s.image_url] = s.shot_name;
-});
-
-setShotMapping(mapping);
-setPreviewImages(finalImages);
-setSelectedImage(finalImages[0]);
-
-setIsFirstApiDone(true);
-setIsLifestyleDone(false);
 
 
-} catch (err) {
-// ❌ ERROR TOAST WITH BACKEND MESSAGE
-toast({
-title:
-err?.response?.data?.message ||
-err?.message ||
-"Submit Failed",
-status: "error",
-});
-} finally {
-setIsProcessing(false);
-setsubmitloading(false);
-}
-};
 
 
 
@@ -271,18 +297,22 @@ setsubmitloading(false);
 
   const handleImageSelect = (url) => {
   setSelectedImage(url);
-
+setQaMode(false)
   // Find full image data from shotMapping or API response
   const selectedData = Object.entries(previewdata).find(
     ([imageUrl]) => imageUrl === url
   );
-
-  // console.log(previewdata)
+  console.log("asf",previewdata)
+  const selectedShotName = previewdata[url]; 
+console.log(selectedShotName)
+  console.log(previewdata)
   if (selectedData) {
     const output = {
       image_url: selectedData[0],
       shot_name: selectedData[1],
+      
     };
+    setselecteddatauser(selectedData)
     // console.log("Selected Image Data:", output);
   } else {
     // console.log("Selected Image URL (no extra data):", url);
@@ -415,15 +445,120 @@ setpreviewdata([])
       LIFESTYLE API (shared for both modes)
   ------------------------------------------- */
 let lifestyleController = null;
+const [lifestyleProgress, setLifestyleProgress] = useState(0);
 
+const startLifestylePolling = (lifestyleId) => {
+  setLifestyleLoading(true);
+  setIsProcessing(true);
+
+  const interval = setInterval(async () => {
+    try {
+      const pollRes = await axiosInstance.get(
+        "/factory_get_lifestyle_shot_status/",
+        { params: { lifestyle_id: lifestyleId } }
+      );
+
+      const pollData = pollRes.data.data;
+
+      // ✅ Set full preview data here
+      setpreviewdata(pollData);
+
+      const compositions = pollData.generated_compositions || {};
+      const total = Object.keys(compositions).length;
+
+      const completed = Object.values(compositions).filter(
+        (i) => i?.image_url
+      ).length;
+
+      const urls = Object.values(compositions)
+        .map((i) => i?.image_url)
+        .filter(Boolean);
+
+      if (urls.length > 0) {
+        setPreviewImages(urls);
+        setLifestyleImages(urls);
+        setSelectedImage(urls[0]);
+      }
+
+      let progressValue = 0;
+      switch (pollData.status) {
+        case "analyzing":
+          progressValue = 10;
+          break;
+        case "processing":
+          progressValue = 20 + (completed / total) * 40;
+          break;
+        case "rendering":
+          progressValue = 60 + (completed / total) * 35;
+          break;
+        case "completed":
+          progressValue = 100;
+          break;
+        default:
+          progressValue = completed > 0 ? (completed / total) * 60 : 5;
+      }
+
+      setSessionStatus({
+        completed,
+        total_requested: total,
+        status: pollData.status,
+        progressValue,
+        success_rate: `${completed}/${total}`,
+      });
+
+      // Completed
+      if (pollData.status === "completed") {
+        clearInterval(interval);
+        setIsLifestyleDone(true);
+        setIsProcessing(false);
+        setLifestyleLoading(false);
+
+        toast({
+          title: "Lifestyle Generation Completed",
+          status: "success",
+        });
+
+        return;
+      }
+
+      // Failed
+      if (pollData.status === "failed") {
+        clearInterval(interval);
+
+        setIsProcessing(false);
+        setLifestyleLoading(false);
+
+        // ❗ You already set previewdata above so remove extra call
+        Swal.fire("Failed", pollData.message || "Generation failed", "error");
+        return;
+      }
+
+    } catch (err) {
+      clearInterval(interval);
+      setIsProcessing(false);
+      setLifestyleLoading(false);
+      console.log("Polling Error:", err);
+    }
+  }, 3000);
+};
+
+
+
+
+
+
+
+
+
+console.log(selectedImage,"asdf",selecteddatauser)
 const handleGenerateLifestyle = async () => {
-  
+   setSessionStatus(null)
   if (!selectedImage) {
     toast({ title: "Select an image first", status: "warning" });
     return;
   }
 
-  const shotName = shotMapping[selectedImage] || shotnameoutside;
+  const shotName = shotMapping[selectedImage] || selecteddatauser[1] || shotnameoutside;
   if (!shotName) {
     toast({ title: "No matching shot name found", status: "error" });
     return;
@@ -463,7 +598,6 @@ const handleGenerateLifestyle = async () => {
     title: "Lifestyle Settings",
     html: `
       <div style="width:100%; max-width:350px; margin:auto;">
-
         <label style="font-weight:600;">Guideline</label>
         <select id="guideline" style="width:100%; height:38px;">${guidelineOptions}</select>
 
@@ -483,9 +617,7 @@ const handleGenerateLifestyle = async () => {
     confirmButtonText: "Next",
     preConfirm: () => {
       const guideline = document.getElementById("guideline").value;
-      if (!guideline) {
-        Swal.showValidationMessage("Please select an image guideline");
-      }
+      if (!guideline) Swal.showValidationMessage("Please select a guideline");
       return guideline;
     },
   });
@@ -494,25 +626,14 @@ const handleGenerateLifestyle = async () => {
 
   const guideline = document.getElementById("guideline").value;
   const model = Number(document.getElementById("model").value);
-
   let modelConfig = null;
 
-  // ==========================
-  // MODEL 123 → DIRECT SUBMIT
-  // ==========================
-  if (model === 123) {
-    modelConfig = null;
-  }
-
-  // ==========================
-  // MODEL 456 → size + response_format
-  // ==========================
+  // -------- MODEL 456 POPUP --------
   if (model === 456) {
     const popup456 = await Swal.fire({
       title: "Model 456 Settings",
       html: `
         <div style="width:100%; max-width:350px; margin:auto;">
-
           <label style="font-weight:600;">Size</label>
           <select id="size" style="width:100%; height:38px;">
             <option value="2K">2K</option>
@@ -526,7 +647,6 @@ const handleGenerateLifestyle = async () => {
             <option value="url">URL</option>
             <option value="base64">Base64</option>
           </select>
-
         </div>
       `,
       showCancelButton: true,
@@ -541,15 +661,12 @@ const handleGenerateLifestyle = async () => {
     };
   }
 
-  // ==========================
-  // MODEL 789 → image size + aspect ratio + thinking level + search enabled
-  // ==========================
+  // -------- MODEL 789 POPUP --------
   if (model === 789) {
     const popup789 = await Swal.fire({
       title: "Model 789 Settings",
       html: `
         <div style="width:100%; max-width:350px; margin:auto;">
-
           <label>Image Size</label>
           <select id="imageSize789" style="width:100%; height:38px;">
             <option value="2K">2K</option>
@@ -581,7 +698,6 @@ const handleGenerateLifestyle = async () => {
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
           </select>
-
         </div>
       `,
       showCancelButton: true,
@@ -598,13 +714,13 @@ const handleGenerateLifestyle = async () => {
     };
   }
 
-  // FINAL BODY
+  // FINAL API BODY for Lifestyle
   const body = {
     user_id: selectedUser?.user_id,
     session_id: sessionId,
     source_shot: shotName,
     model,
-    image_guideline_id: guideline || bulkImageData?.image_guideline_id,
+    image_guideline_id: guideline,
     ...(modelConfig ? { model_config: modelConfig } : {}),
   };
 
@@ -613,28 +729,38 @@ const handleGenerateLifestyle = async () => {
     lifestyleController = new AbortController();
     setLifestyleLoading(true);
 
+    // LIFESTYLE API
     const res = await axiosInstance.post(
       "/factory_generate_bulk_lifestyle_shots/",
       body,
       { signal: lifestyleController.signal }
     );
 
-    const data = res.data.data;
-    const urls = Object.values(data.image_urls).filter(Boolean);
+    const data = res.data;
+    const lifestyleId = data.lifestyle_id;
+console.log("asf",lifestyleId)
+    // Show whatever URLs API returns in first response
+    // const urls = Object.values(data.image_urls || {}).filter(Boolean);
 
-    setLifestyleImages(urls);
-    setPreviewImages(urls);
-    setSelectedImage(urls[0]);
+    // setLifestyleImages(urls);
+    // setPreviewImages(urls);
+    // setSelectedImage(urls[0] || null);
     setpreviewdata(data);
-    setIsLifestyleDone(true);
+
+    // setIsLifestyleDone(false); // IMPORTANT → still running
+setLifestyleLoading(false);
+    // ---- START POLLING ----
+    startLifestylePolling(lifestyleId);
+
   } catch (err) {
     if (err.name !== "CanceledError") {
-      Swal.fire("Failed", err?.response?.data?.message, "error");
+      Swal.fire("Failed", err?.response?.data?.message || "Error", "error");
     }
   } finally {
     setLifestyleLoading(false);
   }
 };
+
 
 
 
@@ -658,6 +784,7 @@ const handleGenerateLifestyle = async () => {
     setSelectedImage(null);
     setShotMapping({});
     setSessionId(null);
+     setSessionStatus(null)
 
     setIsFirstApiDone(false);
     setIsLifestyleDone(false);
@@ -705,11 +832,13 @@ setLifestyleLoading(false);
 
 // Handle editing a selected image
 const handleEdit = async () => {
+  console.log("pre",previewdata)
   if (!selectedImage) {
     Swal.fire("Error", "No image selected", "error");
     return;
   }
 
+  console.log("pre",previewdata)
   if (!previewdata || !previewdata.generated_variations) {
     Swal.fire("Error", "No generated variations available", "error");
     return;
@@ -849,446 +978,742 @@ const handleEdit = async () => {
 
 
 // Generate bulk lifestyle images
-const handleGenerateBulkImages = async () => {
-  const shotName = shotMapping[selectedImage];
-  if (!shotName) {
-    // toast({ title: "No matching shot name found", status: "error" });
-    return;
-  }
+// const handleGenerateBulkImages = async () => {
+//   const shotName = shotMapping[selectedImage];
+//   if (!shotName) {
+//     // toast({ title: "No matching shot name found", status: "error" });
+//     return;
+//   }
 
-  const body = {
-    user_id: selectedUser?.user_id,
-    session_id: sessionId,
-    source_shot: shotName,
-    model: 123, // You can allow user to select this dynamically too
-    image_guideline_id: guidelineToSend,
+//   const body = {
+//     user_id: selectedUser?.user_id,
+//     session_id: sessionId,
+//     source_shot: shotName,
+//     model: 123, // You can allow user to select this dynamically too
+//     image_guideline_id: guidelineToSend,
+//   };
+
+//   try {
+//     setIsLoading(true);
+
+//     const res = await axiosInstance.post("/factory_generate_bulk_lifestyle_shots/", body);
+//     const data = res.data.data;
+
+//     // Filter out only valid URLs
+//     const lifestyleUrls = Object.values(data.image_urls).filter((url) => url);
+
+//     setLifestyleImages(lifestyleUrls);
+//     setPreviewImages(lifestyleUrls);
+//     setSelectedImage(lifestyleUrls[0]);
+//     setpreviewdata(data);
+//     setIsLifestyleDone(true);
+
+//     Swal.fire("Success!", "Lifestyle images generated successfully", "success");
+//   } catch (err) {
+//     console.error(err);
+//     Swal.fire("Error", err?.response?.data?.message || "Failed to generate images", "error");
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
+
+
+// code new 
+const [qaLoading, setQaLoading] = useState(false);
+const [qcrPreview, setQcrPreview] = useState(null);
+const [qcrProgress, setQcrProgress] = useState(0);
+let qualityController = null;
+
+
+  {/* -----------------------------------------------------
+         STATES YOU MUST ADD OUTSIDE THIS RETURN:
+         ----------------------------------------------
+    const [qaMode, setQaMode] = useState(false);
+    const [selectedImagesForQA, setSelectedImagesForQA] = useState([]);
+    ----------------------------------------------------- */}
+
+  {/* Image toggle functions */}
+  {/* SINGLE SELECT (video/edit) */}
+    const [qaMode, setQaMode] = useState(false);
+    const [selectedImagesForQA, setSelectedImagesForQA] = useState([]);
+
+  {/* MULTI SELECT (quality analysis) */}
+  const toggleMultiSelect = (url) => {
+    setSelectedImagesForQA((prev) =>
+      prev.includes(url)
+        ? prev.filter((img) => img !== url) // remove
+        : [...prev, url]                    // add
+    );
+
   };
 
-  try {
-    setIsLoading(true);
+const handleQAMultiSelect = (imageUrl) => {
+  setSelectedImagesForQA((prev) => {
+    if (prev.includes(imageUrl)) {
+      // remove if already selected
+      return prev.filter((img) => img !== imageUrl);
+    }
+    // add new
+    return [...prev, imageUrl];
+  });
 
-    const res = await axiosInstance.post("/factory_generate_bulk_lifestyle_shots/", body);
-    const data = res.data.data;
-
-    // Filter out only valid URLs
-    const lifestyleUrls = Object.values(data.image_urls).filter((url) => url);
-
-    setLifestyleImages(lifestyleUrls);
-    setPreviewImages(lifestyleUrls);
-    setSelectedImage(lifestyleUrls[0]);
-    setpreviewdata(data);
-    setIsLifestyleDone(true);
-
-    Swal.fire("Success!", "Lifestyle images generated successfully", "success");
-  } catch (err) {
-    console.error(err);
-    Swal.fire("Error", err?.response?.data?.message || "Failed to generate images", "error");
-  } finally {
-    setIsLoading(false);
-  }
+  console.log("asfd",)
 };
 
 
 
+  {/* QUALITY ANALYSIS ACTION */}
+const handleQualityAnalysis = async () => {
+  if (!selectedImagesForQA || selectedImagesForQA.length === 0) {
+    toast({ title: "Select shots first", status: "warning" });
+    return;
+  }
+
+  const isDark = colorMode === "dark";
+
+  // Popup theme injection
+  const styleTag = document.createElement("style");
+  styleTag.innerHTML = `
+    .swal2-popup { background: ${isDark ? "#14225C" : "#fff"} !important; 
+                   color: ${isDark ? "#fff" : "#000"} !important;
+                   border-radius: 12px; }
+    .swal2-title { color: ${isDark ? "#fff" : "#000"} !important; }
+    select, input { background: ${isDark ? "#2D3748" : "#fff"} !important; 
+                    color: ${isDark ? "#fff" : "#000"} !important;
+                    padding: 6px; border-radius: 6px; }
+  `;
+  document.head.appendChild(styleTag);
+
+  // -------------------- SETTINGS POPUP --------------------
+  const popup = await Swal.fire({
+    title: "Quality Analysis Settings",
+    html: `
+      <div style="width:100%; max-width:350px; margin:auto;">
+        <label style="font-weight:600;">Auto Refine</label>
+        <select id="autoRefine" style="width:100%; height:38px;">
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+
+        <br /><br />
+
+        <label style="font-weight:600;">Max Refinement Iterations</label>
+        <select id="maxRefine" style="width:100%; height:38px;">
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      </div>
+    `,
+    width: 520,
+    showCancelButton: true,
+    confirmButtonText: "Run QCR",
+  });
+
+  if (!popup.value) return;
+
+  // read popup values
+  const autoRefine = document.getElementById("autoRefine").value === "true";
+  const maxRefine = Number(document.getElementById("maxRefine").value);
+const analyzeShots = selectedImagesForQA.map((url) => previewdata[url]);
+
+if (!analyzeShots.length) {
+  toast({ title: "Shot names missing", status: "warning" });
+  return;
+}
+  // --------------- API BODY ----------------
+  const body = {
+    user_id: selectedUser?.user_id,
+    session_id: sessionId, // SAME as lifestyle
+    analyze_shots: analyzeShots,
+    auto_refine: autoRefine,
+    max_refinement_iterations: maxRefine,
+  };
+
+  try {
+    if (qualityController) qualityController.abort();
+    qualityController = new AbortController();
+
+    setQaLoading(true); // SAME AS OTHER FUNCTION
+
+    
+    // --------------- CALL ANALYSIS API ----------------
+    const res = await axiosInstance.post(
+      "/api/bulk-shots/quality-analysis/",
+      body,
+      { signal: qualityController.signal }
+    );
+
+    const result = res.data;
+    const qcrSessionId = result?.data?.session_id;
+
+    // first update to UI
+    setQcrPreview(result.data);
+
+    // --------------- START POLLING ----------------
+    startQCRPolling(qcrSessionId);
+
+  } catch (err) {
+    if (err.name !== "CanceledError") {
+      Swal.fire("Failed", err?.response?.data?.message || "Something went wrong", "error");
+    }
+  } finally {
+    setQaLoading(false);
+  }
+};
+const startQCRPolling = (sessionId) => {
+  if (!sessionId) return;
+
+  const interval = setInterval(async () => {
+    try {
+      const res = await axiosInstance.get("/api/bulk-shots/quality-status/", {
+        params: { session_id: sessionId },
+      });
+
+      const data = res.data?.data;
+
+      // Update UI on every poll
+      setQcrPreview(data);
+
+      // If API provides percentage
+      if (data?.progress !== undefined) {
+        setQcrProgress(data.progress); // 0-100%
+      }
+
+      // stop polling
+      if (data?.status === "completed" || data?.status === "failed") {
+        clearInterval(interval);
+        setQaLoading(false);
+      }
+
+    } catch (e) {
+      console.log("QCR polling error:", e);
+      clearInterval(interval);
+    }
+  }, 3000); // polls every 3 seconds
+};
+
+
+
+  {/* CLEAR ALL */}
+  const handleClearAll = () => {
+    setSelectedImage(null);
+    setSelectedImagesForQA([]);
+    setQaMode(false);
+    handleClear(); // your original clear function
+  };
+
+  useEffect(() => {
+  setQaMode(bulkImageData?.quality_analysis === true);
+}, [bulkImageData?.quality_analysis]);
+
+  
 
 
 
 
   return (
     <Box w="100%" p={5}>
-      {/* ------------------------------------------
-            PREVIEW BOX (same for both CSV & IMAGE)
-      ------------------------------------------- */}
-      <Box
-        w="100%"
-        h="350px"
-        bg={cardBg}
-        borderRadius="xl"
-        border={`1px solid ${borderColor}`}
-        mt="-20px"
-        p={4}
-        overflow="hidden"
-        position="relative"
-      >
-        {/* Processing overlay for live generation */}
-        {isProcessing && (
-          <Flex
-            position="absolute"
-            top="0"
-            left="0"
-            w="100%"
-            h="100%"
-            backdropFilter="blur(6px)"
-            bg="rgba(255,255,255,0.06)"
-            zIndex="10"
-            justify="center"
-            align="center"
-            flexDirection="column"
-          >
-            <Spinner size="lg" />
-            <Text mt={3} fontSize="18px" fontWeight="600" color={textColor}>
-  Your product shots are being generated. This may take 2–3 minutes.
-</Text>
+  {/* -----------------------------------------------------
+         STATES YOU MUST ADD OUTSIDE THIS RETURN:
+         ----------------------------------------------
+    const [qaMode, setQaMode] = useState(false);
+    const [selectedImagesForQA, setSelectedImagesForQA] = useState([]);
+    ----------------------------------------------------- */}
 
-          </Flex>
-        )}
-
-        {/* Lifestyle loading footer */}
-        {lifestyleLoading && (
-          <Flex
-            position="absolute"
-            bottom="0"
-            left="0"
-            w="100%"
-            h="60px"
-            bg={useColorModeValue("rgba(255,255,255,0.9)", "rgba(0,0,0,0.6)")}
-            justify="center"
-            align="center"
-          >
-            <Spinner size="md" />
-           <Text ml={3} color={textColor}>
-  Creating lifestyle visuals… Estimated time: 2–3 minutes.
-</Text>
-          </Flex>
-        )}
-
-        {/* If backgroundNotice is set (CSV accepted, background processing) show message */}
-        {backgroundNotice && !previewImages.length && !isProcessing && (
-          <Flex justify="center" align="center" h="100%" p={4}>
-            <Box textAlign="center">
-              <Text fontSize="lg" fontWeight="600" color={textColor} mb={2}>
-                {backgroundNotice}
-              </Text>
-              <Text fontSize="sm" color={subtleText}>
-                This process may take a few minutes. Check back later or refresh to see results.
-              </Text>
-            </Box>
-          </Flex>
-        )}
-
-        {/* Default "Preview Area" if no images and no processing */}
-        {!previewImages.length && !isProcessing && !backgroundNotice && (
-          <Flex justify="center" align="center" h="100%">
-            <Text fontSize="18px" color={subtleText}>
-              Preview Area
-            </Text>
-          </Flex>
-        )}
-
-        {/* Image previews when available */}
-        {!!previewImages.length && (
-          <Flex
-            gap={3}
-            overflowX="auto"
-            h="90%"
-            align="center"
-            sx={{
-    scrollBehavior: "smooth",
-    scrollSnapType: "x mandatory",
-    perspective: "1000px",
-
+  {/* Image toggle functions */}
+  {/* SINGLE SELECT (video/edit) */}
   
 
-  
-
-    "&::-webkit-scrollbar": {
-      display: "none",
-    },
-
-    scrollbarWidth: "none",
-    msOverflowStyle: "none",
-
+  {/* MULTI SELECT (quality analysis) */}
  
 
-   
-  }}
-          >
-            {previewImages.map((url, index) => (
-<Box
-  key={index}
-  minW="220px"
-  h="100%"
-  position="relative"
-  borderRadius="20px"
+  {/* QUALITY ANALYSIS ACTION */}
+ 
+
+  return (
+    <>
+      {/* ------------------------------------------
+            PREVIEW BOX
+      ------------------------------------------- */}
+     <Box
+  w="100%"
+  h="350px"
+  bg={cardBg}
+  borderRadius="xl"
+  border={`1px solid ${borderColor}`}
+  mt="-20px"
+  p={4}
   overflow="hidden"
-  cursor="pointer"
-  onClick={() => handleImageSelect(url)}
-  transition="all 0.3s ease"
-  transform={
-    selectedImage === url ? "scale(1) translateY(0px)" : "scale(1)"
-  }
-  
-  border={
-    selectedImage === url
-      ? "5px solid #3B82F6"
-      : `2px solid ${borderColor}`
-  }
-  // _hover={{
-  //   transform:
-  //     selectedImage === url
-  //       ? "scale(1) translateY(-8px)"
-  //       : "scale(1.03)",
-  // }}
+  position="relative"
 >
-  {/* Soft inner glow highlight */}
-  {selectedImage === url && (
-    <Box
-      position="absolute"
-      inset="0"
-      bg="rgba(59,130,246,0.12)"
-      // backdropFilter="blur(1px)"
-      pointerEvents="none"
-      transition="all 0.3s ease"
-    />
+  {/* ------------------------------------------
+        Processing overlay with progress bar
+  ------------------------------------------- */}
+ {isProcessing && (
+  <Flex
+    position="absolute"
+    top="0"
+    left="0"
+    w="100%"
+    h="100%"
+    backdropFilter="blur(6px)"
+    bg="rgba(255,255,255,0.06)"
+    zIndex="10"
+    justify="center"
+    align="center"
+    flexDirection="column"
+    gap={4}
+    p={4}
+  >
+    <Spinner size="lg" />
+
+    {sessionStatus ? (
+      <Flex justify="center" align="center" flexDirection="column" w="100%" maxW="400px">
+        <Text fontSize="lg" fontWeight="600" color={textColor} mb={2}>
+          {`Processing ${sessionStatus.completed} / ${sessionStatus.total_requested} images`}
+        </Text>
+
+        <Progress
+          value={(sessionStatus.completed / sessionStatus.total_requested) * 100}
+          size="lg"
+          colorScheme="purple"
+          borderRadius="md"
+          width="100%"
+          hasStripe
+          isAnimated
+        />
+
+        <Text fontSize="sm" color={subtleText} mt={2}>
+          {sessionStatus.status === "completed"
+            ? `All images processed successfully (${sessionStatus.success_rate})`
+            : "Please wait while your images are being generated..."}
+        </Text>
+      </Flex>
+    ) : (
+      <Text mt={3} fontSize="18px" fontWeight="600" color={textColor}>
+        Your product shots are being generated. This may take 2–3 minutes.
+      </Text>
+    )}
+  </Flex>
+)}
+
+{qaLoading && (
+  <Box w="100%" mt={3}>
+    <Progress value={qcrProgress} size="lg" isAnimated />
+    <Text mt={2} fontSize="sm" textAlign="center">
+      Processing... {qcrProgress}%
+    </Text>
+  </Box>
+)}
+  {/* ------------------------------------------
+        Lifestyle loading
+  ------------------------------------------- */}
+  {lifestyleLoading && (
+    <Flex
+    position="absolute"
+    top="0"
+    left="0"
+    w="100%"
+    h="100%"
+    backdropFilter="blur(6px)"
+    bg="rgba(255,255,255,0.06)"
+    zIndex="10"
+    justify="center"
+    align="center"
+    flexDirection="column"
+    gap={4}
+    p={4}
+  >
+    <Spinner size="lg" />
+
+    {sessionStatus ? (
+      <Flex justify="center" align="center" flexDirection="column" w="100%" maxW="400px">
+        <Text fontSize="lg" fontWeight="600" color={textColor} mb={2}>
+          {`Processing ${sessionStatus.completed} / ${sessionStatus.total_requested} images`}
+        </Text>
+
+        <Progress
+          value={(sessionStatus.completed / sessionStatus.total_requested) * 100}
+          size="lg"
+          colorScheme="purple"
+          borderRadius="md"
+          width="100%"
+          hasStripe
+          isAnimated
+        />
+
+        <Text fontSize="sm" color={subtleText} mt={2}>
+          {sessionStatus.status === "completed"
+            ? `All images processed successfully (${sessionStatus.success_rate})`
+            : "Please wait while your images are being generated..."}
+        </Text>
+      </Flex>
+    ) : (
+      <Text mt={3} fontSize="18px" fontWeight="600" color={textColor}>
+        Your product shots are being generated. This may take 2–3 minutes.
+      </Text>
+    )}
+  </Flex>
   )}
 
-  {/* Premium rounded checkmark badge */}
-  {/* {selectedImage === url && (
-    <Box
-      position="absolute"
-      top="10px"
-      right="10px"
-      bg="#3B82F6"
-      color="white"
-      w="32px"
-      h="20px"
-      borderRadius="50%"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      fontSize="18px"
-      boxShadow="0 4px 10px rgba(0,0,0,0.25)"
-      transform="scale(1)"
-      animation="pop 0.3s ease"
-      pointerEvents="none"
-    >
-      ✓
-    </Box>
-  )} */}
+  {/* ------------------------------------------
+        CSV / Background notice
+  ------------------------------------------- */}
+  {backgroundNotice && !previewImages.length && !isProcessing && (
+    <Flex justify="center" align="center" h="100%" p={4}>
+      <Box textAlign="center">
+        <Text fontSize="lg" fontWeight="600" color={textColor} mb={2}>
+          {backgroundNotice}
+        </Text>
+        <Text fontSize="sm" color={subtleText}>
+          This process may take a few minutes. Check back later or refresh to see results.
+        </Text>
+      </Box>
+    </Flex>
+  )}
 
-<Image
-  src={url}
-  w="100%"
-  h="100%"
-  objectFit="contain"
-  borderRadius="md"
-  transition="all 0.3s ease"
-/>
+  {/* ------------------------------------------
+        Default Preview Placeholder
+  ------------------------------------------- */}
+  {!previewImages.length && !isProcessing && !backgroundNotice && (
+    <Flex justify="center" align="center" h="100%">
+      <Text fontSize="18px" color={subtleText}>
+        Preview Area
+      </Text>
+    </Flex>
+  )}
+
+  {/* ------------------------------------------
+        IMAGE PREVIEW CAROUSEL
+  ------------------------------------------- */}
+  {!!previewImages.length && (
+    <Flex
+      gap={3}
+      overflowX="auto"
+      h="90%"
+      align="center"
+      sx={{
+        scrollBehavior: "smooth",
+        scrollSnapType: "x mandatory",
+        perspective: "1000px",
+        "&::-webkit-scrollbar": { display: "none" },
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+      }}
+    >
+      {previewImages.map((url, index) => {
+        const isSelected =
+          qaMode
+            ? selectedImagesForQA.includes(url) // multi-select mode
+            : selectedImage === url;            // single-select
+
+        return (
+          <Box
+            key={index}
+            minW="220px"
+            h="100%"
+            position="relative"
+            borderRadius="20px"
+            overflow="hidden"
+            cursor="pointer"
+            onClick={() =>
+              qaMode
+                ? handleQAMultiSelect(url)
+                : handleImageSelect(url)
+            }
+            transition="all 0.3s ease"
+            border={
+              isSelected
+                ? "5px solid #3B82F6"
+                : `2px solid ${borderColor}`
+            }
+          >
+            {isSelected && (
+              <Box
+                position="absolute"
+                inset="0"
+                bg="rgba(59,130,246,0.12)"
+                pointerEvents="none"
+                transition="all 0.3s ease"
+              />
+            )}
+
+            <Image
+              src={url}
+              w="100%"
+              h="100%"
+              objectFit="contain"
+              borderRadius="md"
+              transition="all 0.3s ease"
+            />
+          </Box>
+        );
+      })}
+    </Flex>
+  )}
 </Box>
 
 
-            ))}
-          </Flex>
-        )}
-      </Box>
-
       {/* ------------------------------------------
-            MODE ACTIONS (Generate Lifestyle / Create Video / Clear)
+            ACTION BUTTONS
       ------------------------------------------- */}
       <Flex mt={4} justify="center" gap={3}>
-        {isFirstApiDone && !isLifestyleDone && (
-          <Button colorScheme="purple" onClick={handleGenerateLifestyle} isLoading={lifestyleLoading}>
-            Generate Lifestyle
-          </Button>
+{isFirstApiDone && !isLifestyleDone && (
+  <Flex flexDirection="column" alignItems="center" gap={2}>
+    {/* Generate Lifestyle Button */}
+    <Button
+      colorScheme="purple"
+      onClick={handleGenerateLifestyle}
+      isLoading={lifestyleLoading}
+      isDisabled={qaMode} // Disable if QA mode is active
+    >
+      Generate Lifestyle
+    </Button>
+
+    {/* Show message if QA mode is active */}
+    {qaMode && (
+      <Text fontSize="13px" color="red.400" textAlign="center">
+        Disable QCR to generate Lifestyle
+      </Text>
+    )}
+  </Flex>
+)}
+
+        
+          {isFirstApiDone && !isLifestyleDone && (
+           <Flex flexDirection="column" alignItems="center">
+    
+    {/* Quality Analysis Button */}
+    <Button
+      colorScheme="yellow"
+      onClick={() => {
+        setQaMode(true);
+        handleQualityAnalysis();
+      }}
+      isDisabled={selectedImagesForQA.length === 0 && !qaMode}
+      w="180px"
+    >
+      {qaMode ? "Run QCR" : "QCR"}
+    </Button>
+
+    {/* Show message when disabled */}
+    {(selectedImagesForQA.length === 0 && !qaMode) && (
+      <Text
+        mt={2}
+        fontSize="13px"
+        color="red.400"
+        textAlign="center"
+      >
+        Enable Quality Analysis from sidebar
+      </Text>
+    )}
+
+  </Flex>
         )}
 
         {(isFirstApiDone || isLifestyleDone) && (
-          <Button colorScheme="purple" onClick={handleCreateVideo} isDisabled={!selectedImage}>
+          <Button
+            colorScheme="purple"
+            onClick={handleCreateVideo}
+            isDisabled={!selectedImage}
+          >
             Create Video
           </Button>
         )}
-         {(isFirstApiDone && isLifestyleDone) && (
-          <Button
-  colorScheme="blue"
-  onClick={handleEdit}
->
-  Edit Image
-</Button>
+
+
+
+
+        {(isFirstApiDone && isLifestyleDone) && (
+          <Button colorScheme="blue" onClick={handleEdit}>
+            Edit Image
+          </Button>
         )}
 
         {(isFirstApiDone || isLifestyleDone) && (
-          <Button colorScheme="red" onClick={handleClear}>
+          <Button colorScheme="red" onClick={handleClearAll}>
             Clear
           </Button>
         )}
       </Flex>
 
       {/* ------------------------------------------
-            BOTTOM AREA:
-            image mode: front/back uploads + submit
-            csv mode: left csv upload + right submit
+            IMAGE / CSV INPUT AREA (unchanged from your code)
       ------------------------------------------- */}
       <Box mt={3}>
-  {/* IMAGE MODE (front/back + submit) */}
-  {!isFirstApiDone && bulkImageData.file_type === "image" && (
-    <Flex gap={5} alignItems="center" mt={2}>
-      <Flex flex="3" gap={4}>
-        {/* FRONT */}
-        <Box
-          flex="1"
-          h="80px"
-          maxW="80px"
-          bg={cardBg}
-          borderRadius="xl"
-          border={`1px solid ${borderColor}`}
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-          cursor="pointer"
-          onClick={() => document.getElementById("frontInput").click()}
-        >
-          {frontUploading ? (
-            <Spinner />
-          ) : bulkImageData.product_images.front ? (
-            <Image
-              src={bulkImageData.product_images.front}
-              h="100%"
-              w="100%"
-              objectFit="cover"
+
+        {/* IMAGE MODE UPLOADS */}
+        {!isFirstApiDone && bulkImageData.file_type === "image" && (
+          <Flex gap={5} alignItems="center" mt={2}>
+            <Flex flex="3" gap={4}>
+              {/* FRONT */}
+              <Box
+                flex="1"
+                h="80px"
+                maxW="80px"
+                bg={cardBg}
+                borderRadius="xl"
+                border={`1px solid ${borderColor}`}
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                cursor="pointer"
+                onClick={() => document.getElementById("frontInput").click()}
+              >
+                {frontUploading ? (
+                  <Spinner />
+                ) : bulkImageData.product_images.front ? (
+                  <Image
+                    src={bulkImageData.product_images.front}
+                    h="100%"
+                    w="100%"
+                    objectFit="cover"
+                    borderRadius="xl"
+                  />
+                ) : (
+                  <>
+                    <FiUpload size={22} color="#3182CE" />
+                    <Text mt={1} color={subtleText}>Front</Text>
+                  </>
+                )}
+
+                <Input
+                  id="frontInput"
+                  type="file"
+                  display="none"
+                  accept="image/*"
+                  onChange={(e) => handleSingleImage(e, "front")}
+                />
+              </Box>
+
+              {/* BACK */}
+              <Box
+                flex="1"
+                h="80px"
+                maxW="80px"
+                bg={cardBg}
+                borderRadius="xl"
+                border={`1px solid ${borderColor}`}
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                cursor="pointer"
+                onClick={() => document.getElementById("backInput").click()}
+              >
+                {backUploading ? (
+                  <Spinner />
+                ) : bulkImageData.product_images.back ? (
+                  <Image
+                    src={bulkImageData.product_images.back}
+                    h="100%"
+                    w="100%"
+                    objectFit="cover"
+                    borderRadius="xl"
+                  />
+                ) : (
+                  <>
+                    <FiUpload size={22} color="#805AD5" />
+                    <Text mt={1} color={subtleText}>Back</Text>
+                  </>
+                )}
+
+                <Input
+                  id="backInput"
+                  type="file"
+                  display="none"
+                  accept="image/*"
+                  onChange={(e) => handleSingleImage(e, "back")}
+                />
+              </Box>
+            </Flex>
+
+            {/* SUBMIT */}
+            <Button
+              flex="1"
+              h="55px"
+              maxW="55px"
+              bg="green.500"
               borderRadius="xl"
-            />
-          ) : (
-            <>
-              <FiUpload size={22} color="#3182CE" />
-              <Text mt={1} color={subtleText}>Front</Text>
-            </>
-          )}
-
-          <Input
-            id="frontInput"
-            type="file"
-            display="none"
-            accept="image/*"
-            onChange={(e) => handleSingleImage(e, "front")}
-          />
-        </Box>
-
-        {/* BACK */}
-        <Box
-          flex="1"
-          h="80px"
-          maxW="80px"
-          bg={cardBg}
-          borderRadius="xl"
-          border={`1px solid ${borderColor}`}
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-          cursor="pointer"
-          onClick={() => document.getElementById("backInput").click()}
-        >
-          {backUploading ? (
-            <Spinner />
-          ) : bulkImageData.product_images.back ? (
-            <Image
-              src={bulkImageData.product_images.back}
-              h="100%"
-              w="100%"
-              objectFit="cover"
-              borderRadius="xl"
-            />
-          ) : (
-            <>
-              <FiUpload size={22} color="#805AD5" />
-              <Text mt={1} color={subtleText}>Back</Text>
-            </>
-          )}
-
-          <Input
-            id="backInput"
-            type="file"
-            display="none"
-            accept="image/*"
-            onChange={(e) => handleSingleImage(e, "back")}
-          />
-        </Box>
-      </Flex>
-
-      {/* SUBMIT IMAGE */}
-      <Button
-        flex="1"
-        h="55px"
-        maxW="55px"
-        bg="green.500"
-        borderRadius="xl"
-        onClick={handleSubmit}
-        isLoading={submitloading}
-        isDisabled={submitloading}
-      >
-        <FiSend size={20} color="white" />
-      </Button>
-    </Flex>
-  )}
-
-  {/* CSV Mode */}
-  {bulkImageData.file_type === "csv" && (
-    <Flex mt={4} justify="space-between" align="center" w="100%">
-      <Box
-        h="80px"
-        w="80px"
-        bg={cardBg}
-        borderRadius="xl"
-        border={`1px solid ${borderColor}`}
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        flexDirection="column"
-        cursor="pointer"
-        p={2}
-        onClick={() => document.getElementById("csvInput").click()}
-      >
-        {uploadingCSV ? (
-          <Spinner />
-        ) : bulkImageData.csv_file ? (
-          <>uploadingCSV
-            <FiUpload size={20} />
-            <Text
-              mt={1}
-              fontSize="9px"
-              textAlign="center"
-              noOfLines={2}
-              maxW="70px"
-              color={subtleText}
+              onClick={handleSubmit}
+              isLoading={submitloading}
+              isDisabled={submitloading}
             >
-              {bulkImageData.csv_file.split("/").pop()}
-            </Text>
-          </>
-        ) : (
-          <>
-            <FiUpload size={22} color="#3182CE" />
-            <Text fontSize="10px" mt={1} color={subtleText}>
-              CSV
-            </Text>
-          </>
+              <FiSend size={20} color="white" />
+            </Button>
+          </Flex>
         )}
 
-        <Input
-          id="csvInput"
-          type="file"
-          display="none"
-          accept=".csv"
-          onChange={handleCSVUpload}
-        />
-      </Box>
+        {/* CSV MODE */}
+        {bulkImageData.file_type === "csv" && (
+          <Flex mt={4} justify="space-between" align="center" w="100%">
+            <Box
+              h="80px"
+              w="80px"
+              bg={cardBg}
+              borderRadius="xl"
+              border={`1px solid ${borderColor}`}
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              flexDirection="column"
+              cursor="pointer"
+              p={2}
+              onClick={() => document.getElementById("csvInput").click()}
+            >
+              {uploadingCSV ? (
+                <Spinner />
+              ) : bulkImageData.csv_file ? (
+                <>
+                  <FiUpload size={20} />
+                  <Text
+                    mt={1}
+                    fontSize="9px"
+                    textAlign="center"
+                    noOfLines={2}
+                    maxW="70px"
+                    color={subtleText}
+                  >
+                    {bulkImageData.csv_file.split("/").pop()}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <FiUpload size={22} color="#3182CE" />
+                  <Text fontSize="10px" mt={1} color={subtleText}>
+                    CSV
+                  </Text>
+                </>
+              )}
 
-      <Button
-        h="55px"
-        w="55px"
-        bg="green.500"
-        borderRadius="xl"
-        onClick={handleSubmit}
-        isLoading={submitloading}
-        isDisabled={submitloading}
-      >
-        <FiSend size={20} color="white" />
-      </Button>
-    </Flex>
-  )}
+              <Input
+                id="csvInput"
+                type="file"
+                display="none"
+                accept=".csv"
+                onChange={handleCSVUpload}
+              />
+            </Box>
+
+            <Button
+              h="55px"
+              w="55px"
+              bg="green.500"
+              borderRadius="xl"
+              onClick={handleSubmit}
+              isLoading={submitloading}
+              isDisabled={submitloading}
+            >
+              <FiSend size={20} color="white" />
+            </Button>
+          </Flex>
+        )}
+      </Box>
+    </>
+  
 </Box>
 
-    </Box>
   );
 };
 

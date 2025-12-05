@@ -1,85 +1,83 @@
 import axios from "axios";
 
-// ✅ Base axios instance
 const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// ✅ Helpers
+/* ------------------------ Helpers ------------------------ */
 const saveTokens = (access, refresh) => {
   if (access) localStorage.setItem("access_token", access);
   if (refresh) localStorage.setItem("refresh_token", refresh);
 };
 
-const handleLogout = () => {
-  // Uncomment if you want auto-logout on token failure
-  // localStorage.removeItem("access_token");
-  // localStorage.removeItem("refresh_token");
-  // localStorage.removeItem("user");
-  // localStorage.removeItem("selected_user");
-  // window.location.href = "/auth/sign-in";
+const logoutUser = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("selected_user");
+
+  window.location.href = "/auth/sign-in"; // redirect
 };
 
-// ✅ Request Interceptor
+/* ------------------------ Request Interceptor ------------------------ */
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("access_token");
+    const access = localStorage.getItem("access_token");
 
-    // ✅ Attach Bearer token if available
-    if (token && token !== "undefined" && token !== "null") {
-      config.headers.Authorization = `Bearer ${token}`;
-    } else if (config.url !== "/auth/refresh/") {
-      localStorage.removeItem("access_token");
+    if (access && access !== "undefined" && access !== "null") {
+      config.headers.Authorization = `Bearer ${access}`;
     }
-
-    // ✅ Remove automatic user_id injection
-    // No user_id will be sent automatically anymore
 
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// ✅ Response Interceptor (Auto Refresh Token)
+/* ---------------------- Response Interceptor ---------------------- */
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const status = error.response?.status;
 
-    if (status === 401 && !originalRequest._retry) {
+    // if 401 and not retried yet → try refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const refresh_token = localStorage.getItem("refresh_token");
-        if (!refresh_token) {
-          handleLogout();
-          return Promise.reject(error);
-        }
+      const refresh = localStorage.getItem("refresh_token");
 
+      // No refresh_token → Logout
+      if (!refresh) {
+        logoutUser();
+        return Promise.reject(error);
+      }
+
+      try {
+        // Hit refresh API
         const res = await axios.post(
           `${process.env.REACT_APP_API_URL}auth/access/`,
-          { refresh_token },
+          { refresh_token: refresh },
           { headers: { "Content-Type": "application/json" } }
         );
 
-        const newAccessToken = res.data?.data?.access_token;
-        if (!newAccessToken) {
-          handleLogout();
+        const newAccess = res.data?.data?.access_token;
+        const newRefresh = res.data?.data?.refresh_token; // API may return updated refresh
+ console.log("asdf",newRefresh)
+        if (!newAccess) {
+          logoutUser();
           return Promise.reject(error);
         }
 
-        // ✅ Save new tokens
-        saveTokens(newAccessToken, refresh_token);
+        // Save new tokens
+        saveTokens(newAccess, newRefresh ?? refresh);
 
-        // ✅ Retry failed request with new token
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        // Retry failed request
+        originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return axiosInstance(originalRequest);
+
       } catch (err) {
-        handleLogout();
+        // Refresh token expired → logout
+        logoutUser();
         return Promise.reject(err);
       }
     }
