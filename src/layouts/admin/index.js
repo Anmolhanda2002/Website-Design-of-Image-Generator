@@ -178,7 +178,7 @@ export default function Dashboard(props) {
                 {getRoutes(allowedRoutes)}
                 <Route
                   path="/"
-                  element={<Navigate to="/admin/default" replace />}
+                  element={<Navigate to="/admin/generatevideo" replace />}
                 />
               </Routes>
             </Box>

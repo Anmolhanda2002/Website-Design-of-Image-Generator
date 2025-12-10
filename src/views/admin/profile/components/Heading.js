@@ -13,7 +13,7 @@ const GradientHeading = () => {
           bgGradient="linear(to-r, pink.400, purple.500, blue.400)"
           bgClip="text"
         >
-          Ecommerce Video
+          Ecommerce Catelogue
         </Text>
       </Text>
     </Box>

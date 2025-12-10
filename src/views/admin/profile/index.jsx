@@ -192,7 +192,7 @@ _placeholder={{color:textcolor}}
           </InputGroup>
 
           <Button colorScheme="blue" onClick={() => navigate("/videocreate/createvideo")}>
-            Generate Video
+            Generate Catelogue
           </Button>
         </Flex>
       </Grid>

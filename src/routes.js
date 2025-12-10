@@ -46,8 +46,18 @@ import VideoGuidelineAddSidebar from "views/admin/SideBarUserGuidelinePage/Video
 import VideoGuidelineEditSidebar from "views/admin/SideBarUserGuidelinePage/VideoGuidelineEdit.jsx"
 import NewPasswordCreate from "views/auth/forgetpassword/Create_new_password"
 const routes = [
+    {
+    name: 'Generate Catelogue',
+    layout: '/admin',
+    path: '/generatevideo',
+    icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
+    component: <Profile />,
+    showInSidebar: true,
+    roles: ['Standard User','Manager'],
+  },
   {
-    name: 'Main Dashboard',
+  
+    name: 'Analytics',
     layout: '/admin',
     path: '/default',
     icon: <Icon as={MdHome} w="20px" h="20px" color="inherit" />,
@@ -99,15 +109,15 @@ const routes = [
     showInSidebar: true,
     roles: ['Administrator','Manager','SuperAdmin'],
   },
-  {
-    name: 'Generate Video',
-    layout: '/admin',
-    path: '/generatevideo',
-    icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
-    component: <Profile />,
-    showInSidebar: true,
-    roles: ['Standard User','Manager'],
-  },
+  // {
+  //   name: 'Generate Video',
+  //   layout: '/admin',
+  //   path: '/generatevideo',
+  //   icon: <Icon as={MdSmartDisplay} w="20px" h="20px" color="inherit" />,
+  //   component: <Profile />,
+  //   showInSidebar: true,
+  //   roles: ['Standard User','Manager'],
+  // },
   // {
   //   name: 'Next Generate Video',
   //   layout: '/admin',

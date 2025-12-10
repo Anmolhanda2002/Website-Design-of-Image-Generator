@@ -1,4 +1,4 @@
-import React, { useState ,useEffect} from "react";
+import React, { useState ,useEffect,useRef} from "react";
 import {
   Box,
   Flex,
@@ -72,6 +72,30 @@ const [videoStatus, setVideoStatus] = useState("");
  */
 
 
+// Image Creation
+// const [generatedImage, setGeneratedImage] = useState(null);
+// const [resizedImage, setResizedImage] = useState(null);
+const [imageCreationImages, setImageCreationImages] = useState([]);
+const [isImageCreationLoading, setIsImageCreationLoading] = useState(false);
+const [isResizeImageLoading, setIsResizeImageLoading] = useState(false);
+const [isVideoLoading, setIsVideoLoading] = useState(false);
+// Image Resize
+const [resizedImageResize, setResizedImageResize] = useState(null);
+const [imageResizeImages, setImageResizeImages] = useState([]);
+
+// Image to Video
+// const [generatedVideo, setGeneratedVideo] = useState(null);
+// const [videoStatus, setVideoStatus] = useState(null);
+const [imageToVideoImages, setImageToVideoImages] = useState([]);
+const videoPollingRef = useRef(null);
+
+
+// clear localstroage
+// useEffect(() => {
+//   // Clear image-to-video session on every page load / refresh
+//   localStorage.removeItem("image_to_video_session");
+//   localStorage.removeItem("image_to_video_session");
+// }, []);
 
 
 const handleImageUpload = async (file) => {
@@ -225,386 +249,344 @@ setlastimagetovideo(true)
 
 
   // Handle form submit
-const handleSubmit = async () => {
-  setSubmitting(true);
-  setIsPreviewLoading(true);
+// const handleSubmit = async () => {
+//   setSubmitting(true);
+//   setIsPreviewLoading(true);
 
-  // Reset all visuals initially
-  setGeneratedVideo(null);
-  setGeneratedImage(null);
-  setResizedImage(null);
-  setVideoStatus(null);
+//   // Reset all visuals initially
+//   setGeneratedVideo(null);
+//   setGeneratedImage(null);
+//   setResizedImage(null);
+//   setVideoStatus(null);
 
-  try {
+//   try {
 
-  if (activeTab === "Image Creation") {
+//   if (activeTab === "Image Creation") {
 
-  // 1️⃣ GENERATE IMAGE FIRST
-const res1 = await axiosInstance.post(
-  "/factory_development_gemini_virtual_tryon_generate/",
-  {
-    image_urls: images.map((img) => img.url),
-    prompt: text,
-    use_case: imageCreationSettings?.use_case,
-    img_guideline_id: imageCreationSettings?.guidelineId,
-    user_id: selectedUser?.user_id,
-    model: Number(imageCreationSettings?.model),
+//   // 1️⃣ GENERATE IMAGE FIRST
+// const res1 = await axiosInstance.post(
+//   "/factory_development_gemini_virtual_tryon_generate/",
+//   {
+//     image_urls: images.map((img) => img.url),
+//     prompt: text,
+//     use_case: imageCreationSettings?.use_case,
+//     img_guideline_id: imageCreationSettings?.guidelineId,
+//     user_id: selectedUser?.user_id,
+//     model: Number(imageCreationSettings?.model),
 
-    // Dynamic model_config based on selected model
-    ...(imageCreationSettings?.model === 456 || imageCreationSettings?.model === "456"
-      ? {
-          model_config: {
-            size: "2K",
-            watermark: false,
-            sequential_image_generation: "disabled",
-            response_format: "url",
-          },
-        }
-      : imageCreationSettings?.model === 789 || imageCreationSettings?.model === "789"
-      ? {
-          model_config: {
-            image_size: "4K",
-            aspect_ratio: "16:9",
-            thinking_level: "high",
-            search_enabled: false,
-          },
-        }
-      : imageCreationSettings?.model === 10 || imageCreationSettings?.model === "10"
-      ? {
-          model_config: {
-            size: "4K",
-            aspect_ratio: "1:1",
-            response_format: "url",
-            watermark: false,
-          },
-        }
-      : {}),
-  }
-);
-
-
+//     // Dynamic model_config based on selected model
+//     ...(imageCreationSettings?.model === 456 || imageCreationSettings?.model === "456"
+//       ? {
+//           model_config: {
+//             size: "2K",
+//             watermark: false,
+//             sequential_image_generation: "disabled",
+//             response_format: "url",
+//           },
+//         }
+//       : imageCreationSettings?.model === 789 || imageCreationSettings?.model === "789"
+//       ? {
+//           model_config: {
+//             image_size: "4K",
+//             aspect_ratio: "16:9",
+//             thinking_level: "high",
+//             search_enabled: false,
+//           },
+//         }
+//       : imageCreationSettings?.model === 10 || imageCreationSettings?.model === "10"
+//       ? {
+//           model_config: {
+//             size: "4K",
+//             aspect_ratio: "1:1",
+//             response_format: "url",
+//             watermark: false,
+//           },
+//         }
+//       : {}),
+//   }
+// );
 
 
-  const compositionId = res1?.data?.data?.composition_id;
-  const generatedUrl = res1?.data?.data?.generated_image_url;
-
-  if (!generatedUrl) throw new Error("Failed to generate image.");
-
-  setGeneratedImage(generatedUrl);
-  setVideoStatus("completed");
-
-  // 2️⃣ EXTRACT RESIZE SETTINGS
-  const {
-    targetWidth,
-    targetHeight,
-    resizeMethod,
-    quality,
-    target_aspect_ratio,
-    fill_method,
-    toggle, // "true" = width+height, "false" = aspect ratio
-  } = imageCreationSettings || {};
-
-  let hasResizeSettings = false;
-  let resizePayload = {
-    composition_id: compositionId,
-    user_id: selectedUser?.user_id,
-    fill_method,
-  };
-
-  // 3️⃣ CHECK WHICH MODE TO CALL
-
-  // WIDTH + HEIGHT MODE
-  if (toggle === "true") {
-    if (targetWidth || targetHeight) {
-      hasResizeSettings = true;
-      resizePayload = {
-        ...resizePayload,
-        model: 789,
-        target_width: targetWidth,
-        target_height: targetHeight,
-      };
-    }
-  }
-
-  // ASPECT RATIO MODE
-  if (toggle === "false") {
-    if (target_aspect_ratio) {
-      hasResizeSettings = true;
-      resizePayload = {
-        ...resizePayload,
-        model: 123,
-        target_aspect_ratio,
-        resize_method: resizeMethod,
-      };
-    }
-  }
-
-  // 4️⃣ CALL RESIZE API ONLY IF NEEDED
-  if (hasResizeSettings) {
-    const res2 = await axiosInstance.post(
-      "/factory_development_resize_composition_image/",
-      resizePayload
-    );
-
-    setResizedImage(res2?.data?.data?.resized_image_url || null);
-    setResizeDetails(res2?.data?.data || {});
-  }
-
-  // 5️⃣ SUCCESS MESSAGE
-  toast({
-    title: "Image generated successfully",
-    status: "success",
-    duration: 3000,
-    isClosable: true,
-    position: "top-right",
-  });
-}
-
-else if (activeTab === "Resize Image") {
-
-  const {
-    targetWidth,
-    targetHeight,
-    resizeMethod,
-    quality,
-    target_aspect_ratio,
-    fill_method,
-    mode,
-    model
-  } = resizeImageSettings || {};
-
-  let resizePayload = {
-    image_url: images[0]?.url,
-    user_id: selectedUser?.user_id,
-    fill_method,
-  };
-
-  let hasResizeSettings = false;
-
-  // 🔹 CASE 1 — WIDTH & HEIGHT MODE
-  if (mode === "width_height") {
-    if (targetWidth || targetHeight) {
-      hasResizeSettings = true;
-
-      resizePayload = {
-        ...resizePayload,
-        target_width: targetWidth,
-        target_height: targetHeight,
-        resize_method: resizeMethod,
-        quality,
-       model:Number(model), // Width/Height uses model 123
-      };
-    }
-  }
-
-  // 🔹 CASE 2 — ASPECT RATIO MODE
-  if (mode === "aspect_ratio") {
-    if (target_aspect_ratio) {
-      hasResizeSettings = true;
-
-      resizePayload = {
-        ...resizePayload,
-        target_aspect_ratio,
-        resize_method: resizeMethod,
-        model: 789, // Aspect ratio uses model 789
-      };
-    }
-  }
-
-  if (!hasResizeSettings) {
-    toast({
-      title: "No resize settings provided",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-    return;
-  }
-
-  // 🔥 CALL API
-  const res2 = await axiosInstance.post(
-    "/factory_development_resize_direct_image/",
-    resizePayload
-  );
-
-  const resizedUrl = res2?.data?.data?.resized_image_url;
-  if (!resizedUrl) throw new Error("Failed to resize image.");
-
-  setResizedImage(resizedUrl);
-  setResizeDetails(res2?.data?.data || {});
-
-  toast({
-    title: "Image resized successfully",
-    status: "success",
-    duration: 3000,
-    isClosable: true,
-    position: "top-right",
-  });
-}
 
 
-else if (activeTab === "Image to Video") {
-  const {
-    video_type,
-    customSize,
-    customWidth,
-    customHeight,
-    layover_text,
-    project_name,
-    tags,
-    sector,
-    goal,
-    key_instructions,
-    consumer_message,
-    M_key,
-    resize,
-    resize_width,
-    resize_height,
-    project_id
-  } = imageToVideoSettings || {};
+//   const compositionId = res1?.data?.data?.composition_id;
+//   const generatedUrl = res1?.data?.data?.generated_image_url;
 
-  // 🧩 Generate unique IDs
-  const generateUniqueId = () =>
-    "PROD-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+//   if (!generatedUrl) throw new Error("Failed to generate image.");
 
-  const product_ID = generateUniqueId().slice(0, 50); // ensure < 50 chars
-  const customer_ID = `CRM-${selectedUser?.user_id}`;
-
-  setVideoStatus("processing");
-
-  const res1 = await axiosInstance.post("/factory_development_gen_video/", {
-    image_urls: images.map((img) => img.url),
-    customer_ID,
-    product_ID,
-    layover_text,
-    project_name,
-    tags,
-    sector,
-    goal,
-    key_instructions: text,
-    consumer_message,
-    M_key,
-    resize,
-    resize_width,
-    resize_height,
-    user_id: selectedUser?.user_id,
-     project_id
-  });
-
-  const creationId = res1?.data?.creation_id;
-  if (!creationId) throw new Error("Failed to start video generation.");
-
-  toast({
-    title: "Video generation started",
-    description: "Your video is being processed...",
-    status: "info",
-    duration: 3000,
-    isClosable: true,
-    position: "top-right",
-  });
-
-  // Poll for status
-  let retryCount = 0;
-  const interval = setInterval(async () => {
-    try {
-      retryCount++;
-const statusRes = await axiosInstance.get("/get_video_status/", {
-  params: {
-    creation_id: creationId,
-    user_id: selectedUser?.user_id, // assuming selectedUser is an object
-  },
-});
-      const videoStatus = statusRes?.data?.video_status;
-      const videoUrls = statusRes?.data?.video_urls;
-
-      if (videoUrls?.raw && !generatedVideo) setGeneratedVideo(videoUrls.raw);
-
-     if (videoStatus === "completed" && videoUrls?.raw) {
-  clearInterval(interval);
-  setGeneratedVideo(videoUrls.raw);
-  setVideoStatus("completed");
-
-  toast({
-    title: "Video ready!",
-    description: "Video generation completed successfully.",
-    status: "success",
-    duration: 4000,
-    isClosable: true,
-    position: "top-right",
-  });
-
-} else if (videoStatus === "failed") {
-
-  if (!hasRetried) {
-    // FIRST FAILURE → allow ONE more retry
-    setHasRetried(true);
-    console.log("Retrying one last time...");
-  } else {
-    // SECOND FAILURE → stop completely
-    clearInterval(interval);
-    setVideoStatus("failed");
-
-    toast({
-      title: "Video generation failed",
-      status: "error",
-      duration: 4000,
-      isClosable: true,
-      position: "top-right",
-    });
-  }
-
-} else if (retryCount >= 30) {
-  clearInterval(interval);
-  setVideoStatus("failed");
-
-  toast({
-    title: "Video not ready yet",
-    status: "warning",
-    duration: 4000,
-    isClosable: true,
-    position: "top-right",
-  });
-}
-    } catch (err) {
-      clearInterval(interval);
-      setVideoStatus("failed");
-      toast({
-        title: "Error checking video status",
-        description: err?.message,
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-        position: "top-right",
-      });
-    }
-  }, 5000);
-}
+//   setGeneratedImage(generatedUrl);
+//   setVideoStatus("completed");
 
 
-    setIsPreviewLoading(false);
-  } catch (err) {
-    console.error("Submit failed:", err);
+// setGeneratedImage(generatedUrl);
+// setImageCreationImages(images); // save images
+// saveSession("Image Creation");
 
-    // Reset everything if error
-    setGeneratedVideo(null);
-    setGeneratedImage(null);
-    setResizedImage(null);
-    setVideoStatus(null);
+//   // 2️⃣ EXTRACT RESIZE SETTINGS
+//   const {
+//     targetWidth,
+//     targetHeight,
+//     resizeMethod,
+//     quality,
+//     target_aspect_ratio,
+//     fill_method,
+//     toggle, // "true" = width+height, "false" = aspect ratio
+//   } = imageCreationSettings || {};
 
-    toast({
-      title: "Submission failed",
-      description: err?.response?.data?.message || err.message,
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-      position: "top-right",
-    });
-  } finally {
-    setSubmitting(false);
-    setIsPreviewLoading(false);
-  }
-};
+//   let hasResizeSettings = false;
+//   let resizePayload = {
+//     composition_id: compositionId,
+//     user_id: selectedUser?.user_id,
+//     fill_method,
+//   };
+
+//   // 3️⃣ CHECK WHICH MODE TO CALL
+
+//   // WIDTH + HEIGHT MODE
+//   if (toggle === "true") {
+//     if (targetWidth || targetHeight) {
+//       hasResizeSettings = true;
+//       resizePayload = {
+//         ...resizePayload,
+//         model: 789,
+//         target_width: targetWidth,
+//         target_height: targetHeight,
+//       };
+//     }
+//   }
+
+//   // ASPECT RATIO MODE
+//   if (toggle === "false") {
+//     if (target_aspect_ratio) {
+//       hasResizeSettings = true;
+//       resizePayload = {
+//         ...resizePayload,
+//         model: 123,
+//         target_aspect_ratio,
+//         resize_method: resizeMethod,
+//       };
+//     }
+//   }
+
+//   // 4️⃣ CALL RESIZE API ONLY IF NEEDED
+//   if (hasResizeSettings) {
+//     const res2 = await axiosInstance.post(
+//       "/factory_development_resize_composition_image/",
+//       resizePayload
+//     );
+
+//     setResizedImage(res2?.data?.data?.resized_image_url || null);
+//     setResizeDetails(res2?.data?.data || {});
+//   }
+
+//   // 5️⃣ SUCCESS MESSAGE
+//   toast({
+//     title: "Image generated successfully",
+//     status: "success",
+//     duration: 3000,
+//     isClosable: true,
+//     position: "top-right",
+//   });
+// }
+
+// else if (activeTab === "Resize Image") {
+
+//   const {
+//     targetWidth,
+//     targetHeight,
+//     resizeMethod,
+//     quality,
+//     target_aspect_ratio,
+//     fill_method,
+//     mode,
+//     model
+//   } = resizeImageSettings || {};
+
+//   let resizePayload = {
+//     image_url: images[0]?.url,
+//     user_id: selectedUser?.user_id,
+//     fill_method,
+//   };
+
+//   let hasResizeSettings = false;
+
+//   // 🔹 CASE 1 — WIDTH & HEIGHT MODE
+//   if (mode === "width_height") {
+//     if (targetWidth || targetHeight) {
+//       hasResizeSettings = true;
+
+//       resizePayload = {
+//         ...resizePayload,
+//         target_width: targetWidth,
+//         target_height: targetHeight,
+//         resize_method: resizeMethod,
+//         quality,
+//        model:Number(model), // Width/Height uses model 123
+//       };
+//     }
+//   }
+
+//   // 🔹 CASE 2 — ASPECT RATIO MODE
+//   if (mode === "aspect_ratio") {
+//     if (target_aspect_ratio) {
+//       hasResizeSettings = true;
+
+//       resizePayload = {
+//         ...resizePayload,
+//         target_aspect_ratio,
+//         resize_method: resizeMethod,
+//         model: 789, // Aspect ratio uses model 789
+//       };
+//     }
+//   }
+
+//   if (!hasResizeSettings) {
+//     toast({
+//       title: "No resize settings provided",
+//       status: "error",
+//       duration: 3000,
+//       isClosable: true,
+//       position: "top-right",
+//     });
+//     return;
+//   }
+
+//   // 🔥 CALL API
+//   const res2 = await axiosInstance.post(
+//     "/factory_development_resize_direct_image/",
+//     resizePayload
+//   );
+
+//   const resizedUrl = res2?.data?.data?.resized_image_url;
+//   if (!resizedUrl) throw new Error("Failed to resize image.");
+
+//   setResizedImage(resizedUrl);
+//   setResizeDetails(res2?.data?.data || {});
+//   setResizedImageResize(resizedUrl);
+// setImageResizeImages(images);
+// saveSession("Resize Image");
+
+//   toast({
+//     title: "Image resized successfully",
+//     status: "success",
+//     duration: 3000,
+//     isClosable: true,
+//     position: "top-right",
+//   });
+// }
+
+
+// else if (activeTab === "Image to Video") {
+//   const {
+//     video_type,
+//     customSize,
+//     customWidth,
+//     customHeight,
+//     layover_text,
+//     project_name,
+//     tags,
+//     sector,
+//     goal,
+//     key_instructions,
+//     consumer_message,
+//     M_key,
+//     resize,
+//     resize_width,
+//     resize_height,
+//     project_id
+//   } = imageToVideoSettings || {};
+
+//   // 🧩 Generate unique IDs
+//   const generateUniqueId = () =>
+//     "PROD-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+//   const product_ID = generateUniqueId().slice(0, 50); // ensure < 50 chars
+//   const customer_ID = `CRM-${selectedUser?.user_id}`;
+
+//   setVideoStatus("processing");
+
+
+//   toast({
+//   title: "Video Generation Request Initialize",
+//   description: "Should be displayed as soon as process starts",
+//   status: "info",
+//   duration: 3000,
+//   isClosable: true,
+//   position: "top-right",
+// });
+
+
+// const sessionData = {
+//   images: images.map((img) => img.url),
+//   creationId: null,
+//   generatedVideo: null,
+//   status: "processing",
+//   user_id: selectedUser?.user_id,
+// };
+
+// localStorage.setItem("image_to_video_session", JSON.stringify(sessionData));
+//   const res1 = await axiosInstance.post("/factory_development_gen_video/", {
+//     image_urls: images.map((img) => img.url),
+//     customer_ID,
+//     product_ID,
+//     layover_text,
+//     project_name,
+//     tags,
+//     sector,
+//     goal,
+//     key_instructions: text,
+//     consumer_message,
+//     M_key,
+//     resize,
+//     resize_width,
+//     resize_height,
+//     user_id: selectedUser?.user_id,
+//      project_id
+//   });
+
+//   const creationId = res1?.data?.creation_id;
+//   if (!creationId) throw new Error("Failed to start video generation.");
+
+//   toast({
+//     title: "Video generation started",
+//     description: "Your video is being processed...",
+//     status: "info",
+//     duration: 3000,
+//     isClosable: true,
+//     position: "top-right",
+//   });
+
+//   sessionData.creationId = creationId;
+// localStorage.setItem("image_to_video_session", JSON.stringify(sessionData));
+//   // Poll for status
+//   let retryCount = 0;
+//  resumeVideoPolling(creationId, selectedUser?.user_id);
+// }
+
+
+//     setIsPreviewLoading(false);
+//   } catch (err) {
+//     console.error("Submit failed:", err);
+
+//     // Reset everything if error
+//     setGeneratedVideo(null);
+//     setGeneratedImage(null);
+//     setResizedImage(null);
+//     setVideoStatus(null);
+
+//     toast({
+//       title: "Submission failed",
+//       description: err?.response?.data?.message || err.message,
+//       status: "error",
+//       duration: 3000,
+//       isClosable: true,
+//       position: "top-right",
+//     });
+//   } finally {
+//     setSubmitting(false);
+//     setIsPreviewLoading(false);
+//   }
+// };
 
 const [submittingCompositions, setSubmittingCompositions] = useState(false);
 
@@ -799,6 +781,392 @@ const handleSubmitLifestyleVideo = async () => {
 
 
 
+useEffect(() => {
+  if (!activeTab) return;
+
+  if (activeTab === "Image Creation") {
+    const saved = JSON.parse(localStorage.getItem("image_creation_session"));
+    if (saved) {
+      setImageCreationImages(saved.images.map((url) => ({ url })));
+      setGeneratedImage(saved.generatedImage || null);
+      setResizedImage(saved.resizedImage || null);
+    }
+  }
+
+  if (activeTab === "Resize Image") {
+    const saved = JSON.parse(localStorage.getItem("image_resize_session"));
+    if (saved) {
+      setImageResizeImages(saved.images.map((url) => ({ url })));
+      setResizedImageResize(saved.resizedImage || null);
+    }
+  }
+
+  if (activeTab === "Image to Video") {
+    const saved = JSON.parse(localStorage.getItem("image_to_video_session"));
+    if (saved) {
+      setImageToVideoImages(saved.images.map((url) => ({ url })));
+      setGeneratedVideo(saved.generatedVideo || null);
+      setVideoStatus(saved.status || null);
+
+      // Resume polling if video is still processing
+      if (saved.status === "processing") {
+        resumeVideoPolling(saved.creationId, saved.user_id);
+      }
+    }
+  }
+}, [activeTab]);
+
+
+// const resumeVideoPolling = (creationId, userId) => {
+//   if (!creationId || !userId) return;
+
+//   let retryCount = 0;
+
+//   // Clear any existing interval
+//   if (videoPollingRef.current) clearInterval(videoPollingRef.current);
+
+//   videoPollingRef.current = setInterval(async () => {
+//     retryCount++;
+//     try {
+//       const statusRes = await axiosInstance.get("/get_video_status/", {
+//         params: { creation_id: creationId, user_id: userId },
+//       });
+
+//       const videoStatusRes = statusRes?.data?.video_status;
+//       const videoUrls = statusRes?.data?.video_urls;
+
+//       if (videoUrls?.raw && !generatedVideo) setGeneratedVideo(videoUrls.raw);
+
+//       if (videoStatusRes === "completed" && videoUrls?.raw) {
+//         clearInterval(videoPollingRef.current);
+//         setGeneratedVideo(videoUrls.raw);
+//         setVideoStatus("completed");
+
+//         // Save to localStorage
+//         const saved = JSON.parse(localStorage.getItem("image_to_video_session")) || {};
+//         saved.status = "completed";
+//         saved.generatedVideo = videoUrls.raw;
+//         localStorage.setItem("image_to_video_session", JSON.stringify(saved));
+
+//       } else if (videoStatusRes === "failed" || retryCount >= 30) {
+//         clearInterval(videoPollingRef.current);
+//         setVideoStatus("failed");
+//       }
+//     } catch (err) {
+//       clearInterval(videoPollingRef.current);
+//       setVideoStatus("failed");
+//       console.error("Error in polling video status:", err);
+//     }
+//   }, 5000);
+// };
+
+
+
+
+ /** ---------- IMAGE CREATION ---------- **/
+  const handleImageCreation = async () => {
+  setSubmitting(true);
+  setIsImageCreationLoading(true);
+setGeneratedImage(null);
+  // Set session as processing
+  saveSession("Image Creation", { images, generatedImage: null, resizedImage: null, status: "processing" });
+
+  try {
+    const res1 = await axiosInstance.post("/factory_development_gemini_virtual_tryon_generate/", {
+      image_urls: images.map(img => img.url),
+      prompt: text,
+      use_case: imageCreationSettings?.use_case,
+      img_guideline_id: imageCreationSettings?.guidelineId,
+      user_id: selectedUser?.user_id,
+      model: Number(imageCreationSettings?.model),
+      ...(imageCreationSettings?.model === 456
+        ? { model_config: { size: "2K", watermark: false, sequential_image_generation: "disabled", response_format: "url" } }
+        : imageCreationSettings?.model === 789
+        ? { model_config: { image_size: "4K", aspect_ratio: "16:9", thinking_level: "high", search_enabled: false } }
+        : {})
+    });
+
+    const generatedUrl = res1?.data?.data?.generated_image_url;
+    if (!generatedUrl) throw new Error("Failed to generate image.");
+
+    setGeneratedImage(generatedUrl);
+    setImageCreationImages(images);
+
+    // Update session as completed
+    saveSession("Image Creation", { images, generatedImage: generatedUrl, resizedImage: null, status: "completed" });
+
+    toast({ title: "Image generated successfully", status: "success", duration: 3000, isClosable: true, position: "top-right" });
+  } catch (err) {
+    console.error("Image creation failed:", err);
+    toast({
+      title: "Image creation failed",
+      description: err?.response?.data?.message || err.message,
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "top-right",
+    });
+  } finally {
+    setIsImageCreationLoading(false);
+    setSubmitting(false);
+  }
+};
+
+  /** ---------- IMAGE RESIZE ---------- **/
+const handleResizeImage = async () => {
+  if (!images?.length) return;
+
+  setSubmitting(true);
+  setIsResizeImageLoading(true);
+ setResizedImage(null);
+  // Set session as processing
+  saveSession("Resize Image", { images, resizedImage: null, status: "processing" });
+
+  try {
+    const { targetWidth, targetHeight, resizeMethod, quality, target_aspect_ratio, fill_method, mode, model } = resizeImageSettings || {};
+    let resizePayload = { image_url: images[0]?.url, user_id: selectedUser?.user_id, fill_method };
+
+    if (mode === "width_height" && (targetWidth || targetHeight)) {
+      resizePayload = { ...resizePayload, target_width: targetWidth, target_height: targetHeight, resize_method: resizeMethod, quality, model: Number(model) };
+    } else if (mode === "aspect_ratio" && target_aspect_ratio) {
+      resizePayload = { ...resizePayload, target_aspect_ratio, resize_method: resizeMethod, model: 789 };
+    } else {
+      toast({ title: "No resize settings provided", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+      setIsResizeImageLoading(false);
+      setSubmitting(false);
+      return;
+    }
+
+    const res2 = await axiosInstance.post("/factory_development_resize_direct_image/", resizePayload);
+    const resizedUrl = res2?.data?.data?.resized_image_url;
+    if (!resizedUrl) throw new Error("Failed to resize image.");
+
+    setResizedImage(resizedUrl);
+    setImageResizeImages(images);
+
+    // Update session as completed
+    saveSession("Resize Image", { images, resizedImage: resizedUrl, status: "completed" });
+
+    toast({ title: "Image resized successfully", status: "success", duration: 3000, isClosable: true, position: "top-right" });
+  } catch (err) {
+    console.error("Resize failed:", err);
+    toast({
+      title: "Resize failed",
+      description: err?.response?.data?.message || err.message,
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "top-right",
+    });
+  } finally {
+    setIsResizeImageLoading(false);
+    setSubmitting(false);
+  }
+};
+
+
+  /** ---------- VIDEO GENERATION ---------- **/
+const handleVideoGeneration = async () => {
+  setVideoStatus("processing");
+  setIsVideoLoading(true);
+  
+
+  setSubmitting(true);
+
+  try {
+    const { layover_text, project_name, tags, sector, goal, key_instructions, consumer_message, M_key, resize, resize_width, resize_height, project_id } = imageToVideoSettings || {};
+
+    const generateUniqueId = () => "PROD-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const product_ID = generateUniqueId().slice(0, 50);
+    const customer_ID = `CRM-${selectedUser?.user_id}`;
+
+    const sessionData = { images: images.map(img => img.url), creationId: null, generatedVideo: null, status: "processing", user_id: selectedUser?.user_id };
+    localStorage.setItem("image_to_video_session", JSON.stringify(sessionData));
+
+    // === Show first toast for request initiation ===
+    toast({
+      title: "Video Generation Request Initiated",
+      status: "info",
+      duration: 3000,
+      isClosable: true,
+      position: "top-right",
+    });
+
+    const res1 = await axiosInstance.post("/factory_development_gen_video/", {
+      image_urls: images.map(img => img.url),
+      customer_ID, product_ID, layover_text, project_name, tags, sector, goal,
+      key_instructions, consumer_message, M_key, resize, resize_width, resize_height,
+      user_id: selectedUser?.user_id, project_id
+    });
+
+    const creationId = res1?.data?.creation_id;
+    if (!creationId) throw new Error("Failed to start video generation.");
+
+    // Update session with creationId
+    sessionData.creationId = creationId;
+    localStorage.setItem("image_to_video_session", JSON.stringify(sessionData));
+
+    // === Start polling and show "processing" toast ===
+    if (creationId) {
+      toast({
+        title: "Video Processing in progress…",
+        description: "Please wait while your video is being generated.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+        position: "top-right",
+      });
+
+      // Call your polling function
+      resumeVideoPolling(creationId, selectedUser?.user_id);
+    }
+
+  } catch (err) {
+    console.error("Video creation failed:", err);
+
+    const backendMessage =
+      err?.response?.data?.message ||
+      err?.response?.data ||
+      err.message;
+
+    toast({
+      title: "Video creation failed",
+      description: JSON.stringify(backendMessage),
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+      position: "top-right",
+    });
+  } finally {
+    // setSubmitting(false);
+    // setVideoStatus(null);
+    // setIsPreviewLoading(false);
+  }
+};
+
+
+  /** ---------- VIDEO POLLING ---------- **/
+const resumeVideoPolling = (creationId, userId) => {
+  // ✅ If no creationId, stop processing
+  if (!creationId || !userId) {
+    setVideoStatus(null);
+    setIsPreviewLoading(false) // remove "processing" indicator
+    return;
+  }
+
+  let retryCount = 0;
+
+  // Clear any existing interval
+  if (videoPollingRef.current) clearInterval(videoPollingRef.current);
+
+  // Use ref to avoid multiple setGeneratedVideo calls
+  const generatedVideoRef = { current: null };
+
+  videoPollingRef.current = setInterval(async () => {
+    retryCount++;
+    try {
+      const res = await axiosInstance.get("/get_video_status/", { 
+        params: { creation_id: creationId, user_id: userId }
+      });
+      const status = res.data.video_status;
+      const url = res.data.video_urls?.raw;
+
+      if (status === "completed" && url && !generatedVideoRef.current) {
+        clearInterval(videoPollingRef.current);
+        setGeneratedVideo(url);
+        generatedVideoRef.current = url;
+        setVideoStatus("completed");
+
+        const saved = JSON.parse(localStorage.getItem("image_to_video_session")) || {};
+        saved.status = "completed";
+        saved.generatedVideo = url;
+        localStorage.setItem("image_to_video_session", JSON.stringify(saved));
+      } else if (status === "failed" || retryCount >= 30) {
+        clearInterval(videoPollingRef.current);
+        setVideoStatus("failed");
+      }
+    } catch (err) {
+      clearInterval(videoPollingRef.current);
+      setVideoStatus("failed");
+      console.error("Error in polling video status:", err);
+    }
+  }, 5000);
+};
+
+
+  /** ---------- SAVE SESSION ---------- **/
+  const saveSession = (tab, data) => {
+    if (tab === "Image Creation") localStorage.setItem("image_creation_session", JSON.stringify(data));
+    if (tab === "Resize Image") localStorage.setItem("image_resize_session", JSON.stringify(data));
+    if (tab === "Image to Video") localStorage.setItem("image_to_video_session", JSON.stringify(data));
+  };
+
+  /** ---------- RESTORE SESSION ON TAB SWITCH ---------- **/
+  useEffect(() => {
+    if (!activeTab) return;
+
+    if (activeTab === "Image Creation") {
+    const saved = JSON.parse(localStorage.getItem("image_creation_session"));
+    if (saved) {
+      setImageCreationImages(saved.images.map(url => ({ url })));
+      setGeneratedImage(saved.generatedImage || null);
+      setResizedImage(saved.resizedImage || null);
+      setIsImageCreationLoading(saved.status === "processing");
+    }
+  }
+
+  if (activeTab === "Resize Image") {
+    const saved = JSON.parse(localStorage.getItem("image_resize_session"));
+    if (saved) {
+      setImageResizeImages(saved.images.map(url => ({ url })));
+      setResizedImage(saved.resizedImage || null);
+      setIsResizeImageLoading(saved.status === "processing");
+    }
+  }
+    if (activeTab === "Image to Video") {
+      const saved = JSON.parse(localStorage.getItem("image_to_video_session"));
+      if (saved) {
+        setImageToVideoImages(saved.images.map(url => ({ url })));
+        setGeneratedVideo(saved.generatedVideo || null);
+        setVideoStatus(saved.status || null);
+         if (saved.creationId) {
+        // Resume polling only if creationId exists
+        if (saved.status === "processing") resumeVideoPolling(saved.creationId, saved.user_id);
+      } else {
+        // No creationId → show preview/loading
+        setVideoStatus(null);
+        setIsPreviewLoading(false);
+      }
+      }
+    }
+  }, [activeTab]);
+
+  /** ---------- MAIN SUBMIT HANDLER ---------- **/
+const handleSubmit = () => {
+  // Clear session based on the active tab
+  if (activeTab === "Image Creation") {
+    localStorage.removeItem("image_creation_session");
+    handleImageCreation();
+  }
+
+  if (activeTab === "Resize Image") {
+    localStorage.removeItem("image_resize_session");
+    handleResizeImage();
+  }
+
+  if (activeTab === "Image to Video") {
+    localStorage.removeItem("image_to_video_session");
+    handleVideoGeneration();
+  }
+};
+
+
+
+
+
+
+
+
 // console.log(images)
 
   return (
@@ -812,136 +1180,186 @@ const handleSubmitLifestyleVideo = async () => {
   sx={{ "&::-webkit-scrollbar": { width: "0px" } }}
 >
   {/* Video / Image Preview */}
-<Box>
-  <Flex
-    minH="300px"
-    bg={panelBg}
-    borderRadius="lg"
-    border="1px solid"
-    borderColor={borderColor}
-    align="center"
-    justify="center"
-    position="relative"
-    boxShadow="sm"
-    p={4}
-  >
-    {/* 🌀 Shimmer Loader */}
-    {isPreviewLoading ||
-    (videoStatus === "processing" &&
-      !generatedVideo &&
-      !generatedImage &&
-      !resizedImage) ? (
-      <Box
-        w="100%"
-        h="100%"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        flexDir="column"
-        gap={3}
-      >
-        <Box
-          w="80%"
-          h="200px"
-          borderRadius="lg"
-          bgGradient={lineargradientbg}
-          animation="loadingShimmer 1.5s infinite linear"
-          backgroundSize="400px 100%"
-          sx={{
-            "@keyframes loadingShimmer": {
-              "0%": { backgroundPosition: "-200px 0" },
-              "100%": { backgroundPosition: "200px 0" },
-            },
-          }}
-          filter="blur(12px)"
-          opacity={0.9}
-        />
+<Box w="100%">
+  {/* ===================== 1️⃣ IMAGE CREATION PREVIEW ===================== */}
+  {activeTab === "Image Creation" && (
+    <Flex
+      minH="300px"
+      bg={panelBg}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor={borderColor}
+      align="center"
+      justify="center"
+      position="relative"
+      boxShadow="sm"
+      
+    >
+      {isImageCreationLoading ? (
+        !generatedImage && (
+          <Box w="100%" h="100%" display="flex" flexDir="column" gap={3} alignItems="center" justifyContent="center">
+            <Box
+              w="80%"
+              h="200px"
+              borderRadius="lg"
+              bgGradient={lineargradientbg}
+              animation="loadingShimmer 1.5s infinite linear"
+              backgroundSize="400px 100%"
+              sx={{
+                "@keyframes loadingShimmer": {
+                  "0%": { backgroundPosition: "-200px 0" },
+                  "100%": { backgroundPosition: "200px 0" },
+                },
+              }}
+              filter="blur(12px)"
+              opacity={0.9}
+            />
+            <Text color="gray.500">⏳ Processing your image...</Text>
+          </Box>
+        )
+      ) : generatedImage ? (
+        <Box textAlign="center">
+          <Box
+            as="img"
+            src={generatedImage}
+            maxW="100%"
+            maxH="400px"
+            borderRadius="lg"
+            objectFit="contain"
+           p={2}
+            opacity={0}
+            transition="opacity 0.6s ease-in-out"
+            onLoad={(e) => (e.target.style.opacity = 1)}
+          />
+        </Box>
+      ) : (
+        <Text color="gray.500">🖼️ Image Preview Area</Text>
+      )}
+    </Flex>
+  )}
 
-        <Text
-          color="gray.500"
-          fontSize="md"
-          fontWeight="medium"
-          textAlign="center"
-          whiteSpace="pre-line"
-        >
-          {backgroundMessage ||
-            `⏳ Processing your ${
-              activeTab === "Image to Video" ? "video" : "image"
-            }...`}
-        </Text>
-      </Box>
-    ) : generatedVideo ? (
-      // 🎬 Video preview
-      <Box w="100%" h="100%" textAlign="center" position="relative">
-        <iframe
-          src={generatedVideo}
-          title="Generated Video Preview"
-          allow="autoplay; fullscreen; encrypted-media"
-          style={{
-            width: "100%",
-            height: "400px",
-            border: "none",
-            borderRadius: "10px",
-            margin: "auto",
-            display: "block",
-          }}
-        />
+  {/* ===================== 2️⃣ IMAGE RESIZE PREVIEW ===================== */}
+  {activeTab === "Resize Image" && (
+    <Flex
+      minH="300px"
+      bg={panelBg}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor={borderColor}
+      align="center"
+      justify="center"
+      position="relative"
+      boxShadow="sm"
+      p={4}
+    >
+      {isResizeImageLoading ? (
+        !resizedImage && (
+          <Box w="100%" h="100%" display="flex" flexDir="column" gap={3} alignItems="center" justifyContent="center">
+            <Box
+              w="80%"
+              h="200px"
+              borderRadius="lg"
+              bgGradient={lineargradientbg}
+              animation="loadingShimmer 1.5s infinite linear"
+              backgroundSize="400px 100%"
+              sx={{
+                "@keyframes loadingShimmer": {
+                  "0%": { backgroundPosition: "-200px 0" },
+                  "100%": { backgroundPosition: "200px 0" },
+                },
+              }}
+              filter="blur(12px)"
+              opacity={0.9}
+            />
+            <Text color="gray.500">⏳ Resizing image...</Text>
+          </Box>
+        )
+      ) : resizedImage ? (
+        <Box textAlign="center">
+          <Box
+            as="img"
+            src={resizedImage}
+            maxW="100%"
+            maxH="400px"
+            borderRadius="lg"
+            objectFit="contain"
+            boxShadow="md"
+            opacity={0}
+            transition="opacity 0.6s ease-in-out"
+            onLoad={(e) => (e.target.style.opacity = 1)}
+          />
+        </Box>
+      ) : (
+        <Text color="gray.500">🔧 Resize Preview Area</Text>
+      )}
+    </Flex>
+  )}
 
-        {videoStatus !== "completed" && (
-          <Text
-            position="absolute"
-            bottom="10px"
-            left="50%"
-            transform="translateX(-50%)"
-            bg="rgba(0,0,0,0.5)"
-            color="white"
-            px={3}
-            py={1}
-            borderRadius="md"
-            fontSize="sm"
-          ></Text>
-        )}
-      </Box>
-    ) : resizedImage || generatedImage ? (
-      // 🖼️ Image preview
-      <Box position="relative" w="100%" textAlign="center">
-        <Box
-          as="img"
-          src={resizedImage || generatedImage}
-          alt="Generated Preview"
-          maxW="100%"
-          maxH="400px"
-          borderRadius="lg"
-          objectFit="contain"
-          mx="auto"
-          display="block"
-          boxShadow="md"
-          opacity={0}
-          transition="opacity 0.6s ease-in-out"
-          onLoad={(e) => (e.target.style.opacity = 1)}
-        />
-      </Box>
-    ) : videoStatus === "background-processing" ? (
-      // ⭐ NEW message for background processing
-      <Flex
-        direction="column"
-        align="center"
-        textAlign="center"
-        p={4}
-        gap={2}
-      >
-        {/* <Spinner size="md" color="green.300" /> */}
-        <Text color="gray.400" fontSize="md" whiteSpace="pre-line">
-          Your video is processing in the background.{"\n"}
-          It may take some time.{"\n"}
-          Once ready, you can check it in **Assets**.
-        </Text>
-      </Flex>
-    ) : (
-      <Text color="gray.500" fontSize="md">🎬 Preview Area</Text>
-    )}
-  </Flex>
+  {/* ===================== 3️⃣ IMAGE TO VIDEO PREVIEW ===================== */}
+  {activeTab === "Image to Video" && (
+    <Flex
+      minH="300px"
+      bg={panelBg}
+      borderRadius="lg"
+      border="1px solid"
+      borderColor={borderColor}
+      align="center"
+      justify="center"
+      position="relative"
+      boxShadow="sm"
+      p={4}
+    >
+      {isVideoLoading || (videoStatus === "processing" && !generatedVideo) ? (
+        <Box w="100%" h="100%" display="flex" flexDir="column" gap={3} alignItems="center" justifyContent="center">
+          <Box
+            w="80%"
+            h="200px"
+            borderRadius="lg"
+            bgGradient={lineargradientbg}
+            animation="loadingShimmer 1.5s infinite linear"
+            backgroundSize="400px 100%"
+            sx={{
+              "@keyframes loadingShimmer": {
+                "0%": { backgroundPosition: "-200px 0" },
+                "100%": { backgroundPosition: "200px 0" },
+              },
+            }}
+            filter="blur(12px)"
+            opacity={0.9}
+          />
+          <Text color="gray.500">⏳ Processing your video...</Text>
+        </Box>
+      ) : generatedVideo ? (
+        <Box w="100%" textAlign="center" position="relative">
+          <iframe
+            src={generatedVideo}
+            title="Generated Video Preview"
+            allow="autoplay; fullscreen; encrypted-media"
+            style={{
+              width: "100%",
+              height: "400px",
+              border: "none",
+              borderRadius: "10px",
+            }}
+          />
+        </Box>
+      ) : videoStatus === "background-processing" ? (
+        <Flex direction="column" align="center" textAlign="center" p={4} gap={2}>
+          <Text color="gray.400" whiteSpace="pre-line">
+            Your video is processing in background.
+            {"\n"}Check Assets once it's ready.
+          </Text>
+        </Flex>
+      ) : (
+        <Text color="gray.500">🎬 Video Preview Area</Text>
+      )}
+    </Flex>
+  )}
 </Box>
+
+
+
+
 
 
 

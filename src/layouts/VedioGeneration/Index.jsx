@@ -319,7 +319,7 @@ const { selectedItem, editpage, option, activeTab: activeTabs } = locationState;
  setImages([]);
         }
        
-        setPreviewData(null);
+        // setPreviewData(null);
         setSending(false);
         setclone(false);
         setclonecreationid("");
@@ -345,11 +345,11 @@ setBulkData({  user_id: "",
         setMergeData(initialMergeData);
 
         // Reset video selection data 
-        setSelectedVideo(null);
-        setCaptionedVideos([]);
-        setGeneratedImage("")
-        setResizedImage("")
-        setGeneratedVideo("")
+        // setSelectedVideo(null);
+        // setCaptionedVideos([]);
+        // setGeneratedImage("")
+        // setResizedImage("")
+        // setGeneratedVideo("")
     };
 
     // 2. New Handler: Used by Sidebar components to set the tab
@@ -564,6 +564,44 @@ useEffect(() => {
   }
 }, [activeTabs, editpage, selectedItem]);
 
+
+
+// const saveState = (key, state) => {
+//   localStorage.setItem(key, JSON.stringify(state));
+// };
+
+// saveState("image_creation_state", {
+//   previewImages,
+//   lifestyleImages,
+//   shotMapping,
+//   sessionId,
+//   sessionStatus,
+//   isFirstApiDone,
+//   isLifestyleDone,
+//   lifestyleLoading,
+//   bulkImageData,
+//   backgroundNotice,
+// });
+
+
+// useEffect(() => {
+//   const saved = localStorage.getItem("image_creation_state");
+//   if (saved) {
+//     const state = JSON.parse(saved);
+
+//     // setPreviewImages(state.previewImages || []);
+//     setLifestyleImages(state.lifestyleImages || []);
+//     // setSelectedImage(state.selectedImage);
+//     setShotMapping(state.shotMapping || {});
+//     setSessionId(state.sessionId);
+//     setSessionStatus(state.sessionStatus);
+//     setIsFirstApiDone(state.isFirstApiDone);
+//     setIsLifestyleDone(state.isLifestyleDone);
+//     setLifestyleLoading(state.lifestyleLoading);
+//     // setBulkImageData(state.bulkImageData || {});
+//     setBackgroundNotice(state.backgroundNotice || null);
+//   }
+// }, []);
 
 
     // ---------- JSX ----------

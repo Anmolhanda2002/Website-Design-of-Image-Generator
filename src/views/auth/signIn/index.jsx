@@ -103,13 +103,13 @@ const cleanedPassword = password.trim().replace(/\s+/g, "");
 
       // ✅ Role-based navigation
       if (user.roles.includes("Administrator")) {
-        navigate("/admin/default");
+        navigate("/admin/generatevideo");
       } else if (user.roles.includes("Standard User")) {
-        navigate("/admin/default");
+        navigate("/admin/generatevideo");
       } else if (user.roles.includes("SuperAdmin")) {
         navigate("/admin/default");
       } else {
-        navigate("/");
+        navigate("/admin/generatevideo");
       }
     } else {
       toast({

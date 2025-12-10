@@ -851,25 +851,52 @@ setLifestyleLoading(false);
   /* ------------------------------------------
       CLEAR ALL
   ------------------------------------------- */
-  const handleClear = () => {
-    setPreviewImages([]);
-    setLifestyleImages([]);
-    setSelectedImage(null);
-    setShotMapping({});
-    setSessionId(null);
-     setSessionStatus(null)
+const handleClear = () => {
+  Swal.fire({
+    title: "Are you sure?",
+    text: "Image saved in Asset. Proceed to create new?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, create new",
+    cancelButtonText: "Cancel",
+    background: isDark ? "#14225C" : "#fff",
+    color: isDark ? "#fff" : "#000",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // 🔥 Clear all states
+      setPreviewImages([]);
+      setLifestyleImages([]);
+      setSelectedImage(null);
+      setShotMapping({});
+      setSessionId(null);
+      setSessionStatus(null);
 
-    setIsFirstApiDone(false);
-    setIsLifestyleDone(false);
-setLifestyleLoading(false);
-    setBulkImageData((prev) => ({
-      ...prev,
-      product_images: { front: "", back: "" },
-      csv_file: "",
-    }));
+      setIsFirstApiDone(false);
+      setIsLifestyleDone(false);
+      setLifestyleLoading(false);
 
-    setBackgroundNotice(null);
-  };
+      setBulkImageData((prev) => ({
+        ...prev,
+        product_images: { front: "", back: "" },
+        csv_file: "",
+      }));
+
+      setBackgroundNotice(null);
+
+      Swal.fire({
+        title: "Cleared!",
+        text: "Previous session cleared successfully.",
+        icon: "success",
+        timer: 1500,
+        background: isDark ? "#14225C" : "#fff",
+        color: isDark ? "#fff" : "#000",
+        showConfirmButton: false,
+      });
+    }
+  });
+};
+
+
 
   /* ------------------------------------------
       Create Video using selected image
