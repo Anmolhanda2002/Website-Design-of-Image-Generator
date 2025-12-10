@@ -16,6 +16,7 @@ import axiosInstance from "utils/AxiosInstance";
 import Swal from "sweetalert2";
 import { ViewIcon } from "@chakra-ui/icons";
 import { CheckIcon, } from "@chakra-ui/icons";
+
 export default function PreviewArea({
   text,
   setText,
@@ -52,6 +53,7 @@ const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 const [compositions, setCompositions] = useState([]); 
 const [selectedCompositions, setSelectedCompositions] = useState([]);
 const [backgroundMessage, setBackgroundMessage] = useState("");
+const [hasRetried, setHasRetried] = useState(false);
 // in which make the variable  step 1
   // const [generatedImage, setGeneratedImage] = useState("");
   // const [resizedImage, setResizedImage] = useState("");
@@ -239,40 +241,47 @@ const handleSubmit = async () => {
 
   // 1️⃣ GENERATE IMAGE FIRST
 const res1 = await axiosInstance.post(
-"/factory_development_gemini_virtual_tryon_generate/",
-{
-image_urls: images.map((img) => img.url),
-prompt: text,
-use_case: imageCreationSettings?.use_case,
-img_guideline_id: imageCreationSettings?.guidelineId,
-user_id: selectedUser?.user_id,
-model: Number(imageCreationSettings?.model),
+  "/factory_development_gemini_virtual_tryon_generate/",
+  {
+    image_urls: images.map((img) => img.url),
+    prompt: text,
+    use_case: imageCreationSettings?.use_case,
+    img_guideline_id: imageCreationSettings?.guidelineId,
+    user_id: selectedUser?.user_id,
+    model: Number(imageCreationSettings?.model),
 
-
-// Dynamic model_config based on selected model
-...(imageCreationSettings?.model === 456 || imageCreationSettings?.model === "456"
-  ? {
-      model_config: {
-        size: "2K",
-        watermark: false,
-        sequential_image_generation: "disabled",
-        response_format: "url",
-      },
-    }
-  : imageCreationSettings?.model === 789 || imageCreationSettings?.model === "789"
-  ? {
-      model_config: {
-        image_size: "4K",
-        aspect_ratio: "16:9",
-        thinking_level: "high",
-        search_enabled: false,
-      },
-    }
-  : {}),
-
-
-}
+    // Dynamic model_config based on selected model
+    ...(imageCreationSettings?.model === 456 || imageCreationSettings?.model === "456"
+      ? {
+          model_config: {
+            size: "2K",
+            watermark: false,
+            sequential_image_generation: "disabled",
+            response_format: "url",
+          },
+        }
+      : imageCreationSettings?.model === 789 || imageCreationSettings?.model === "789"
+      ? {
+          model_config: {
+            image_size: "4K",
+            aspect_ratio: "16:9",
+            thinking_level: "high",
+            search_enabled: false,
+          },
+        }
+      : imageCreationSettings?.model === 10 || imageCreationSettings?.model === "10"
+      ? {
+          model_config: {
+            size: "4K",
+            aspect_ratio: "1:1",
+            response_format: "url",
+            watermark: false,
+          },
+        }
+      : {}),
+  }
 );
+
 
 
 
@@ -511,29 +520,52 @@ const statusRes = await axiosInstance.get("/get_video_status/", {
 
       if (videoUrls?.raw && !generatedVideo) setGeneratedVideo(videoUrls.raw);
 
-      if (videoStatus === "completed" && videoUrls?.raw) {
-        clearInterval(interval);
-        setGeneratedVideo(videoUrls.raw);
-        setVideoStatus("completed");
-        toast({
-          title: "Video ready!",
-          description: "Video generation completed successfully.",
-          status: "success",
-          duration: 4000,
-          isClosable: true,
-          position: "top-right",
-        });
-      } else if (videoStatus === "failed" || retryCount >= 30) {
-        clearInterval(interval);
-        setVideoStatus("failed");
-        toast({
-          title: videoStatus === "failed" ? "Video generation failed" : "Video not ready yet",
-          status: videoStatus === "failed" ? "error" : "warning",
-          duration: 4000,
-          isClosable: true,
-          position: "top-right",
-        });
-      }
+     if (videoStatus === "completed" && videoUrls?.raw) {
+  clearInterval(interval);
+  setGeneratedVideo(videoUrls.raw);
+  setVideoStatus("completed");
+
+  toast({
+    title: "Video ready!",
+    description: "Video generation completed successfully.",
+    status: "success",
+    duration: 4000,
+    isClosable: true,
+    position: "top-right",
+  });
+
+} else if (videoStatus === "failed") {
+
+  if (!hasRetried) {
+    // FIRST FAILURE → allow ONE more retry
+    setHasRetried(true);
+    console.log("Retrying one last time...");
+  } else {
+    // SECOND FAILURE → stop completely
+    clearInterval(interval);
+    setVideoStatus("failed");
+
+    toast({
+      title: "Video generation failed",
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+      position: "top-right",
+    });
+  }
+
+} else if (retryCount >= 30) {
+  clearInterval(interval);
+  setVideoStatus("failed");
+
+  toast({
+    title: "Video not ready yet",
+    status: "warning",
+    duration: 4000,
+    isClosable: true,
+    position: "top-right",
+  });
+}
     } catch (err) {
       clearInterval(interval);
       setVideoStatus("failed");
@@ -595,7 +627,7 @@ useEffect(() => {
       setCompositions(formatted);
     })
     .catch((err) => {
-      console.log("Composition fetch error:", err);
+      // console.log("Composition fetch error:", err);
       setCompositions([]); // ensure empty UI fallback
     })
     .finally(() => setSubmittingCompositions(false));

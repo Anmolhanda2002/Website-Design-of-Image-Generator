@@ -575,6 +575,7 @@ const [showFinalPreview, setShowFinalPreview] = useState(false);
             flex="1"
             minW="250px"
             maxH="450px"
+            mt={10}
             overflowY="auto"
             p={3}
             border="1px solid"

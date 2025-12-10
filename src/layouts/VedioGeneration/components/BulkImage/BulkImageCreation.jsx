@@ -61,7 +61,7 @@ const [backUploading, setBackUploading] = useState(false);
 const [shotnameoutside,setshotnameoutside]=useState(null)
 const [sessionStatus, setSessionStatus] = useState(null);
 useEffect(() => {
-  console.log(IsOutsideLifestyleShot, lifestyleSelected);
+  // console.log(IsOutsideLifestyleShot, lifestyleSelected);
   if (IsOutsideLifestyleShot && lifestyleSelected?.image_url) {
     setPreviewImages([lifestyleSelected?.image_url]); // wrap in array
     setSelectedImage(lifestyleSelected?.image_url);
@@ -199,6 +199,16 @@ const handleSubmitImage = async () => {
         aspect_ratio: bulkImageData.aspect_ratio,
         thinking_level: bulkImageData.thinking_level,
         search_enabled: bulkImageData.search_enabled,
+      }
+    }
+      else if (bulkImageData.model === 10) {
+      baseBody.model_config = {
+        
+        aspect_ratio: bulkImageData.aspect_ratio,
+       size: bulkImageData.size,
+        watermark: false,
+        
+        response_format: bulkImageData.response_format,
       };
     }
 
@@ -302,10 +312,10 @@ setQaMode(false)
   const selectedData = Object.entries(previewdata).find(
     ([imageUrl]) => imageUrl === url
   );
-  console.log("asf",previewdata)
+  // console.log("asf",previewdata)
   const selectedShotName = previewdata[url]; 
-console.log(selectedShotName)
-  console.log(previewdata)
+// console.log(selectedShotName)
+  // console.log(previewdata)
   if (selectedData) {
     const output = {
       image_url: selectedData[0],
@@ -537,7 +547,7 @@ const startLifestylePolling = (lifestyleId) => {
       clearInterval(interval);
       setIsProcessing(false);
       setLifestyleLoading(false);
-      console.log("Polling Error:", err);
+      // console.log("Polling Error:", err);
     }
   }, 3000);
 };
@@ -550,7 +560,7 @@ const startLifestylePolling = (lifestyleId) => {
 
 
 
-console.log(selectedImage,"asdf",selecteddatauser)
+// console.log(selectedImage,"asdf",selecteddatauser)
 const handleGenerateLifestyle = async () => {
    setSessionStatus(null)
   if (!selectedImage) {
@@ -590,7 +600,7 @@ const handleGenerateLifestyle = async () => {
       guidelineOptions += `<option value="${gd.guideline_id}">${gd.name}</option>`;
     });
   } catch (e) {
-    console.log("Guideline Load Error:", e);
+    // console.log("Guideline Load Error:", e);
   }
 
   // STEP 1 POPUP
@@ -608,6 +618,7 @@ const handleGenerateLifestyle = async () => {
           <option value="123">Model Gem</option>
           <option value="456">Model Sed</option>
           <option value="789">Model Premium</option>
+          <option value="10">Model Sed Premium</option>
         </select>
 
       </div>
@@ -617,15 +628,20 @@ const handleGenerateLifestyle = async () => {
     confirmButtonText: "Next",
     preConfirm: () => {
       const guideline = document.getElementById("guideline").value;
+      const model = document.getElementById("model").value;
       if (!guideline) Swal.showValidationMessage("Please select a guideline");
-      return guideline;
+        if (!model) {
+    Swal.showValidationMessage("Please select a model");
+    return false;
+  }
+      return { guideline, model };;
     },
   });
 
   if (!firstPopup.value) return;
 
-  const guideline = document.getElementById("guideline").value;
-  const model = Number(document.getElementById("model").value);
+const guideline = firstPopup.value.guideline;
+const model = Number(firstPopup.value.model);
   let modelConfig = null;
 
   // -------- MODEL 456 POPUP --------
@@ -713,6 +729,63 @@ const handleGenerateLifestyle = async () => {
       search_enabled: document.getElementById("search789").value === "true",
     };
   }
+
+// -------- MODEL 10 POPUP --------
+if (model === 10) {
+  const popup10 = await Swal.fire({
+    title: "Model 10 Settings",
+    html: `
+      <div style="width:100%; max-width:350px; margin:auto;">
+
+        <label style="font-weight:600;">Size</label>
+        <select id="size10" style="width:100%; height:38px;">
+          <option value="2K">2K</option>
+          <option value="4K">4K</option>
+        </select>
+
+        <br/><br/>
+
+        <label style="font-weight:600;">Aspect Ratio</label>
+        <select id="aspect10" style="width:100%; height:38px;">
+          <option value="9:16">9:16</option>
+          <option value="16:9">16:9</option>
+          <option value="1:1">1:1</option>
+          <option value="3:4">3:4</option>
+          <option value="4:5">4:5</option>
+        </select>
+
+        <br/><br/>
+
+        <label style="font-weight:600;">Response Format</label>
+        <select id="response10" style="width:100%; height:38px;">
+          <option value="url">URL</option>
+          <option value="base64">Base64</option>
+        </select>
+
+        <br/><br/>
+
+        <label style="font-weight:600;">Watermark</label>
+        <select id="watermark10" style="width:100%; height:38px;">
+          <option value="false">Disabled</option>
+          <option value="true">Enabled</option>
+        </select>
+
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Generate",
+  });
+
+  if (!popup10.value) return;
+
+  modelConfig = {
+    size: document.getElementById("size10").value,
+    aspect_ratio: document.getElementById("aspect10").value,
+    response_format: document.getElementById("response10").value,
+    watermark: document.getElementById("watermark10").value === "true",
+  };
+}
+
 
   // FINAL API BODY for Lifestyle
   const body = {
@@ -832,34 +905,50 @@ setLifestyleLoading(false);
 
 // Handle editing a selected image
 const handleEdit = async () => {
-  console.log("pre",previewdata)
+  // console.log("previewdata:", previewdata);
+  // console.log("selectedImage:", selectedImage);
+
   if (!selectedImage) {
     Swal.fire("Error", "No image selected", "error");
     return;
   }
 
-  console.log("pre",previewdata)
-  if (!previewdata || !previewdata.generated_variations) {
-    Swal.fire("Error", "No generated variations available", "error");
-    return;
-  }
+  const generated = previewdata.generated_compositions || {};
+  const edited = previewdata.edited_compositions || {};
 
-  // --- IMPORTANT ---
-  // Find the selected variation by URL
-  const selectedImageData =
-    previewdata.generated_variations.find(
-      (item) => item.image_url === selectedImage
-    ) ||
-    previewdata.generated_variations.find(
-      (item) => item.edited_image_url === selectedImage
+  // Convert both objects into arrays
+  const allImages = [
+    ...Object.values(generated),
+    ...Object.values(edited),
+  ];
+
+  // Find selected image from ALL images
+  const selectedImageData = allImages.find((img) => {
+    return (
+      img.image_url === selectedImage ||
+      img.edited_image_url === selectedImage
     );
+  });
+
 
   if (!selectedImageData) {
     Swal.fire("Error", "Selected image data missing", "error");
     return;
   }
 
-  // Swal ask user for edit prompt
+    const composition_id =
+    selectedImageData.edited_composition_id ||
+    selectedImageData.composition_id;
+
+  if (!composition_id) {
+    Swal.fire("Error", "Composition ID missing", "error");
+    return;
+  }
+
+  // console.log("FOUND COMPOSITION ID:", composition_id);
+  // -------------------------------
+  // ASK USER FOR PROMPT + MODEL
+  // -------------------------------
   const { value: editData } = await Swal.fire({
     title: "Edit Lifestyle Image",
     html: `
@@ -869,9 +958,10 @@ const handleEdit = async () => {
 
         <label style="font-weight:bold;">Model</label>
         <select id="editModel" class="swal2-select">
-            <option value="123">Model Gem</option>
+          <option value="123">Model Gem</option>
           <option value="456">Model Sed</option>
-          <option value="789">Model Premium</option>
+          <option value="789" selected>Model Premium</option>
+          <option value="10" selected>Model Sed Premium</option>
         </select>
       </div>
     `,
@@ -881,6 +971,7 @@ const handleEdit = async () => {
     preConfirm: () => {
       const prompt = document.getElementById("editPrompt").value.trim();
       const model = Number(document.getElementById("editModel").value);
+
       if (!prompt) {
         Swal.showValidationMessage("Prompt cannot be empty");
         return false;
@@ -891,7 +982,7 @@ const handleEdit = async () => {
 
   if (!editData) return;
 
-  // Loading Swal
+  // Loading popup
   Swal.fire({
     title: "Processing...",
     html: "Editing image... This may take 2–3 minutes.",
@@ -900,19 +991,18 @@ const handleEdit = async () => {
   });
 
   try {
-    // Sending API request
     const body = {
       user_id: selectedUser?.user_id,
       lifestyle_id: previewdata.lifestyle_id,
 
-      // IMPORTANT: If edited_composition_id exists → use that for next edit
-      composition_id:
-        selectedImageData.edited_composition_id ||
-        selectedImageData.composition_id,
+      // ⚠ CORRECT ID HANDLING
+      composition_id:composition_id,
 
       prompt: editData.prompt,
-      model: editData.model || 789,
+      model: editData.model,
     };
+
+    // console.log("API BODY:", body);
 
     const res = await axiosInstance.post(
       "/factory_edit_lifestyle_composition/",
@@ -923,6 +1013,7 @@ const handleEdit = async () => {
     const editedCompositionId = res.data?.data?.edited_composition_id;
     const originalCompositionId = res.data?.data?.original_composition_id;
 
+    
     if (!editedImageUrl || !editedCompositionId) {
       Swal.close();
       Swal.fire("Error", "Invalid API response", "error");
@@ -931,7 +1022,7 @@ const handleEdit = async () => {
 
     Swal.close();
 
-    // Preview Swal
+    // Show preview popup
     const { isConfirmed } = await Swal.fire({
       title: "Edited Image Preview",
       html: `<img src="${editedImageUrl}" style="width:100%;border-radius:8px;" />`,
@@ -942,24 +1033,15 @@ const handleEdit = async () => {
 
     if (!isConfirmed) return;
 
-    // Add this new edited image as NEW VARIATION ✔
-    setpreviewdata((prev) => ({
-      ...prev,
-      generated_variations: [
-        ...prev.generated_variations,
-        {
-          image_url: editedImageUrl,
-          composition_id: editedCompositionId,
-          original_composition_id: originalCompositionId,
-          is_edited: true,
-        },
-      ],
-    }));
+    // -------------------------------
+    // ADD NEW EDITED VARIATION
+    // -------------------------------
+ setPreviewImages((prev) => [...prev, editedImageUrl]);
 
-    // Add to preview list
-    setPreviewImages((prev) => [...prev, editedImageUrl]);
+    // Update preview images list
+    // setPreviewImages((prev) => [...prev, editedImageUrl]);
 
-    // Select the new edited image
+    // Auto select new image
     setSelectedImage(editedImageUrl);
 
     Swal.fire("Success!", "Image edited successfully!", "success");
@@ -967,13 +1049,12 @@ const handleEdit = async () => {
     Swal.close();
     Swal.fire(
       "Error",
-      err?.response?.data?.message ||
-        err.message ||
-        "Failed to edit image",
+      err?.response?.data?.message || err.message || "Failed to edit image",
       "error"
     );
   }
 };
+
 
 
 
@@ -1057,7 +1138,7 @@ const handleQAMultiSelect = (imageUrl) => {
     return [...prev, imageUrl];
   });
 
-  console.log("asfd",)
+  // console.log("asfd",)
 };
 
 
@@ -1114,8 +1195,21 @@ const handleQualityAnalysis = async () => {
   // read popup values
   const autoRefine = document.getElementById("autoRefine").value === "true";
   const maxRefine = Number(document.getElementById("maxRefine").value);
-const analyzeShots = selectedImagesForQA.map((url) => previewdata[url]);
+let analyzeShots = selectedImagesForQA
+  .map((url) => previewdata[url])
+  .filter(Boolean);
 
+// If previewdata returns a single string → wrap into array
+if (analyzeShots.length === 1 && typeof analyzeShots[0] === "string") {
+  analyzeShots = [analyzeShots[0]];
+}
+
+// If empty and shotnameoutside exists → ensure array
+if (analyzeShots.length === 0 && shotnameoutside) {
+  analyzeShots = Array.isArray(shotnameoutside)
+    ? [...shotnameoutside]
+    : [shotnameoutside];   // convert string → array
+}
 if (!analyzeShots.length) {
   toast({ title: "Shot names missing", status: "warning" });
   return;
@@ -1186,7 +1280,7 @@ const startQCRPolling = (sessionId) => {
       }
 
     } catch (e) {
-      console.log("QCR polling error:", e);
+      // console.log("QCR polling error:", e);
       clearInterval(interval);
     }
   }, 3000); // polls every 3 seconds
@@ -1212,7 +1306,7 @@ const startQCRPolling = (sessionId) => {
 
 
   return (
-    <Box w="100%" p={5}>
+    <Box w="100%" p={2}>
   {/* -----------------------------------------------------
          STATES YOU MUST ADD OUTSIDE THIS RETURN:
          ----------------------------------------------
@@ -1241,7 +1335,7 @@ const startQCRPolling = (sessionId) => {
   bg={cardBg}
   borderRadius="xl"
   border={`1px solid ${borderColor}`}
-  mt="-20px"
+  mt="-40px"
   p={4}
   overflow="hidden"
   position="relative"
@@ -1291,7 +1385,7 @@ const startQCRPolling = (sessionId) => {
       </Flex>
     ) : (
       <Text mt={3} fontSize="18px" fontWeight="600" color={textColor}>
-        Your product shots are being generated. This may take 2–3 minutes.
+        Your  shots are being generated. This may take 2–3 minutes.
       </Text>
     )}
   </Flex>
