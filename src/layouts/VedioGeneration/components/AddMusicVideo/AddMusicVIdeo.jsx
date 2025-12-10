@@ -191,7 +191,7 @@ export default function AddMusic({ selectedUser, MusicData, SetMusicData }) {
           });
         
       } catch (err) {
-        console.log("Polling error:", err);
+        // console.log("Polling error:", err);
       }
     }, 3000);
   };

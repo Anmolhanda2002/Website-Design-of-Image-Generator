@@ -811,7 +811,7 @@ if (model === 10) {
 
     const data = res.data;
     const lifestyleId = data.lifestyle_id;
-console.log("asf",lifestyleId)
+// console.log("asf",lifestyleId)
     // Show whatever URLs API returns in first response
     // const urls = Object.values(data.image_urls || {}).filter(Boolean);
 

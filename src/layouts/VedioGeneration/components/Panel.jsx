@@ -2290,7 +2290,7 @@ color={textcolor}
             { label: "15", icon: MdAccessTime },
           ].map((item) => {
             const isSelected = imageToVideoSettings.duration === item.label;
-            console.log(isSelected)
+            {/* console.log(isSelected) */}
             return (
               <Flex
                 key={item.label}

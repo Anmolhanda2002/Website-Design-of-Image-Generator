@@ -37,7 +37,7 @@ function NewPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
 
-  console.log("Asfda")
+  // console.log("Asfda")
   const handleResetPassword = async () => {
     if (password.length < 8) {
       toast({
