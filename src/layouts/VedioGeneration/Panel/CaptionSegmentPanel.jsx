@@ -150,6 +150,7 @@ const CaptionSegmentPanel = ({ captionData, setCaptionData, colorMode, textcolor
           <Text fontWeight="bold">X Position</Text>
           <Input
             placeholder="e.g. 5%"
+            _placeholder={{ color: textcolor }}
             value={captionData.x || ""}
             onChange={(e) => setCaptionData((prev) => ({ ...prev, x: e.target.value }))}
             mt={2}
@@ -160,6 +161,7 @@ const CaptionSegmentPanel = ({ captionData, setCaptionData, colorMode, textcolor
           <Text fontWeight="bold">Y Position</Text>
           <Input
             placeholder="e.g. 10%"
+            _placeholder={{ color: textcolor }}
             value={captionData.y || ""}
             onChange={(e) => setCaptionData((prev) => ({ ...prev, y: e.target.value }))}
             mt={2}

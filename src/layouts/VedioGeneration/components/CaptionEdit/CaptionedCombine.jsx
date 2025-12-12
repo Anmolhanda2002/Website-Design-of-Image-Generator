@@ -4,6 +4,7 @@ import VideoGrid from "./VideoGrid";
 import ProcessingView from "./ProcessingView";
 import axiosInstance from "utils/AxiosInstance";
 import { MdPlayCircle } from "react-icons/md";
+import { useColorMode } from "@chakra-ui/react";
 
 const transitionOptions = [
   "none","fade","dissolve","slide","slideright","slideleft",
@@ -16,7 +17,7 @@ const transitionOptions = [
 export default function CaptionedCombine({ selectedUser }) {
   const toast = useToast();
   const intervalRef = useRef(null);
-
+const { colorMode } = useColorMode();
   const [videos, setVideos] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -135,7 +136,7 @@ export default function CaptionedCombine({ selectedUser }) {
   return (
     <Box minH="100vh" p={4}>
       <Flex justify="space-between" mb={6} flexWrap="wrap">
-        <Text fontSize="2xl" fontWeight="bold">Captioned Video Combine</Text>
+        <Text fontSize="2xl" fontWeight="bold">Captioned Edit</Text>
 
         {!processing && !pollingStarted && (
           <Flex gap={4} mt={{ base: 4, md: 0 }}>
@@ -143,6 +144,12 @@ export default function CaptionedCombine({ selectedUser }) {
               value={transitionEffect} 
               onChange={(e) => setTransitionEffect(e.target.value)} 
               w="200px"
+              sx={{
+    "& option": {
+      backgroundColor: colorMode === "dark" ? "#14225C" : "#FFFFFF",
+      color: colorMode === "dark" ? "#FFFFFF" : "#14225C",
+    },
+  }}
             >
               {transitionOptions.map(effect => (
                 <option key={effect} value={effect}>

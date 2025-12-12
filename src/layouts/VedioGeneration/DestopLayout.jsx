@@ -10,9 +10,13 @@ import Sidebar from "./components/Sidebar";
 const EditVedioComponent = React.lazy(() =>
   import("./components/EditPreviewBox/EditPreviewBox")
 );
+// const CaptionedSegment = React.lazy(() =>
+//   import("./components/CaptionSegment/CaptionSegment")
+// );
 const CaptionedSegment = React.lazy(() =>
-  import("./components/CaptionSegment/CaptionSegment")
+  import("./components/CaptionSegment/CaptionedEdit")
 );
+
 const CaptionedEdit = React.lazy(() =>
   import("./components/CaptionEdit/CaptionedCombine")
 );
@@ -236,7 +240,7 @@ export default function DesktopLayout(props) {
               flex="1"
               h="calc(100vh - 70px)"
               p={6}
-              overflow="hidden"
+              overflow="auto"
               display="flex"
               flexDirection="column"
             >

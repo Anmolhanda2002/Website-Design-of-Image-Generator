@@ -311,7 +311,7 @@ export default function CaptionedEdit({ selectedUser, MergeData, setMergeData })
     <Flex direction="column" w="100%" p={6} h="100vh" mb={10}>
       <Flex justify="space-between" align="center">
         <Text fontSize="2xl" fontWeight="bold">
-          Captioned Videos
+          Merge Videos
         </Text>
 
         <Button
