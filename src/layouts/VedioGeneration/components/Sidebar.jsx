@@ -19,7 +19,7 @@ import {
   MdMergeType,
   MdVolumeUp,
   MdMenu,
-MdPhotoLibrary
+MdPhotoLibrary,MdCompress
 } from "react-icons/md";
 // import { MdPhotoLibrary } from "react-icons/md";
 // ✅ Sidebar Items
@@ -27,6 +27,7 @@ export const sidebarItems = [
   { name: "Studio Shot", icon: MdPhotoLibrary },
   { name: "Image Creation", icon: MdBrush },
   { name: "Resize Image", icon: MdCrop },
+  { name: "Compress Image", icon: MdCompress },
   { name: "Image to Video", icon: MdMovie },
   { name: "Edit Video", icon: MdEdit },
   { name: "Caption Segment", icon: MdTextFields },

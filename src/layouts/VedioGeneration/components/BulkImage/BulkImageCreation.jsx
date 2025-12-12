@@ -192,6 +192,9 @@ const handleSubmitImage = async () => {
         watermark: false,
         sequential_image_generation: bulkImageData.sequential_image_generation,
         response_format: bulkImageData.response_format,
+        enable_multi_scale: bulkImageData.enable_multi_scale,
+zoom_factor: parseFloat(bulkImageData.zoom_factor),
+
       };
     } else if (bulkImageData.model === 789) {
       baseBody.model_config = {
@@ -199,6 +202,8 @@ const handleSubmitImage = async () => {
         aspect_ratio: bulkImageData.aspect_ratio,
         thinking_level: bulkImageData.thinking_level,
         search_enabled: bulkImageData.search_enabled,
+              enable_multi_scale: bulkImageData.enable_multi_scale,
+zoom_factor: parseFloat(bulkImageData.zoom_factor),
       }
     }
       else if (bulkImageData.model === 10) {
@@ -1155,7 +1160,10 @@ let qualityController = null;
 
   };
 
-const handleQAMultiSelect = (imageUrl) => {
+const handleQAMultiSelect = (imageUrl
+
+
+) => {
   setSelectedImagesForQA((prev) => {
     if (prev.includes(imageUrl)) {
       // remove if already selected
@@ -1172,27 +1180,30 @@ const handleQAMultiSelect = (imageUrl) => {
 
   {/* QUALITY ANALYSIS ACTION */}
 const handleQualityAnalysis = async () => {
+  // 1️⃣ CHECK IMAGE SELECTION
   if (!selectedImagesForQA || selectedImagesForQA.length === 0) {
     toast({ title: "Select shots first", status: "warning" });
     return;
   }
 
-  const isDark = colorMode === "dark";
+  // Show loader immediately when user starts analysis
+  setQaLoading(true);
 
-  // Popup theme injection
+  // 2️⃣ DARK / LIGHT MODE FOR POPUP
+  const isDark = colorMode === "dark";
   const styleTag = document.createElement("style");
   styleTag.innerHTML = `
-    .swal2-popup { background: ${isDark ? "#14225C" : "#fff"} !important; 
+    .swal2-popup { background: ${isDark ? "#14225C" : "#fff"} !important;
                    color: ${isDark ? "#fff" : "#000"} !important;
                    border-radius: 12px; }
     .swal2-title { color: ${isDark ? "#fff" : "#000"} !important; }
-    select, input { background: ${isDark ? "#2D3748" : "#fff"} !important; 
+    select, input { background: ${isDark ? "#2D3748" : "#fff"} !important;
                     color: ${isDark ? "#fff" : "#000"} !important;
                     padding: 6px; border-radius: 6px; }
   `;
   document.head.appendChild(styleTag);
 
-  // -------------------- SETTINGS POPUP --------------------
+  // 3️⃣ SETTINGS POPUP
   const popup = await Swal.fire({
     title: "Quality Analysis Settings",
     html: `
@@ -1203,7 +1214,7 @@ const handleQualityAnalysis = async () => {
           <option value="false">Disabled</option>
         </select>
 
-        <br /><br />
+        <br/><br/>
 
         <label style="font-weight:600;">Max Refinement Iterations</label>
         <select id="maxRefine" style="width:100%; height:38px;">
@@ -1217,47 +1228,51 @@ const handleQualityAnalysis = async () => {
     confirmButtonText: "Run QCR",
   });
 
-  if (!popup.value) return;
+  if (!popup.value) {
+    setQaLoading(false);
+    return;
+  }
 
-  // read popup values
+  // 4️⃣ READ POPUP VALUES
   const autoRefine = document.getElementById("autoRefine").value === "true";
   const maxRefine = Number(document.getElementById("maxRefine").value);
-let analyzeShots = selectedImagesForQA
-  .map((url) => previewdata[url])
-  .filter(Boolean);
 
-// If previewdata returns a single string → wrap into array
-if (analyzeShots.length === 1 && typeof analyzeShots[0] === "string") {
-  analyzeShots = [analyzeShots[0]];
-}
+  // 5️⃣ PREPARE SHOT LIST
+  let analyzeShots = selectedImagesForQA
+    .map((url) => previewdata[url])
+    .filter(Boolean);
 
-// If empty and shotnameoutside exists → ensure array
-if (analyzeShots.length === 0 && shotnameoutside) {
-  analyzeShots = Array.isArray(shotnameoutside)
-    ? [...shotnameoutside]
-    : [shotnameoutside];   // convert string → array
-}
-if (!analyzeShots.length) {
-  toast({ title: "Shot names missing", status: "warning" });
-  return;
-}
-  // --------------- API BODY ----------------
+  if (analyzeShots.length === 1 && typeof analyzeShots[0] === "string") {
+    analyzeShots = [analyzeShots[0]];
+  }
+
+  if (analyzeShots.length === 0 && shotnameoutside) {
+    analyzeShots = Array.isArray(shotnameoutside)
+      ? [...shotnameoutside]
+      : [shotnameoutside];
+  }
+
+  if (!analyzeShots.length) {
+    setQaLoading(false);
+    toast({ title: "Shot names missing", status: "warning" });
+    return;
+  }
+
+  // 6️⃣ FINAL API BODY
   const body = {
     user_id: selectedUser?.user_id,
-    session_id: sessionId, // SAME as lifestyle
+    session_id: sessionId,
     analyze_shots: analyzeShots,
     auto_refine: autoRefine,
     max_refinement_iterations: maxRefine,
   };
 
   try {
+    // Cancel previous API call if exists
     if (qualityController) qualityController.abort();
     qualityController = new AbortController();
 
-    setQaLoading(true); // SAME AS OTHER FUNCTION
-
-    
-    // --------------- CALL ANALYSIS API ----------------
+    // BEGIN API CALL
     const res = await axiosInstance.post(
       "/api/bulk-shots/quality-analysis/",
       body,
@@ -1267,20 +1282,25 @@ if (!analyzeShots.length) {
     const result = res.data;
     const qcrSessionId = result?.data?.session_id;
 
-    // first update to UI
+    // FIRST UPDATE RESULT IN UI
     setQcrPreview(result.data);
 
-    // --------------- START POLLING ----------------
+    // START POLLING
     startQCRPolling(qcrSessionId);
-
   } catch (err) {
-    if (err.name !== "CanceledError") {
-      Swal.fire("Failed", err?.response?.data?.message || "Something went wrong", "error");
-    }
-  } finally {
     setQaLoading(false);
+
+    if (err.name !== "CanceledError") {
+      toast({
+        title: "Quality Analysis Failed",
+        description: err?.response?.data?.message || "Unexpected error occurred",
+        status: "error",
+        duration: 4000,
+      });
+    }
   }
 };
+
 const startQCRPolling = (sessionId) => {
   if (!sessionId) return;
 
@@ -1292,26 +1312,24 @@ const startQCRPolling = (sessionId) => {
 
       const data = res.data?.data;
 
-      // Update UI on every poll
       setQcrPreview(data);
 
-      // If API provides percentage
       if (data?.progress !== undefined) {
-        setQcrProgress(data.progress); // 0-100%
+        setQcrProgress(data.progress);
       }
 
-      // stop polling
       if (data?.status === "completed" || data?.status === "failed") {
         clearInterval(interval);
         setQaLoading(false);
       }
 
     } catch (e) {
-      // console.log("QCR polling error:", e);
       clearInterval(interval);
+      setQaLoading(false);
     }
-  }, 3000); // polls every 3 seconds
+  }, 3000);
 };
+
 
 
 
@@ -1421,9 +1439,9 @@ const startQCRPolling = (sessionId) => {
 {qaLoading && (
   <Box w="100%" mt={3}>
     <Progress value={qcrProgress} size="lg" isAnimated />
-    <Text mt={2} fontSize="sm" textAlign="center">
+    {/* <Text mt={2} fontSize="sm" textAlign="center">
       Processing... {qcrProgress}%
-    </Text>
+    </Text> */}
   </Box>
 )}
   {/* ------------------------------------------
@@ -1563,7 +1581,7 @@ const startQCRPolling = (sessionId) => {
               src={url}
               w="100%"
               h="100%"
-              objectFit="contain"
+              objectFit="cover"
               borderRadius="md"
               transition="all 0.3s ease"
             />

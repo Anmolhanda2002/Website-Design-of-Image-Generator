@@ -34,13 +34,11 @@ import { useNavigate } from "react-router-dom";
 import  { Suspense } from "react";
 import CompressImage from "./components/CompressImage/CompressImage";
 import Sidebar, { MobileSidebarItems, MobileMenuButton } from "./components/Sidebar"; 
-import DesktopLayout from "./DestopLayout";
 // import Panel from "./components/Panel";
 // import PreviewArea from "./components/Privewarea";
 // import EditVedioComponent from "./components/EditPreviewBox/EditPreviewBox";
 import Image from "assets/image.png";
 import axiosInstance from "utils/AxiosInstance";
-import Navbar from "./Navbar";
 // import CaptionedSegment from "./components/CaptionSegment/CaptionSegment";
 // import CaptionedEdit from "./components/CaptionEdit/CaptionEdit";
 // import MergeVideo from "./components/MergeData/MergeVideo";
@@ -51,8 +49,6 @@ import Navbar from "./Navbar";
 
 const Panel = React.lazy(() => import("./components/Panel"));
 const PreviewArea = React.lazy(() => import("./components/Privewarea"));
-const MobileLayout = React.lazy(()=>import('./MobileLayout'))
-const DestopLayout = React.lazy(()=>import('./DestopLayout'))
 const EditVedioComponent = React.lazy(() =>
   import("./components/EditPreviewBox/EditPreviewBox")
 );
@@ -170,9 +166,6 @@ export default function PixVerseLayout() {
   const placeholderColor = useColorModeValue("gray.500", "gray.300");
   const iconColor = useColorModeValue("gray.500", "gray.400");
   const bg=useColorModeValue("gray.50", "#14225C")
-  
-
-  
   
 
 
@@ -618,76 +611,130 @@ useEffect(() => {
 // }, []);
 
 
-
-// Before your return
-const allProps = {
-  activeTab,
-  setActiveTab,
-  selectedUser,
-  images,
-  setImages,
-  generatedVideo,
-  setGeneratedVideo,
-  generatedImage,
-  setGeneratedImage,
-  resizedImage,
-  setResizedImage,
-  previewData,
-  setPreviewData,
-  text,
-  setText,
-  loadingImages,
-  setLoadingImages,
-  sending,
-  setSending,
-  model,
-  setModel,
-  duration,
-  setDuration,
-  resolution,
-  setResolution,
-  ratio,
-  setRatio,
-  imageCreationSettings,
-  setImageCreationSettings,
-  resizeImageSettings,
-  setResizeImageSettings,
-  imageToVideoSettings,
-  setImageToVideoSettings,
-  captionData,
-  setCaptionData,
-  MergeData,
-  setMergeData,
-  BulkData,
-  
-  setBulkData,
-  compressdata,
-  setcompressdata,
-  MusicData,
-  SetMusicData,
-  lastimagetovideo,
-  setlastimagetovideo,
-  lifestyleSelected,
-  IsOutsideLifestyleShot,
-  resetTrigger,
-};
-
-
     // ---------- JSX ----------
     return (
         <Flex direction="column" h="100vh" overflow="hidden">
             {/* ---------- Navbar ---------- */}
-<Navbar
-  isManager={isManager}
-  selectedUser={selectedUser}
-  setSelectedUser={setSelectedUser}
-  allUsers={allUsers}
-  filteredUsers={filteredUsers}
-  handleSearch={handleSearch}
-  dropdownLoading={dropdownLoading}
-  onOpen={onOpen} // <--- important
-/>
+<Flex
+  h="70px"
+  px={6}
+  py={3}
+  bg={navbarBg}
+  align="center"
+  justify="space-between"
+  borderBottom="1px solid"
+  borderColor={useColorModeValue("gray.200", "gray.700")}
+  flexShrink={0}
+>
+  <Flex align="center" gap={4}>
+    <Button
+      onClick={() => navigate(-1)}
+      size="sm"
+      bg={useColorModeValue("blue.500", "blue.400")}
+      color="white"
+      _hover={{ bg: useColorModeValue("blue.600", "blue.500") }}
+      p={2}
+      borderRadius="full"
+    >
+      <MdArrowBack size={18} />
+    </Button>
 
+    <Flex align="center" gap={2}>
+      <Box as="img" src={Image} alt="Hygaar Logo" boxSize="30px" borderRadius="md" />
+      <Text fontSize="lg" fontWeight="bold">Hygaar</Text>
+    </Flex>
+  </Flex>
+
+  <HStack spacing={4}>
+    {isManager && (
+      <Menu>
+        <MenuButton
+          as={Button}
+          size="sm"
+          variant="outline"
+          borderColor={borderColor}
+          _hover={{ bg: hoverBg }}
+        >
+          {selectedUser ? selectedUser.username : "Own"}
+        </MenuButton>
+        <MenuList
+          p={3}
+          borderRadius="md"
+          bg={menuBg}
+          boxShadow={shadow}
+          minW="200px"
+          maxH="260px"
+          overflowY="auto"
+        >
+          <InputGroup mb={2}>
+            <InputLeftElement pointerEvents="none">
+              <SearchIcon color="gray.400" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search users..."
+              size="sm"
+              value={searchTerm}
+              onChange={handleSearch}
+                  bg={inputBg}
+    borderColor={inputBorder}
+    color={inputColor}
+    _placeholder={{ color: placeholderColor }}
+    _focus={{ borderColor: selectedBg }}
+            />
+          </InputGroup>
+
+          <MenuItem
+            onClick={() => handleSelectUser(null)}
+            borderRadius="md"
+            _hover={{ bg: hoverBg }}
+            fontWeight={
+              !selectedUser || selectedUser?.user_id === user.user_id ? "600" : "normal"
+            }
+                bg={!selectedUser ? selectedBg : "transparent"}
+  
+          >
+            Own
+          </MenuItem>
+
+          {dropdownLoading ? (
+            <Flex justify="center" align="center" py={2}>
+              <Spinner size="sm" />
+            </Flex>
+          ) : filteredUsers.length > 0 ? (
+            filteredUsers.map((u) => (
+              <MenuItem
+                key={u.user_id}
+                onClick={() => handleSelectUser(u)}
+                borderRadius="md"
+             
+                fontWeight={
+                  selectedUser?.user_id === u.user_id ? "600" : "normal"
+                }
+                bg={selectedUser?.user_id === u.user_id ? selectedBg : "transparent"}
+        _hover={{
+          bg: selectedUser?.user_id === u.user_id ? selectedBg : hoverBg,
+        }}
+    
+              >
+                {u.username}
+              </MenuItem>
+            ))
+          ) : (
+            <Text fontSize="sm" color="gray.500" textAlign="center" py={2}>
+              No users found
+            </Text>
+          )}
+        </MenuList>
+      </Menu>
+    )}
+
+    <Button onClick={toggleColorMode} size="sm" variant="ghost" p={2} borderRadius="full">
+      {colorMode === "light" ? "🌙" : "☀️"}
+    </Button>
+
+    <MobileMenuButton onOpen={onOpen} />
+  </HStack>
+</Flex>
 
 
             {/* =========================================================
@@ -711,59 +758,276 @@ const allProps = {
 
             {/* ---------- BODY ---------- */}
            {isMobile ? (
- <MobileLayout
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          selectedUser={selectedUser}
-          images={images}
-          setImages={setImages}
-          generatedVideo={generatedVideo}
-          setGeneratedVideo={setGeneratedVideo}
-          generatedImage={generatedImage}
-          setGeneratedImage={setGeneratedImage}
-          resizedImage={resizedImage}
-          setResizedImage={setResizedImage}
-          previewData={previewData}
-          setPreviewData={setPreviewData}
-          text={text}
-          setText={setText}
-          loadingImages={loadingImages}
-          setLoadingImages={setLoadingImages}
-          sending={sending}
-          setSending={setSending}
-          model={model}
-          setModel={setModel}
-          duration={duration}
-          setDuration={setDuration}
-          resolution={resolution}
-          setResolution={setResolution}
-          ratio={ratio}
-          setRatio={setRatio}
-          imageCreationSettings={imageCreationSettings}
-          setImageCreationSettings={setImageCreationSettings}
-          resizeImageSettings={resizeImageSettings}
-          setResizeImageSettings={setResizeImageSettings}
-          imageToVideoSettings={imageToVideoSettings}
-          setImageToVideoSettings={setImageToVideoSettings}
-          captionData={captionData}
-          setCaptionData={setCaptionData}
-          MergeData={MergeData}
-          setMergeData={setMergeData}
-          BulkData={BulkData}
-          setBulkData={setBulkData}
-          compressdata={compressdata}
-          setcompressdata={setcompressdata}
-          MusicData={MusicData}
-          SetMusicData={SetMusicData}
-          lastimagetovideo={lastimagetovideo}
-          setlastimagetovideo={setlastimagetovideo}
-          lifestyleSelected={lifestyleSelected}
-          IsOutsideLifestyleShot={IsOutsideLifestyleShot}
-        />
+  <Flex direction="column" flex="1" overflow="auto" p={3} gap={4}>
 
+    <Suspense fallback={<div>Loading...</div>}>
+
+      {(activeTab === "Edit Video" ||
+        activeTab === "Caption Segment" ||
+        activeTab === "Captioned Edit" ||
+        activeTab === "Merge Video" ||
+        activeTab === "Add Music") ? (
+
+        <Box
+          overflowY="auto"
+          flex="1"
+          p={4}
+          bg={color}
+          borderRadius="lg"
+          boxShadow="md"
+          sx={{
+            "::-webkit-scrollbar": { display: "none" },
+            msOverflowStyle: "none",
+            scrollbarWidth: "none"
+          }}
+        >
+
+          {activeTab === "Studio Shot" && (
+            <BulkImageCreation
+              selectedUser={selectedUser}
+              bulkImageData={BulkData}
+              setBulkImageData={setBulkData}
+              setImages={setImages}
+              setlastimagetovideo={setlastimagetovideo}
+              setActiveTab={setActiveTab}
+              lifestyleSelected={lifestyleSelected}
+              IsOutsideLifestyleShot={IsOutsideLifestyleShot}
+            />
+          )}
+          
+          {activeTab === "Compress Image" && (
+            <CompressImage
+              selectedUser={selectedUser}
+             setcompressdata={setcompressdata}
+             compressdata={compressdata}
+            />
+          )}
+
+
+          {activeTab === "Edit Video" && (
+            <EditVedioComponent
+              selectedUser={selectedUser}
+              previewData={previewData}
+              setActiveTab={setActiveTab}
+              setImages={setImages}
+              setlastimagetovideo={setlastimagetovideo}
+            />
+          )}
+
+          {activeTab === "Caption Segment" && (
+            <CaptionedSegment
+              selectedUser={selectedUser}
+              captionData={captionData}
+              setCaptionData={setCaptionData}
+            />
+          )}
+
+          {activeTab === "Captioned Edit" && (
+            <CaptionedEdit
+              selectedUser={selectedUser}
+              MergeData={MergeData}
+              setMergeData={setMergeData}
+            />
+          )}
+
+          {activeTab === "Merge Video" && (
+            <MergeVideo
+              selectedUser={selectedUser}
+              MergeData={MergeData}
+              setMergeData={setMergeData}
+            />
+          )}
+
+          {activeTab === "Add Music" && (
+            <AddMusic
+              selectedUser={selectedUser}
+              MusicData={MusicData}
+              SetMusicData={SetMusicData}
+            />
+          )}
+
+        </Box>
+      ) : (
+        <>
+          {/* Preview Area */}
+          <PreviewArea
+            setlastimagetovideo={setlastimagetovideo}
+            setActiveTab={setActiveTab}
+            generatedVideo={generatedVideo}
+            setGeneratedVideo={setGeneratedVideo}
+            generatedImage={generatedImage}
+            setGeneratedImage={setGeneratedImage}
+            resizedImage={resizedImage}
+            setResizedImage={setResizedImage}
+            text={text}
+            resetTrigger={resetTrigger}
+            setText={setText}
+            images={images}
+            setImages={setImages}
+            loadingImages={loadingImages}
+            setLoadingImages={setLoadingImages}
+            sending={sending}
+            setSending={setSending}
+            model={model}
+            duration={duration}
+            resolution={resolution}
+            ratio={ratio}
+            activeTab={activeTab}
+            imageCreationSettings={imageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            selectedUser={selectedUser}
+          />
+
+          {/* Panel below Preview */}
+          <Panel
+            setImages={setImages}
+            bulkImageData={BulkData}
+            setBulkImageData={setBulkData}
+            selectedUser={selectedUser}
+            activeTab={activeTab}
+            onDataChange={handleDataChange}
+            model={model}
+            setModel={setModel}
+            duration={duration}
+            setDuration={setDuration}
+            resolution={resolution}
+            setResolution={setResolution}
+            ratio={ratio}
+            setRatio={setRatio}
+            imageCreationSettings={imageCreationSettings}
+            setImageCreationSettings={setImageCreationSettings}
+            resizeImageSettings={resizeImageSettings}
+            setResizeImageSettings={setResizeImageSettings}
+            imageToVideoSettings={imageToVideoSettings}
+            setImageToVideoSettings={setImageToVideoSettings}
+            captionData={captionData}
+            setCaptionData={setCaptionData}
+            MergeData={MergeData}
+            setMergeData={setMergeData}
+             setcompressdata={setcompressdata}
+             compressdata={compressdata}
+          />
+        </>
+      )}
+
+    </Suspense>
+
+  </Flex>
 )  : (
                 /* ===== Desktop Layout (Existing Logic) ===== */
-                <DesktopLayout {...allProps} handleSetActiveTab={handleSetActiveTab} />
+                <Flex flex="1" overflow="hidden">
+                    {/* Sidebar */}
+                    <Box
+                        w="100px" h="calc(100vh - 70px)" overflowY="auto" flexShrink={0}
+                        sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
+                    >
+                        <Sidebar activeTab={activeTab} setActiveTab={handleSetActiveTab} /> {/* ✅ Uses the reset handler */}
+                    </Box>
+<Suspense fallback={ <Flex flex="1" justify="center" align="center"> <Spinner size="xl" thickness="4px" /> </Flex> } >
+                    {/* Conditional Rendering */}
+                    {activeTab === "Edit Video" ? (
+                        <Box
+                            flex="1" bg={bgColor} overflowY="auto" mt={"-50"}
+                            sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}
+                        >
+                            <EditVedioComponent selectedUser={selectedUser}  previewData={previewData}setActiveTab={setActiveTab} setImages={setImages} setlastimagetovideo={setlastimagetovideo}  setclone={setclone} setclonecreationid={setclonecreationid} /> {/* ✅ Uses the reset handler */}
+                        </Box>
+                    ): activeTab ==="Compress Image" ?(
+                      <>
+
+    <Flex flex="1" overflow="auto">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel  selectedUser={selectedUser}  setcompressdata={setcompressdata}
+             compressdata={compressdata} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                              
+<CompressImage selectedUser={selectedUser} setcompressdata={setcompressdata}
+             compressdata={compressdata}/>
+                            </Box>
+                        </Flex>
+
+                      </>
+                    ) : activeTab === "Caption Segment" ? (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel  setcompressdata={setcompressdata}
+             compressdata={compressdata}  selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                                <CaptionedSegment selectedUser={selectedUser} captionData={captionData} setCaptionData={setCaptionData} />
+                            </Box>
+                        </Flex>
+                    ) : activeTab === "Captioned Edit" ? (
+                       <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                              <CaptionedEdit selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                        
+                    ) : activeTab === "Merge Video" ? (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel  setcompressdata={setcompressdata}
+             compressdata={compressdata} selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                                <MergeVideo selectedUser={selectedUser} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                        </Flex>
+                    ) : activeTab === "Add Music" ? (
+                                           <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel   setcompressdata={setcompressdata}
+             compressdata={compressdata} selectedUser={selectedUser}  MusicData={MusicData} SetMusicData={SetMusicData} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                                 <AddMusic selectedUser={selectedUser} MusicData={MusicData} SetMusicData={SetMusicData} />
+                            </Box>
+                        </Flex>
+                       
+                    ) : 
+                     activeTab === "Studio Shot" ? (
+                                              <Flex flex="1" overflow="auto">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel  setcompressdata={setcompressdata}
+             compressdata={compressdata} bulkImageData={BulkData} setBulkImageData={setBulkData}  selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} BulkData={BulkData} setBulkData={setBulkData} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="auto" display="flex" flexDirection="column">
+                               <BulkImageCreation IsOutsideLifestyleShot={IsOutsideLifestyleShot} lifestyleSelected={lifestyleSelected}  selectedUser={selectedUser} bulkImageData={BulkData} setBulkImageData={setBulkData}  setImages={setImages}  setlastimagetovideo={setlastimagetovideo} setActiveTab={setActiveTab}/>
+                            </Box>
+                        </Flex>
+                        
+                    ) : 
+                    
+                    (
+                        <Flex flex="1" overflow="hidden">
+                            {/* Panel */}
+                            <Box w={{ base: "100%", md: "350px" }} h="calc(100vh - 70px)" overflowY="auto" p={4} flexShrink={0} sx={{ "&::-webkit-scrollbar": { display: "none" }, msOverflowStyle: "none", scrollbarWidth: "none", }}>
+                                <Panel  setcompressdata={setcompressdata}
+             compressdata={compressdata}  selectedUser={selectedUser} activeTab={activeTab} onDataChange={handleDataChange} model={model} setModel={setModel} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} setRatio={setRatio} imageCreationSettings={imageCreationSettings} setImageCreationSettings={setImageCreationSettings} resizeImageSettings={resizeImageSettings} setResizeImageSettings={setResizeImageSettings} imageToVideoSettings={imageToVideoSettings} setImageToVideoSettings={setImageToVideoSettings} captionData={captionData} setCaptionData={setCaptionData} MergeData={MergeData} setMergeData={setMergeData} />
+                            </Box>
+                            {/* Preview Area */}
+                            <Box flex="1" h="calc(100vh - 70px)" p={6} overflow="hidden" display="flex" flexDirection="column">
+                                <PreviewArea 
+                                setlastimagetovideo={setlastimagetovideo}
+                                setActiveTab={setActiveTab}
+                                generatedVideo={generatedVideo} setGeneratedVideo={setGeneratedVideo}
+                                generatedImage={generatedImage} setGeneratedImage={setGeneratedImage} resizedImage={resizedImage} setResizedImage={setResizedImage} resetTrigger={resetTrigger} activeTab={activeTab} text={text} setText={setText} images={images} setImages={setImages} loadingImages={loadingImages} setLoadingImages={setLoadingImages} sending={sending} setSending={setSending} model={model} duration={duration} setDuration={setDuration} resolution={resolution} setResolution={setResolution} ratio={ratio} imageCreationSettings={imageCreationSettings} resizeImageSettings={resizeImageSettings} imageToVideoSettings={imageToVideoSettings} selectedUser={selectedUser} />
+                            </Box>
+                        </Flex>
+                    )}
+                    </Suspense>
+                </Flex>
             )}
           
             

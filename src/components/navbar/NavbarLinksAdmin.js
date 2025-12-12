@@ -175,7 +175,7 @@ const handleLogout = async () => {
     const refresh_token = localStorage.getItem("refresh_token");
     await axiosInstance.post("/auth/logout/", { refresh_token });
   } catch {}
-  ["user", "access_token", "refresh_token"].forEach((k) =>
+  ["user", "access_token", "refresh_token","activeTab","image_to_video_session","selected_user","image_creation_session","image_resize_session"].forEach((k) =>
     localStorage.removeItem(k)
   );
   startTransition(() => navigate("/auth/sign-in", { replace: true }));

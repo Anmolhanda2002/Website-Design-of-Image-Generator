@@ -1024,6 +1024,10 @@ const handleVideoGeneration = async () => {
   } catch (err) {
     console.error("Video creation failed:", err);
 
+     setSubmitting(false);
+    setVideoStatus(null);
+    setIsPreviewLoading(false);
+    setIsVideoLoading(false)
     const backendMessage =
       err?.response?.data?.message ||
       err?.response?.data ||
@@ -1037,6 +1041,11 @@ const handleVideoGeneration = async () => {
       isClosable: true,
       position: "top-right",
     });
+
+     setSubmitting(false);
+    setVideoStatus(null);
+    setIsPreviewLoading(false);
+    setIsVideoLoading(false)
   } finally {
     // setSubmitting(false);
     // setVideoStatus(null);
